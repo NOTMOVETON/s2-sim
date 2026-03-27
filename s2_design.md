@@ -429,7 +429,6 @@ params:
 ## 9. Sensor плагины
 
 ### GNSSPlugin [обязательно]
-
 ```
 Публикует в домен робота: /gnss/<name> (sensor_msgs/NavSatFix)
 

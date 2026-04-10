@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "s2_msgs__py",
+		"source" : "/workspace/s2_msgs_ws/build/s2_msgs/s2_msgs__py"
+	}
+}

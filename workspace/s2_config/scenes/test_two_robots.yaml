@@ -1,0 +1,76 @@
+s2:
+  update_rate: 100
+  viz_rate: 30
+
+  world:
+    surface: "flat"
+    geo_origin: {lat: 55.75, lon: 37.62, alt: 150.0}
+
+    geometry:
+      - type: "box"
+        pose: {x: 10.0, y: 0.0, z: 1.0, yaw: 0.0}
+        size: {x: 20.0, y: 0.2, z: 2.0}
+        color: "#808080"
+
+      - type: "box"
+        pose: {x: -10.0, y: 0.0, z: 1.0, yaw: 0.0}
+        size: {x: 20.0, y: 0.2, z: 2.0}
+        color: "#808080"
+
+      - type: "box"
+        pose: {x: 0.0, y: 10.0, z: 1.0, yaw: 0.0}
+        size: {x: 0.2, y: 20.0, z: 2.0}
+        color: "#808080"
+
+      - type: "box"
+        pose: {x: 0.0, y: -10.0, z: 1.0, yaw: 0.0}
+        size: {x: 0.2, y: 20.0, z: 2.0}
+        color: "#808080"
+
+      - type: "box"
+        pose: {x: 0.0, y: 0.0, z: 1.5, yaw: 0.0}
+        size: {x: 2.0, y: 2.0, z: 3.0}
+        color: "#555555"
+
+      - type: "sphere"
+        pose: {x: 5.0, y: 5.0, z: 0.5, yaw: 0.0}
+        radius: 0.5
+        color: "#aa4444"
+
+  agents:
+    - name: "robot_0"
+      pose: {x: -3.0, y: 0.0, z: 0.0, yaw: 0.0}
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#FF6B35"
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.5
+        - type: "gnss"
+          noise_std: 0.5
+        - type: "imu"
+          gyro_noise: 0.01
+          accel_noise: 0.02
+
+    - name: "robot_1"
+      pose: {x: 3.0, y: 0.0, z: 0.0, yaw: 0.0}
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#35A0FF"
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.5
+        - type: "gnss"
+          noise_std: 0.5

@@ -1,0 +1,178 @@
+s2:
+  update_rate: 100
+  viz_rate: 30
+  transport_rate: 100
+
+  transport:
+    type: ros2
+
+  visualizer:
+    enabled: true
+    port: 1937
+
+  world:
+    surface: "flat"
+    geo_origin:
+      lat: 55.7522
+      lon: 37.6156
+      alt: 156.0
+
+  agents:
+    # Robot 0 — dozer с URDF, domain 50
+    - name: "robot_0"
+      id: 0
+      domain_id: 50
+      pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 1.5708}
+
+      urdf: "../robots/dozer.urdf"
+
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 1.5
+
+      visual:
+        type: "box"
+        size: [2.5, 1.5, 1.5]
+        color: "#FF6B35"
+
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.0
+
+        - type: "gnss"
+          noise_std: 0.3
+          publish_rate_hz: 10
+
+        - type: "imu"
+          publish_rate_hz: 100
+
+        - type: "joint_vel"
+          topic: "/cmd_vel_mount"
+          publish_rate_hz: 50
+          joints:
+            - name: "arm"
+              axis: "linear_x"
+              max_vel: 1.0
+            - name: "bucket"
+              axis: "angular_z"
+              max_vel: 1.0
+
+        - type: "color"
+          service: "/set_color"
+          color: "#FF0000"
+          duration: 5.0
+        
+        - type: "trajectory_recorder"
+          record_interval_s: 0.2
+          max_points: 300
+          color: "#FFAA00"
+
+        - type: "path_display"
+          topic: "/plan"
+          color: "#00FF88"
+
+    # Robot 1 — обычный, domain 51
+    - name: "robot_1"
+      id: 1
+      domain_id: 51
+      pose: {x: 10.0, y: 0.0, z: 0.0, yaw: 1.5708}
+
+      urdf: "../robots/dozer.urdf"
+
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#4ECDC4"
+
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.5
+
+        - type: "gnss"
+          noise_std: 0.3
+          publish_rate_hz: 10
+
+        - type: "joint_vel"
+          topic: "/cmd_vel_mount"
+          publish_rate_hz: 50
+          joints:
+            - name: "arm"
+              axis: "linear_x"
+              max_vel: 1.0
+            - name: "bucket"
+              axis: "angular_z"
+              max_vel: 1.0
+
+        - type: "color"
+          service: "/set_color"
+          color: "#FF0000"
+          duration: 5.0
+
+        - type: "trajectory_recorder"
+          record_interval_s: 0.2
+          max_points: 300
+          color: "#FFAA00"
+
+        - type: "path_display"
+          topic: "/plan"
+          color: "#00FF88"
+
+    # Robot 2 — обычный, domain 52
+    - name: "robot_2"
+      id: 2
+      domain_id: 52
+      pose: {x: 20.0, y: 0.0, z: 0.0, yaw: 1.5708}
+
+      urdf: "../robots/dozer.urdf"
+
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#FFE66D"
+
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.5
+
+        - type: "gnss"
+          noise_std: 0.3
+          publish_rate_hz: 10
+
+        - type: "joint_vel"
+          topic: "/cmd_vel_mount"
+          publish_rate_hz: 50
+          joints:
+            - name: "arm"
+              axis: "linear_x"
+              max_vel: 1.0
+            - name: "bucket"
+              axis: "angular_z"
+              max_vel: 1.0
+
+        - type: "color"
+          service: "/set_color"
+          color: "#FF0000"
+          duration: 5.0
+        
+        - type: "trajectory_recorder"
+          record_interval_s: 0.2
+          max_points: 300
+          color: "#FFAA00"
+
+        - type: "path_display"
+          topic: "/plan"
+          color: "#00FF88"

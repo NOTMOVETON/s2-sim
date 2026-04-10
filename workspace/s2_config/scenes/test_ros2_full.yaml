@@ -1,0 +1,112 @@
+s2:
+  update_rate: 100      # Частота симуляции (Гц)
+  viz_rate: 30          # Частота обновления визуализатора (Гц)
+  transport_rate: 100   # Мост вызывается каждый тик; сенсоры управляют своей частотой
+
+  transport:
+    type: ros2
+
+  visualizer:
+    enabled: true
+    port: 8080
+
+  world:
+    surface: "flat"
+    geo_origin:
+      lat: 55.7522      # Москва — широта
+      lon: 37.6156      # Москва — долгота
+      alt: 156.0        # Высота (м над эллипсоидом)
+
+    geometry:
+      - type: "box"
+        pose: {x: 10.0, y: 0.0, z: 0.0, yaw: 0.0}
+        size: {x: 1.0, y: 5.0, z: 0.5}
+        color: "#888888"
+
+  agents:
+    # Robot 0 — domain 0, полный набор плагинов
+    - name: "robot_0"
+      id: 0
+      domain_id: 50
+      pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
+
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#FF6B35"
+
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.5
+          # Команды через /cmd_vel (из command_topics())
+          # Публикует /odom @ каждый bridge tick
+
+        - type: "gnss"
+          noise_std: 0.3
+          publish_rate_hz: 10    # /gnss/fix @ 10 Гц
+          # Для второго GNSS можно добавить: name: "rear"  →  /gnss/rear/fix
+
+        - type: "imu"
+          publish_rate_hz: 100   # /imu/data @ 100 Гц
+
+    # Robot 1 — domain 51
+    - name: "robot_1"
+      id: 1
+      domain_id: 51
+      pose: {x: 3.0, y: 0.0, z: 0.0, yaw: 0.0}
+
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#4ECDC4"
+
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.5
+
+        - type: "gnss"
+          noise_std: 0.3
+          publish_rate_hz: 10
+
+        - type: "imu"
+          publish_rate_hz: 100
+
+    # Robot 2 — domain 52
+    - name: "robot_2"
+      id: 2
+      domain_id: 52
+      pose: {x: -3.0, y: 0.0, z: 0.0, yaw: 0.0}
+
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#FFE66D"
+
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.5
+
+        - type: "gnss"
+          noise_std: 0.3
+          publish_rate_hz: 10
+
+        - type: "imu"
+          publish_rate_hz: 100

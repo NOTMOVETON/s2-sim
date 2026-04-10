@@ -1,0 +1,2 @@
+/usr/bin/ar qc libs2_transport_stub.a CMakeFiles/s2_transport_stub.dir/__/s2_transport/src/ros2_transport_stub.cpp.o
+/usr/bin/ranlib libs2_transport_stub.a

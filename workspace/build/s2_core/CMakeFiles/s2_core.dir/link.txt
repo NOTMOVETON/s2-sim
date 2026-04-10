@@ -1,0 +1,2 @@
+/usr/bin/ar qc libs2_core.a CMakeFiles/s2_core.dir/src/placeholder.cpp.o CMakeFiles/s2_core.dir/src/world_snapshot.cpp.o CMakeFiles/s2_core.dir/src/sim_engine_viz.cpp.o CMakeFiles/s2_core.dir/src/kinematic_tree.cpp.o CMakeFiles/s2_core.dir/src/urdf_loader.cpp.o
+/usr/bin/ranlib libs2_core.a

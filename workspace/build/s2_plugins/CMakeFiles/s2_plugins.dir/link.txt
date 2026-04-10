@@ -1,0 +1,2 @@
+/usr/bin/ar qc libs2_plugins.a CMakeFiles/s2_plugins.dir/src/plugins_registry.cpp.o CMakeFiles/s2_plugins.dir/src/color.cpp.o CMakeFiles/s2_plugins.dir/src/joint_vel.cpp.o
+/usr/bin/ranlib libs2_plugins.a

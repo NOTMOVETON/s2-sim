@@ -1,0 +1,8 @@
+setup.py
+s2_msgs/__init__.py
+s2_msgs.egg-info/PKG-INFO
+s2_msgs.egg-info/SOURCES.txt
+s2_msgs.egg-info/dependency_links.txt
+s2_msgs.egg-info/top_level.txt
+s2_msgs/srv/__init__.py
+s2_msgs/srv/_plugin_call.py

@@ -1,0 +1,566 @@
+Start testing: Apr 09 22:40 UTC
+----------------------------------------------------------
+1/1 Testing: s2_core_tests
+1/1 Test: s2_core_tests
+Command: "/workspace/build/s2_core/s2_core_tests"
+Directory: /workspace/build/s2_core
+"s2_core_tests" start time: Apr 09 22:40 UTC
+Output:
+----------------------------------------------------------
+Running main() from ./googletest/src/gtest_main.cc
+[==========] Running 220 tests from 24 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from Smoke
+[ RUN      ] Smoke.CompilerWorks
+[       OK ] Smoke.CompilerWorks (0 ms)
+[ RUN      ] Smoke.EigenAvailable
+[       OK ] Smoke.EigenAvailable (0 ms)
+[----------] 2 tests from Smoke (0 ms total)
+
+[----------] 23 tests from Vec3
+[ RUN      ] Vec3.DefaultConstructorIsZero
+[       OK ] Vec3.DefaultConstructorIsZero (0 ms)
+[ RUN      ] Vec3.ConstructorWithValues
+[       OK ] Vec3.ConstructorWithValues (0 ms)
+[ RUN      ] Vec3.Addition
+[       OK ] Vec3.Addition (0 ms)
+[ RUN      ] Vec3.Subtraction
+[       OK ] Vec3.Subtraction (0 ms)
+[ RUN      ] Vec3.ScalarMultiplication
+[       OK ] Vec3.ScalarMultiplication (0 ms)
+[ RUN      ] Vec3.ScalarMultiplicationReversed
+[       OK ] Vec3.ScalarMultiplicationReversed (0 ms)
+[ RUN      ] Vec3.Division
+[       OK ] Vec3.Division (0 ms)
+[ RUN      ] Vec3.CompoundAddition
+[       OK ] Vec3.CompoundAddition (0 ms)
+[ RUN      ] Vec3.CompoundSubtraction
+[       OK ] Vec3.CompoundSubtraction (0 ms)
+[ RUN      ] Vec3.CompoundScalarMultiplication
+[       OK ] Vec3.CompoundScalarMultiplication (0 ms)
+[ RUN      ] Vec3.DotProduct
+[       OK ] Vec3.DotProduct (0 ms)
+[ RUN      ] Vec3.CrossProduct
+[       OK ] Vec3.CrossProduct (0 ms)
+[ RUN      ] Vec3.Length
+[       OK ] Vec3.Length (0 ms)
+[ RUN      ] Vec3.SquaredNorm
+[       OK ] Vec3.SquaredNorm (0 ms)
+[ RUN      ] Vec3.Normalized
+[       OK ] Vec3.Normalized (0 ms)
+[ RUN      ] Vec3.NormalizeZeroVector
+[       OK ] Vec3.NormalizeZeroVector (0 ms)
+[ RUN      ] Vec3.NormalizeVerySmallVector
+[       OK ] Vec3.NormalizeVerySmallVector (0 ms)
+[ RUN      ] Vec3.DistanceTo
+[       OK ] Vec3.DistanceTo (0 ms)
+[ RUN      ] Vec3.Equality
+[       OK ] Vec3.Equality (0 ms)
+[ RUN      ] Vec3.Inequality
+[       OK ] Vec3.Inequality (0 ms)
+[ RUN      ] Vec3.EqualityWithTolerance
+[       OK ] Vec3.EqualityWithTolerance (0 ms)
+[ RUN      ] Vec3.ZeroPlusVector
+[       OK ] Vec3.ZeroPlusVector (0 ms)
+[ RUN      ] Vec3.VectorMinusItself
+[       OK ] Vec3.VectorMinusItself (0 ms)
+[----------] 23 tests from Vec3 (0 ms total)
+
+[----------] 4 tests from Pose3D
+[ RUN      ] Pose3D.DefaultIsZero
+[       OK ] Pose3D.DefaultIsZero (0 ms)
+[ RUN      ] Pose3D.PositionReturnsVec3
+[       OK ] Pose3D.PositionReturnsVec3 (0 ms)
+[ RUN      ] Pose3D.Equality
+[       OK ] Pose3D.Equality (0 ms)
+[ RUN      ] Pose3D.Inequality
+[       OK ] Pose3D.Inequality (0 ms)
+[----------] 4 tests from Pose3D (0 ms total)
+
+[----------] 12 tests from ZoneShape
+[ RUN      ] ZoneShape.SphereContainsCenter
+[       OK ] ZoneShape.SphereContainsCenter (0 ms)
+[ RUN      ] ZoneShape.SphereContainsInside
+[       OK ] ZoneShape.SphereContainsInside (0 ms)
+[ RUN      ] ZoneShape.SphereContainsBoundary
+[       OK ] ZoneShape.SphereContainsBoundary (0 ms)
+[ RUN      ] ZoneShape.SphereDoesNotContainOutside
+[       OK ] ZoneShape.SphereDoesNotContainOutside (0 ms)
+[ RUN      ] ZoneShape.SphereWithOffsetCenter
+[       OK ] ZoneShape.SphereWithOffsetCenter (0 ms)
+[ RUN      ] ZoneShape.AabbContainsCenter
+[       OK ] ZoneShape.AabbContainsCenter (0 ms)
+[ RUN      ] ZoneShape.AabbContainsInside
+[       OK ] ZoneShape.AabbContainsInside (0 ms)
+[ RUN      ] ZoneShape.AabbContainsBoundary
+[       OK ] ZoneShape.AabbContainsBoundary (0 ms)
+[ RUN      ] ZoneShape.AabbDoesNotContainOutside
+[       OK ] ZoneShape.AabbDoesNotContainOutside (0 ms)
+[ RUN      ] ZoneShape.AabbWithOffsetCenter
+[       OK ] ZoneShape.AabbWithOffsetCenter (0 ms)
+[ RUN      ] ZoneShape.AabbWithNegativeCoordinates
+[       OK ] ZoneShape.AabbWithNegativeCoordinates (0 ms)
+[ RUN      ] ZoneShape.InfiniteContainsEverything
+[       OK ] ZoneShape.InfiniteContainsEverything (0 ms)
+[----------] 12 tests from ZoneShape (0 ms total)
+
+[----------] 1 test from Velocity
+[ RUN      ] Velocity.DefaultIsZero
+[       OK ] Velocity.DefaultIsZero (0 ms)
+[----------] 1 test from Velocity (0 ms total)
+
+[----------] 1 test from DesiredVelocity
+[ RUN      ] DesiredVelocity.DefaultIsValid
+[       OK ] DesiredVelocity.DefaultIsValid (0 ms)
+[----------] 1 test from DesiredVelocity (0 ms total)
+
+[----------] 3 tests from Transform3D
+[ RUN      ] Transform3D.DefaultIsIdentity
+[       OK ] Transform3D.DefaultIsIdentity (0 ms)
+[ RUN      ] Transform3D.TransformPoint
+[       OK ] Transform3D.TransformPoint (0 ms)
+[ RUN      ] Transform3D.InverseTransformPoint
+[       OK ] Transform3D.InverseTransformPoint (0 ms)
+[----------] 3 tests from Transform3D (0 ms total)
+
+[----------] 31 tests from SharedState
+[ RUN      ] SharedState.EmplaceAndGet
+[       OK ] SharedState.EmplaceAndGet (0 ms)
+[ RUN      ] SharedState.HasReturnsTrue
+[       OK ] SharedState.HasReturnsTrue (0 ms)
+[ RUN      ] SharedState.HasReturnsFalseForMissingType
+[       OK ] SharedState.HasReturnsFalseForMissingType (0 ms)
+[ RUN      ] SharedState.GetReturnsNullptrForMissingType
+[       OK ] SharedState.GetReturnsNullptrForMissingType (0 ms)
+[ RUN      ] SharedState.EmplaceOverwritesExisting
+[       OK ] SharedState.EmplaceOverwritesExisting (0 ms)
+[ RUN      ] SharedState.MultipleTypesCoexist
+[       OK ] SharedState.MultipleTypesCoexist (0 ms)
+[ RUN      ] SharedState.ModifyThroughGet
+[       OK ] SharedState.ModifyThroughGet (0 ms)
+[ RUN      ] SharedState.ScaleProduct
+[       OK ] SharedState.ScaleProduct (0 ms)
+[ RUN      ] SharedState.ScaleNoContributions
+[       OK ] SharedState.ScaleNoContributions (0 ms)
+[ RUN      ] SharedState.ScaleSingleContribution
+[       OK ] SharedState.ScaleSingleContribution (0 ms)
+[ RUN      ] SharedState.ScaleContributionEqualsOne
+[       OK ] SharedState.ScaleContributionEqualsOne (0 ms)
+[ RUN      ] SharedState.ScaleContributionEqualsZero
+[       OK ] SharedState.ScaleContributionEqualsZero (0 ms)
+[ RUN      ] SharedState.ScaleClampToZero
+[       OK ] SharedState.ScaleClampToZero (0 ms)
+[ RUN      ] SharedState.ScaleClampToMax
+[       OK ] SharedState.ScaleClampToMax (0 ms)
+[ RUN      ] SharedState.ScaleMultipleContributionsProduct
+[       OK ] SharedState.ScaleMultipleContributionsProduct (0 ms)
+[ RUN      ] SharedState.LockNoContributions
+[       OK ] SharedState.LockNoContributions (0 ms)
+[ RUN      ] SharedState.LockSingleTrue
+[       OK ] SharedState.LockSingleTrue (0 ms)
+[ RUN      ] SharedState.LockSingleFalse
+[       OK ] SharedState.LockSingleFalse (0 ms)
+[ RUN      ] SharedState.LockMultipleAllFalse
+[       OK ] SharedState.LockMultipleAllFalse (0 ms)
+[ RUN      ] SharedState.LockMultipleOneTrue
+[       OK ] SharedState.LockMultipleOneTrue (0 ms)
+[ RUN      ] SharedState.AdditiveNoContributions
+[       OK ] SharedState.AdditiveNoContributions (0 ms)
+[ RUN      ] SharedState.AdditiveSingle
+[       OK ] SharedState.AdditiveSingle (0 ms)
+[ RUN      ] SharedState.AdditiveMultiple
+[       OK ] SharedState.AdditiveMultiple (0 ms)
+[ RUN      ] SharedState.ClearContributionsResetsEffective
+[       OK ] SharedState.ClearContributionsResetsEffective (0 ms)
+[ RUN      ] SharedState.ClearContributionsPreservesSingleOwner
+[       OK ] SharedState.ClearContributionsPreservesSingleOwner (0 ms)
+[ RUN      ] SharedState.ResolveAfterClearReturnsDefaults
+[       OK ] SharedState.ResolveAfterClearReturnsDefaults (0 ms)
+[ RUN      ] SharedState.EffectivePreservesScaleSources
+[       OK ] SharedState.EffectivePreservesScaleSources (0 ms)
+[ RUN      ] SharedState.EffectivePreservesLockSources
+[       OK ] SharedState.EffectivePreservesLockSources (0 ms)
+[ RUN      ] SharedState.EffectivePreservesAdditiveSources
+[       OK ] SharedState.EffectivePreservesAdditiveSources (0 ms)
+[ RUN      ] SharedState.ContribCounts
+[       OK ] SharedState.ContribCounts (0 ms)
+[ RUN      ] SharedState.FullTickCycle
+[       OK ] SharedState.FullTickCycle (0 ms)
+[----------] 31 tests from SharedState (0 ms total)
+
+[----------] 15 tests from SimBus
+[ RUN      ] SimBus.SubscribeAndPublish
+[       OK ] SimBus.SubscribeAndPublish (0 ms)
+[ RUN      ] SimBus.PublishWithoutSubscribers
+[       OK ] SimBus.PublishWithoutSubscribers (0 ms)
+[ RUN      ] SimBus.MultipleSubscribersSameType
+[       OK ] SimBus.MultipleSubscribersSameType (0 ms)
+[ RUN      ] SimBus.SubscribersReceiveEventData
+[       OK ] SimBus.SubscribersReceiveEventData (0 ms)
+[ RUN      ] SimBus.DifferentTypesDoNotInterfere
+[       OK ] SimBus.DifferentTypesDoNotInterfere (0 ms)
+[ RUN      ] SimBus.AllEventTypesDelivered
+[       OK ] SimBus.AllEventTypesDelivered (0 ms)
+[ RUN      ] SimBus.EmptyEventDefaultConstructor
+[       OK ] SimBus.EmptyEventDefaultConstructor (0 ms)
+[ RUN      ] SimBus.LambdaCaptureByValue
+[       OK ] SimBus.LambdaCaptureByValue (0 ms)
+[ RUN      ] SimBus.LambdaCaptureByReference
+[       OK ] SimBus.LambdaCaptureByReference (0 ms)
+[ RUN      ] SimBus.SameSubscriberCalledMultipleTimes
+[       OK ] SimBus.SameSubscriberCalledMultipleTimes (0 ms)
+[ RUN      ] SimBus.SubscriberCount
+[       OK ] SimBus.SubscriberCount (0 ms)
+[ RUN      ] SimBus.SubscriberCountForUnsubscribedType
+[       OK ] SimBus.SubscriberCountForUnsubscribedType (0 ms)
+[ RUN      ] SimBus.EventTypeCount
+[       OK ] SimBus.EventTypeCount (0 ms)
+[ RUN      ] SimBus.IntegrationWithSharedState
+[       OK ] SimBus.IntegrationWithSharedState (0 ms)
+[ RUN      ] SimBus.IntegrationMultipleEventsSharedState
+[       OK ] SimBus.IntegrationMultipleEventsSharedState (0 ms)
+[----------] 15 tests from SimBus (0 ms total)
+
+[----------] 20 tests from SimEngineTest
+[ RUN      ] SimEngineTest.CorrectDt
+[       OK ] SimEngineTest.CorrectDt (0 ms)
+[ RUN      ] SimEngineTest.StepOne_SimTimeIncrements
+[       OK ] SimEngineTest.StepOne_SimTimeIncrements (0 ms)
+[ RUN      ] SimEngineTest.Step100_SimTimeEquals1
+[       OK ] SimEngineTest.Step100_SimTimeEquals1 (0 ms)
+[ RUN      ] SimEngineTest.InitialSimTimeIsZero
+[       OK ] SimEngineTest.InitialSimTimeIsZero (0 ms)
+[ RUN      ] SimEngineTest.AddAgents_Step1_AllPresent
+[       OK ] SimEngineTest.AddAgents_Step1_AllPresent (0 ms)
+[ RUN      ] SimEngineTest.ResolverCalledContributionsCleared
+[       OK ] SimEngineTest.ResolverCalledContributionsCleared (0 ms)
+[ RUN      ] SimEngineTest.ContributionsResolved
+[       OK ] SimEngineTest.ContributionsResolved (0 ms)
+[ RUN      ] SimEngineTest.DifferentUpdateRates
+[       OK ] SimEngineTest.DifferentUpdateRates (0 ms)
+[ RUN      ] SimEngineTest.StopInterruptsRun
+[       OK ] SimEngineTest.StopInterruptsRun (51 ms)
+[ RUN      ] SimEngineTest.BusAccessible
+[       OK ] SimEngineTest.BusAccessible (0 ms)
+[ RUN      ] SimEngineTest.EmptyWorldSteps
+[       OK ] SimEngineTest.EmptyWorldSteps (0 ms)
+[ RUN      ] SimEngineTest.AddPropsAndActors
+[       OK ] SimEngineTest.AddPropsAndActors (0 ms)
+[ RUN      ] SimEngineTest.PauseResume
+[       OK ] SimEngineTest.PauseResume (0 ms)
+[ RUN      ] SimEngineTest.ResetRestoresInitialStates
+[       OK ] SimEngineTest.ResetRestoresInitialStates (0 ms)
+[ RUN      ] SimEngineTest.SnapshotContainsPaused
+[       OK ] SimEngineTest.SnapshotContainsPaused (0 ms)
+[ RUN      ] SimEngineTest.ResumeContinuesMovement
+[       OK ] SimEngineTest.ResumeContinuesMovement (0 ms)
+[ RUN      ] SimEngineTest.ResetFromMultipleTicks
+[       OK ] SimEngineTest.ResetFromMultipleTicks (0 ms)
+[ RUN      ] SimEngineTest.SetAgentPoseWorks
+[       OK ] SimEngineTest.SetAgentPoseWorks (0 ms)
+[ RUN      ] SimEngineTest.SnapshotContainsPluginsData
+[       OK ] SimEngineTest.SnapshotContainsPluginsData (0 ms)
+[ RUN      ] SimEngineTest.ResetRestoresMultipleAgents
+[       OK ] SimEngineTest.ResetRestoresMultipleAgents (0 ms)
+[----------] 20 tests from SimEngineTest (52 ms total)
+
+[----------] 5 tests from Heightmap
+[ RUN      ] Heightmap.FlatHeightAt
+[       OK ] Heightmap.FlatHeightAt (0 ms)
+[ RUN      ] Heightmap.FlatNonZeroZ
+[       OK ] Heightmap.FlatNonZeroZ (0 ms)
+[ RUN      ] Heightmap.NormalAt
+[       OK ] Heightmap.NormalAt (0 ms)
+[ RUN      ] Heightmap.InBounds
+[       OK ] Heightmap.InBounds (0 ms)
+[ RUN      ] Heightmap.WidthHeight
+[       OK ] Heightmap.WidthHeight (0 ms)
+[----------] 5 tests from Heightmap (0 ms total)
+
+[----------] 7 tests from RayCast
+[ RUN      ] RayCast.RayMisses
+[       OK ] RayCast.RayMisses (0 ms)
+[ RUN      ] RayCast.RayHitsBox
+[       OK ] RayCast.RayHitsBox (0 ms)
+[ RUN      ] RayCast.RayHitsSphere
+[       OK ] RayCast.RayHitsSphere (0 ms)
+[ RUN      ] RayCast.RayHitsCylinder
+[       OK ] RayCast.RayHitsCylinder (0 ms)
+[ RUN      ] RayCast.RayTooFar
+[       OK ] RayCast.RayTooFar (0 ms)
+[ RUN      ] RayCast.BatchCast
+[       OK ] RayCast.BatchCast (1 ms)
+[ RUN      ] RayCast.NearestHitWins
+[       OK ] RayCast.NearestHitWins (0 ms)
+[----------] 7 tests from RayCast (1 ms total)
+
+[----------] 2 tests from WorldCollision
+[ RUN      ] WorldCollision.SphereHitsBox
+[       OK ] WorldCollision.SphereHitsBox (0 ms)
+[ RUN      ] WorldCollision.SphereHitsSphere
+[       OK ] WorldCollision.SphereHitsSphere (0 ms)
+[----------] 2 tests from WorldCollision (0 ms total)
+
+[----------] 10 tests from WorldSnapshotTest
+[ RUN      ] WorldSnapshotTest.MinimalSnapshotSerializesCorrectly
+[       OK ] WorldSnapshotTest.MinimalSnapshotSerializesCorrectly (0 ms)
+[ RUN      ] WorldSnapshotTest.GeometryIncludedWhenFlagIsTrue
+[       OK ] WorldSnapshotTest.GeometryIncludedWhenFlagIsTrue (0 ms)
+[ RUN      ] WorldSnapshotTest.GeometryExcludedWhenFlagIsFalse
+[       OK ] WorldSnapshotTest.GeometryExcludedWhenFlagIsFalse (0 ms)
+[ RUN      ] WorldSnapshotTest.AgentSnapshotSerializesCorrectly
+[       OK ] WorldSnapshotTest.AgentSnapshotSerializesCorrectly (0 ms)
+[ RUN      ] WorldSnapshotTest.PropSnapshotWithAttachment
+[       OK ] WorldSnapshotTest.PropSnapshotWithAttachment (0 ms)
+[ RUN      ] WorldSnapshotTest.PropSnapshotWithoutAttachment
+[       OK ] WorldSnapshotTest.PropSnapshotWithoutAttachment (0 ms)
+[ RUN      ] WorldSnapshotTest.ActorSnapshotSerializesCorrectly
+[       OK ] WorldSnapshotTest.ActorSnapshotSerializesCorrectly (0 ms)
+[ RUN      ] WorldSnapshotTest.ZoneSnapshotWithAgentsInside
+[       OK ] WorldSnapshotTest.ZoneSnapshotWithAgentsInside (0 ms)
+[ RUN      ] WorldSnapshotTest.ZoneSnapshotWithAABBShape
+[       OK ] WorldSnapshotTest.ZoneSnapshotWithAABBShape (0 ms)
+[ RUN      ] WorldSnapshotTest.MultipleAgentsSerializeInOrder
+[       OK ] WorldSnapshotTest.MultipleAgentsSerializeInOrder (0 ms)
+[----------] 10 tests from WorldSnapshotTest (0 ms total)
+
+[----------] 5 tests from SnapshotBuildTest
+[ RUN      ] SnapshotBuildTest.EmptyWorldSnapshot
+[       OK ] SnapshotBuildTest.EmptyWorldSnapshot (0 ms)
+[ RUN      ] SnapshotBuildTest.SnapshotContainsAgents
+[       OK ] SnapshotBuildTest.SnapshotContainsAgents (0 ms)
+[ RUN      ] SnapshotBuildTest.SnapshotContainsProps
+[       OK ] SnapshotBuildTest.SnapshotContainsProps (0 ms)
+[ RUN      ] SnapshotBuildTest.SnapshotContainsActors
+[       OK ] SnapshotBuildTest.SnapshotContainsActors (0 ms)
+[ RUN      ] SnapshotBuildTest.SnapshotContainsGeometry
+[       OK ] SnapshotBuildTest.SnapshotContainsGeometry (0 ms)
+[----------] 5 tests from SnapshotBuildTest (0 ms total)
+
+[----------] 6 tests from SnapshotToJsonTest
+[ RUN      ] SnapshotToJsonTest.MinimalSnapshot
+[       OK ] SnapshotToJsonTest.MinimalSnapshot (0 ms)
+[ RUN      ] SnapshotToJsonTest.AgentInJson
+[       OK ] SnapshotToJsonTest.AgentInJson (0 ms)
+[ RUN      ] SnapshotToJsonTest.GeometryInJson
+[       OK ] SnapshotToJsonTest.GeometryInJson (0 ms)
+[ RUN      ] SnapshotToJsonTest.GeometryExcludedWhenFlagFalse
+[       OK ] SnapshotToJsonTest.GeometryExcludedWhenFlagFalse (0 ms)
+[ RUN      ] SnapshotToJsonTest.PropInJson
+[       OK ] SnapshotToJsonTest.PropInJson (0 ms)
+[ RUN      ] SnapshotToJsonTest.ActorInJson
+[       OK ] SnapshotToJsonTest.ActorInJson (0 ms)
+[----------] 6 tests from SnapshotToJsonTest (0 ms total)
+
+[----------] 2 tests from SimEngineVizTest
+[ RUN      ] SimEngineVizTest.VizRateDoesNotAffectSimTime
+[       OK ] SimEngineVizTest.VizRateDoesNotAffectSimTime (0 ms)
+[ RUN      ] SimEngineVizTest.ZeroVizRateNoCrash
+[       OK ] SimEngineVizTest.ZeroVizRateNoCrash (0 ms)
+[----------] 2 tests from SimEngineVizTest (0 ms total)
+
+[----------] 8 tests from PluginInputTest
+[ RUN      ] PluginInputTest.PluginInputTargetsCorrectAgent
+[       OK ] PluginInputTest.PluginInputTargetsCorrectAgent (0 ms)
+[ RUN      ] PluginInputTest.ExternalInputLatches
+[       OK ] PluginInputTest.ExternalInputLatches (0 ms)
+[ RUN      ] PluginInputTest.ExternalInputCausesContinuousMotion
+[       OK ] PluginInputTest.ExternalInputCausesContinuousMotion (0 ms)
+[ RUN      ] PluginInputTest.MultipleInputsForContinuousMotion
+[       OK ] PluginInputTest.MultipleInputsForContinuousMotion (0 ms)
+[ RUN      ] PluginInputTest.ReturnsFalseForNonexistentAgent
+[       OK ] PluginInputTest.ReturnsFalseForNonexistentAgent (0 ms)
+[ RUN      ] PluginInputTest.ReturnsFalseForUnknownPlugin
+[       OK ] PluginInputTest.ReturnsFalseForUnknownPlugin (0 ms)
+[ RUN      ] PluginInputTest.TwoAgentsWithZeroAndOneIds
+[       OK ] PluginInputTest.TwoAgentsWithZeroAndOneIds (0 ms)
+[ RUN      ] PluginInputTest.InputToAgentZero
+[       OK ] PluginInputTest.InputToAgentZero (0 ms)
+[----------] 8 tests from PluginInputTest (0 ms total)
+
+[----------] 6 tests from TripleBuffer
+[ RUN      ] TripleBuffer.BasicWriteRead
+[       OK ] TripleBuffer.BasicWriteRead (0 ms)
+[ RUN      ] TripleBuffer.WriterReaderNotSame
+[       OK ] TripleBuffer.WriterReaderNotSame (0 ms)
+[ RUN      ] TripleBuffer.ReadReturnsReady
+[       OK ] TripleBuffer.ReadReturnsReady (0 ms)
+[ RUN      ] TripleBuffer.MultiThreaded
+[       OK ] TripleBuffer.MultiThreaded (103 ms)
+[ RUN      ] TripleBuffer.DefaultConstructible
+[       OK ] TripleBuffer.DefaultConstructible (0 ms)
+[ RUN      ] TripleBuffer.InitialValue
+[       OK ] TripleBuffer.InitialValue (0 ms)
+[----------] 6 tests from TripleBuffer (103 ms total)
+
+[----------] 2 tests from ROS2TransportTest
+[ RUN      ] ROS2TransportTest.StartStop
+[s2_transport] ROS2 transport starting...
+[s2_transport] No domains registered, transport idle.
+[s2_transport] ROS2 transport stopped.
+[       OK ] ROS2TransportTest.StartStop (0 ms)
+[ RUN      ] ROS2TransportTest.RegisterAgentAndCallback
+[s2_transport] Created isolated node for domain 0
+[s2_transport] Agent 42 registered in domain 0 subscribed to /cmd_vel
+[s2_transport] ROS2 transport starting...
+[s2_transport] Transport thread started for domain 0
+[WARN] [1775774456.389481079] [rclcpp]: logging was initialized more than once
+[s2_transport] Transport thread exiting for domain 0
+[s2_transport] ROS2 transport stopped.
+[       OK ] ROS2TransportTest.RegisterAgentAndCallback (623 ms)
+[----------] 2 tests from ROS2TransportTest (623 ms total)
+
+[----------] 20 tests from SimTransportBridgeTest
+[ RUN      ] SimTransportBridgeTest.InitRegistersAgents
+[SimTransportBridge] Initialized, agents: 2
+[       OK ] SimTransportBridgeTest.InitRegistersAgents (0 ms)
+[ RUN      ] SimTransportBridgeTest.InitRegistersSensors
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.InitRegistersSensors (0 ms)
+[ RUN      ] SimTransportBridgeTest.InitRegistersCmdVelTopic
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.InitRegistersCmdVelTopic (0 ms)
+[ RUN      ] SimTransportBridgeTest.StartStop
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.StartStop (0 ms)
+[ RUN      ] SimTransportBridgeTest.PostTickPublishesFrames
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.PostTickPublishesFrames (0 ms)
+[ RUN      ] SimTransportBridgeTest.PostTickIncludesSensorData
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.PostTickIncludesSensorData (0 ms)
+[ RUN      ] SimTransportBridgeTest.TopicCallbackRoutesToPlugin
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.TopicCallbackRoutesToPlugin (0 ms)
+[ RUN      ] SimTransportBridgeTest.PostTickCallbackRegisteredInEngine
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.PostTickCallbackRegisteredInEngine (0 ms)
+[ RUN      ] SimTransportBridgeTest.NoSensorDataIfPluginAbsent
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.NoSensorDataIfPluginAbsent (0 ms)
+[ RUN      ] SimTransportBridgeTest.GnssPublishesAtOwnRate
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.GnssPublishesAtOwnRate (1 ms)
+[ RUN      ] SimTransportBridgeTest.ImuPublishesAtOwnRate
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.ImuPublishesAtOwnRate (0 ms)
+[ RUN      ] SimTransportBridgeTest.SeqPreventsDoublPublish
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.SeqPreventsDoublPublish (0 ms)
+[ RUN      ] SimTransportBridgeTest.NamedSensorRegistered
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.NamedSensorRegistered (0 ms)
+[ RUN      ] SimTransportBridgeTest.NamedSensorInSensorOutput
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.NamedSensorInSensorOutput (0 ms)
+[ RUN      ] SimTransportBridgeTest.SensorNameNotMixedUp
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.SensorNameNotMixedUp (0 ms)
+[ RUN      ] SimTransportBridgeTest.TransportRateAffectsPublishFrequency
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.TransportRateAffectsPublishFrequency (0 ms)
+[ RUN      ] SimTransportBridgeTest.StaticTransformsFromKinematicTree
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.StaticTransformsFromKinematicTree (0 ms)
+[ RUN      ] SimTransportBridgeTest.DynamicTransformsInFrame
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.DynamicTransformsInFrame (0 ms)
+[ RUN      ] SimTransportBridgeTest.MountFrameFromPlugin
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.MountFrameFromPlugin (0 ms)
+[ RUN      ] SimTransportBridgeTest.NoStaticTransformsWithoutTree
+[SimTransportBridge] Initialized, agents: 1
+[       OK ] SimTransportBridgeTest.NoStaticTransformsWithoutTree (0 ms)
+[----------] 20 tests from SimTransportBridgeTest (2 ms total)
+
+[----------] 14 tests from KinematicTree
+[ RUN      ] KinematicTree.EmptyTree
+[       OK ] KinematicTree.EmptyTree (0 ms)
+[ RUN      ] KinematicTree.SingleLink
+[       OK ] KinematicTree.SingleLink (0 ms)
+[ RUN      ] KinematicTree.FixedChildLocalPose
+[       OK ] KinematicTree.FixedChildLocalPose (0 ms)
+[ RUN      ] KinematicTree.RevoluteJointLocalPose
+[       OK ] KinematicTree.RevoluteJointLocalPose (0 ms)
+[ RUN      ] KinematicTree.WorldPoseRootLink
+[       OK ] KinematicTree.WorldPoseRootLink (0 ms)
+[ RUN      ] KinematicTree.WorldPoseFixedChild
+[       OK ] KinematicTree.WorldPoseFixedChild (0 ms)
+[ RUN      ] KinematicTree.WorldPoseChainOfThree
+[       OK ] KinematicTree.WorldPoseChainOfThree (0 ms)
+[ RUN      ] KinematicTree.WorldPoseWithBasePoseOffset
+[       OK ] KinematicTree.WorldPoseWithBasePoseOffset (0 ms)
+[ RUN      ] KinematicTree.SetJointValueClamped
+[       OK ] KinematicTree.SetJointValueClamped (0 ms)
+[ RUN      ] KinematicTree.SetJointValueUnknownLink
+[       OK ] KinematicTree.SetJointValueUnknownLink (0 ms)
+[ RUN      ] KinematicTree.CollectTransformsOnlyFixed
+[       OK ] KinematicTree.CollectTransformsOnlyFixed (0 ms)
+[ RUN      ] KinematicTree.CollectTransformsMixed
+[       OK ] KinematicTree.CollectTransformsMixed (0 ms)
+[ RUN      ] KinematicTree.CollectTransformsRootSkipped
+[       OK ] KinematicTree.CollectTransformsRootSkipped (0 ms)
+[ RUN      ] KinematicTree.PrismaticJoint
+[       OK ] KinematicTree.PrismaticJoint (0 ms)
+[----------] 14 tests from KinematicTree (0 ms total)
+
+[----------] 9 tests from UrdfLoaderTest
+[ RUN      ] UrdfLoaderTest.LoadsLinksFromFile
+[       OK ] UrdfLoaderTest.LoadsLinksFromFile (0 ms)
+[ RUN      ] UrdfLoaderTest.ContainsRootLink
+[       OK ] UrdfLoaderTest.ContainsRootLink (0 ms)
+[ RUN      ] UrdfLoaderTest.ContainsAllExpectedLinks
+[       OK ] UrdfLoaderTest.ContainsAllExpectedLinks (0 ms)
+[ RUN      ] UrdfLoaderTest.JointTypesAreCorrect
+[       OK ] UrdfLoaderTest.JointTypesAreCorrect (0 ms)
+[ RUN      ] UrdfLoaderTest.OriginParsedCorrectly
+[       OK ] UrdfLoaderTest.OriginParsedCorrectly (0 ms)
+[ RUN      ] UrdfLoaderTest.LimitsAreCorrect
+[       OK ] UrdfLoaderTest.LimitsAreCorrect (0 ms)
+[ RUN      ] UrdfLoaderTest.ParentLinksAreCorrect
+[       OK ] UrdfLoaderTest.ParentLinksAreCorrect (0 ms)
+[ RUN      ] UrdfLoaderTest.ThrowsOnMissingFile
+[       OK ] UrdfLoaderTest.ThrowsOnMissingFile (0 ms)
+[ RUN      ] UrdfLoaderTest.AxisParsedCorrectly
+[       OK ] UrdfLoaderTest.AxisParsedCorrectly (0 ms)
+[----------] 9 tests from UrdfLoaderTest (0 ms total)
+
+[----------] 12 tests from JointVelPluginTest
+[ RUN      ] JointVelPluginTest.TypeIsCorrect
+[       OK ] JointVelPluginTest.TypeIsCorrect (0 ms)
+[ RUN      ] JointVelPluginTest.HasInputs
+[       OK ] JointVelPluginTest.HasInputs (0 ms)
+[ RUN      ] JointVelPluginTest.CommandTopicsDefault
+[       OK ] JointVelPluginTest.CommandTopicsDefault (0 ms)
+[ RUN      ] JointVelPluginTest.FromConfigSetsCustomTopic
+[       OK ] JointVelPluginTest.FromConfigSetsCustomTopic (0 ms)
+[ RUN      ] JointVelPluginTest.HandleInputMovesJoint
+[       OK ] JointVelPluginTest.HandleInputMovesJoint (0 ms)
+[ RUN      ] JointVelPluginTest.HandleInputMovesJointByName
+[       OK ] JointVelPluginTest.HandleInputMovesJointByName (0 ms)
+[ RUN      ] JointVelPluginTest.HandleInputClampsByMaxVel
+[       OK ] JointVelPluginTest.HandleInputClampsByMaxVel (0 ms)
+[ RUN      ] JointVelPluginTest.HandleInputBucketAxis
+[       OK ] JointVelPluginTest.HandleInputBucketAxis (0 ms)
+[ RUN      ] JointVelPluginTest.UpdateWithoutKinematicTreeIsNoop
+[       OK ] JointVelPluginTest.UpdateWithoutKinematicTreeIsNoop (0 ms)
+[ RUN      ] JointVelPluginTest.JointClampedAtMax
+[       OK ] JointVelPluginTest.JointClampedAtMax (0 ms)
+[ RUN      ] JointVelPluginTest.ToJsonContainsJoints
+[       OK ] JointVelPluginTest.ToJsonContainsJoints (0 ms)
+[ RUN      ] JointVelPluginTest.JointNamesMatchUrdfLinks
+[       OK ] JointVelPluginTest.JointNamesMatchUrdfLinks (0 ms)
+[----------] 12 tests from JointVelPluginTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 220 tests from 24 test suites ran. (788 ms total)
+[  PASSED  ] 220 tests.
+<end of output>
+Test time =   0.91 sec
+----------------------------------------------------------
+Test Passed.
+"s2_core_tests" end time: Apr 09 22:40 UTC
+"s2_core_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Apr 09 22:40 UTC

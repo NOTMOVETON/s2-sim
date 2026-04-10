@@ -1,0 +1,2 @@
+/usr/bin/ar qc libs2_transport.a CMakeFiles/s2_transport.dir/src/ros2_transport.cpp.o CMakeFiles/s2_transport.dir/src/ros2_transport_adapter.cpp.o CMakeFiles/s2_transport.dir/src/sim_transport_bridge.cpp.o
+/usr/bin/ranlib libs2_transport.a

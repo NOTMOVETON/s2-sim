@@ -1,0 +1,11 @@
+{
+  "package_name": "s2_msgs",
+  "output_dir": "/workspace/s2_msgs_ws/build/s2_msgs/rosidl_generator_type_description/s2_msgs",
+  "idl_tuples": [
+    "/workspace/s2_msgs_ws/build/s2_msgs/rosidl_adapter/s2_msgs:srv/PluginCall.idl"
+  ],
+  "include_paths": [
+    "service_msgs:/opt/ros/jazzy/share/service_msgs",
+    "builtin_interfaces:/opt/ros/jazzy/share/builtin_interfaces"
+  ]
+}

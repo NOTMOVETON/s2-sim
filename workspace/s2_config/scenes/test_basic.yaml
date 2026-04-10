@@ -1,0 +1,49 @@
+s2:
+  update_rate: 100
+  viz_rate: 30
+
+  transport:
+    type: ros2
+
+  visualizer:
+    enabled: true
+    port: 8080
+
+  world:
+    surface: "flat"
+
+    geometry:
+      - type: "box"
+        pose: {x: 5.0, y: 0.0, z: 1.0, yaw: 0.0}
+        size: {x: 10.0, y: 0.2, z: 2.0}
+        color: "#808080"
+
+      - type: "box"
+        pose: {x: -5.0, y: 0.0, z: 1.0, yaw: 0.0}
+        size: {x: 10.0, y: 0.2, z: 2.0}
+        color: "#808080"
+
+      - type: "box"
+        pose: {x: 0.0, y: 5.0, z: 1.0, yaw: 0.0}
+        size: {x: 0.2, y: 10.0, z: 2.0}
+        color: "#808080"
+
+      - type: "box"
+        pose: {x: 0.0, y: -5.0, z: 1.0, yaw: 0.0}
+        size: {x: 0.2, y: 10.0, z: 2.0}
+        color: "#808080"
+
+  agents:
+    - name: "robot_0"
+      pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
+      velocity:
+        linear_x: 1.0
+        angular_z: 0.3
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#FF6B35"

@@ -1,0 +1,94 @@
+services:
+  dev:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ../workspace:/workspace
+    ports:
+      - "1937:1937"
+    stdin_open: true
+    tty: true
+    command: bash
+
+  build:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.ros2
+    volumes:
+      - ../workspace:/workspace
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    command: >
+      bash -c "source /opt/ros/jazzy/setup.bash
+      && mkdir -p /workspace/s2_msgs_ws/src
+      && cp -r /workspace/s2_msgs /workspace/s2_msgs_ws/src/
+      && cd /workspace/s2_msgs_ws && colcon build --symlink-install
+      && source /workspace/s2_msgs_ws/install/setup.bash
+      && cd /workspace && mkdir -p build && cd build
+      && cmake .. -DCMAKE_BUILD_TYPE=Debug -DS2_WITH_ROS2=ON
+      && make -j$(nproc)"
+
+  tests:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.ros2
+    volumes:
+      - ../workspace:/workspace
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    command: >
+      bash -c "source /opt/ros/jazzy/setup.bash
+      && mkdir -p /workspace/s2_msgs_ws/src
+      && cp -r /workspace/s2_msgs /workspace/s2_msgs_ws/src/
+      && cd /workspace/s2_msgs_ws && colcon build --symlink-install
+      && source /workspace/s2_msgs_ws/install/setup.bash
+      && cd /workspace && mkdir -p build && cd build
+      && cmake .. -DCMAKE_BUILD_TYPE=Debug -DS2_WITH_ROS2=ON
+      && make -j$(nproc)
+      && ctest --output-on-failure"
+
+  sim:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.ros2
+    volumes:
+      - ../workspace:/workspace
+    ports:
+      - "1937:1937"
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    command: >
+      bash -c "source /opt/ros/jazzy/setup.bash
+      && mkdir -p /workspace/s2_msgs_ws/src
+      && cp -r /workspace/s2_msgs /workspace/s2_msgs_ws/src/
+      && cd /workspace/s2_msgs_ws && colcon build --symlink-install
+      && source /workspace/s2_msgs_ws/install/setup.bash
+      && cd /workspace && mkdir -p build && cd build
+      && cmake .. -DCMAKE_BUILD_TYPE=Debug -DS2_WITH_ROS2=ON
+      && make -j$(nproc)
+      && ./s2_visualizer/s2_sim /workspace/s2_config/scenes/test_two_robots.yaml"
+
+  sim_ros2:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.ros2
+    volumes:
+      - ../workspace:/workspace
+      - ./fastdds.xml:/root/.ros/fastdds.xml:ro
+    ports:
+      - "1937:1937"
+    network_mode: "host"
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - FASTRTPS_DEFAULT_PROFILES_FILE=/root/.ros/fastdds.xml
+    command: >
+      bash -c "source /opt/ros/jazzy/setup.bash
+      && mkdir -p /workspace/s2_msgs_ws/src
+      && cp -r /workspace/s2_msgs /workspace/s2_msgs_ws/src/
+      && cd /workspace/s2_msgs_ws && colcon build --symlink-install
+      && source /workspace/s2_msgs_ws/install/setup.bash
+      && cd /workspace && mkdir -p build && cd build
+      && cmake .. -DCMAKE_BUILD_TYPE=Debug -DS2_WITH_ROS2=ON
+      && make -j$(nproc)
+      && ./s2_visualizer/s2_sim /workspace/s2_config/scenes/test_dozer.yaml"

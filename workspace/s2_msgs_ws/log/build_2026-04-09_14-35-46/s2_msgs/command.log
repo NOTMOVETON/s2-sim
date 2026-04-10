@@ -1,0 +1,6 @@
+Invoking command in '/workspace/s2_msgs_ws/build/s2_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /workspace/s2_msgs_ws/src/s2_msgs -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/workspace/s2_msgs_ws/install/s2_msgs
+Invoked command in '/workspace/s2_msgs_ws/build/s2_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake /workspace/s2_msgs_ws/src/s2_msgs -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/workspace/s2_msgs_ws/install/s2_msgs
+Invoking command in '/workspace/s2_msgs_ws/build/s2_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /workspace/s2_msgs_ws/build/s2_msgs -- -j12 -l12
+Invoked command in '/workspace/s2_msgs_ws/build/s2_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --build /workspace/s2_msgs_ws/build/s2_msgs -- -j12 -l12
+Invoking command in '/workspace/s2_msgs_ws/build/s2_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /workspace/s2_msgs_ws/build/s2_msgs
+Invoked command in '/workspace/s2_msgs_ws/build/s2_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy /usr/bin/cmake --install /workspace/s2_msgs_ws/build/s2_msgs

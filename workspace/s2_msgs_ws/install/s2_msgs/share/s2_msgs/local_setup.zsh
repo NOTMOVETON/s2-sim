@@ -1,0 +1,1 @@
+/workspace/s2_msgs_ws/build/s2_msgs/ament_cmake_environment_hooks/local_setup.zsh

@@ -1,0 +1,21 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from s2_msgs/srv/PluginCall.srv
+// generated code does not contain a copyright notice
+
+
+module s2_msgs {
+  module srv {
+    @verbatim (language="comment", text=
+      "Request: JSON-строка с параметрами вызова плагинового сервиса")
+    struct PluginCall_Request {
+      string request_json;
+    };
+    @verbatim (language="comment", text=
+      "Response: признак успеха и JSON-строка с ответом")
+    struct PluginCall_Response {
+      boolean success;
+
+      string response_json;
+    };
+  };
+};

@@ -1,0 +1,41 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/s2_core_tests.dir/tests/test_color_plugin.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_color_plugin.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_geometry.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_geometry.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_joint_vel_plugin.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_joint_vel_plugin.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_kinematic_tree.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_kinematic_tree.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_plugin_input.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_plugin_input.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_ros2_transport.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_ros2_transport.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_shared_state.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_shared_state.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_sim_bus.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_sim_bus.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_sim_engine.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_sim_engine.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_sim_transport_bridge.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_sim_transport_bridge.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_smoke.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_smoke.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_snapshot_viz.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_snapshot_viz.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_triple_buffer.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_triple_buffer.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_types.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_types.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_urdf_loader.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_urdf_loader.cpp.o.d"
+  "CMakeFiles/s2_core_tests.dir/tests/test_world_snapshot.cpp.o"
+  "CMakeFiles/s2_core_tests.dir/tests/test_world_snapshot.cpp.o.d"
+  "s2_core_tests"
+  "s2_core_tests.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/s2_core_tests.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

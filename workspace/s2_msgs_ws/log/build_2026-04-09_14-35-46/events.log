@@ -1,0 +1,327 @@
+[0.000000] (-) TimerEvent: {}
+[0.000097] (s2_msgs) JobQueued: {'identifier': 's2_msgs', 'dependencies': OrderedDict()}
+[0.000524] (s2_msgs) JobStarted: {'identifier': 's2_msgs'}
+[0.009546] (s2_msgs) JobProgress: {'identifier': 's2_msgs', 'progress': 'cmake'}
+[0.010109] (s2_msgs) Command: {'cmd': ['/usr/bin/cmake', '/workspace/s2_msgs_ws/src/s2_msgs', '-DAMENT_CMAKE_SYMLINK_INSTALL=1', '-DCMAKE_INSTALL_PREFIX=/workspace/s2_msgs_ws/install/s2_msgs'], 'cwd': '/workspace/s2_msgs_ws/build/s2_msgs', 'env': OrderedDict({'GZ_CONFIG_PATH': '/opt/ros/jazzy/opt/sdformat_vendor/share/gz', 'HOSTNAME': '3859402a8b76', 'SHLVL': '1', 'LD_LIBRARY_PATH': '/opt/ros/jazzy/opt/sdformat_vendor/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu:/opt/ros/jazzy/opt/gz_math_vendor/lib:/opt/ros/jazzy/opt/gz_utils_vendor/lib:/opt/ros/jazzy/opt/gz_tools_vendor/lib:/opt/ros/jazzy/opt/gz_cmake_vendor/lib:/opt/ros/jazzy/lib', 'HOME': '/root', 'OLDPWD': '/workspace', 'ROS_PYTHON_VERSION': '3', 'LC_CTYPE': 'C.UTF-8', 'ROS_DISTRO': 'jazzy', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'PATH': '/opt/ros/jazzy/opt/gz_tools_vendor/bin:/opt/ros/jazzy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin', 'RMW_IMPLEMENTATION': 'rmw_fastrtps_cpp', 'AMENT_PREFIX_PATH': '/opt/ros/jazzy', 'DEBIAN_FRONTEND': 'noninteractive', 'ROS_AUTOMATIC_DISCOVERY_RANGE': 'SUBNET', 'PWD': '/workspace/s2_msgs_ws/build/s2_msgs', 'PYTHONPATH': '/opt/ros/jazzy/lib/python3.12/site-packages', 'COLCON': '1', 'CMAKE_PREFIX_PATH': '/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy'}), 'shell': False}
+[0.099771] (-) TimerEvent: {}
+[0.159738] (s2_msgs) StdoutLine: {'line': b'-- The C compiler identification is GNU 13.3.0\n'}
+[0.199864] (-) TimerEvent: {}
+[0.225987] (s2_msgs) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 13.3.0\n'}
+[0.243491] (s2_msgs) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[0.299962] (-) TimerEvent: {}
+[0.339988] (s2_msgs) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[0.351363] (s2_msgs) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc - skipped\n'}
+[0.351976] (s2_msgs) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[0.353391] (s2_msgs) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[0.365603] (s2_msgs) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[0.400059] (-) TimerEvent: {}
+[0.469646] (s2_msgs) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[0.479284] (s2_msgs) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[0.479516] (s2_msgs) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[0.480015] (s2_msgs) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[0.482504] (s2_msgs) StdoutLine: {'line': b'-- Found ament_cmake: 2.5.5 (/opt/ros/jazzy/share/ament_cmake/cmake)\n'}
+[0.500145] (-) TimerEvent: {}
+[0.600278] (-) TimerEvent: {}
+[0.609000] (s2_msgs) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter \n'}
+[0.689721] (s2_msgs) StdoutLine: {'line': b'-- Override CMake install command with custom implementation using symlinks instead of copying resources\n'}
+[0.700368] (-) TimerEvent: {}
+[0.776626] (s2_msgs) StdoutLine: {'line': b'-- Found rosidl_default_generators: 1.6.0 (/opt/ros/jazzy/share/rosidl_default_generators/cmake)\n'}
+[0.781435] (s2_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[0.800528] (-) TimerEvent: {}
+[0.866089] (s2_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[0.900621] (-) TimerEvent: {}
+[0.913183] (s2_msgs) StdoutLine: {'line': b'-- Found rosidl_adapter: 4.6.7 (/opt/ros/jazzy/share/rosidl_adapter/cmake)\n'}
+[1.000666] (-) TimerEvent: {}
+[1.100816] (-) TimerEvent: {}
+[1.200985] (-) TimerEvent: {}
+[1.301099] (-) TimerEvent: {}
+[1.401273] (-) TimerEvent: {}
+[1.501418] (-) TimerEvent: {}
+[1.601571] (-) TimerEvent: {}
+[1.701707] (-) TimerEvent: {}
+[1.782162] (s2_msgs) StdoutLine: {'line': b'-- Found ament_cmake_ros: 0.12.0 (/opt/ros/jazzy/share/ament_cmake_ros/cmake)\n'}
+[1.801799] (-) TimerEvent: {}
+[1.901955] (-) TimerEvent: {}
+[2.002112] (-) TimerEvent: {}
+[2.102253] (-) TimerEvent: {}
+[2.167060] (s2_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[2.202513] (-) TimerEvent: {}
+[2.302690] (-) TimerEvent: {}
+[2.403016] (-) TimerEvent: {}
+[2.503168] (-) TimerEvent: {}
+[2.603314] (-) TimerEvent: {}
+[2.674963] (s2_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[2.677608] (s2_msgs) StdoutLine: {'line': b'-- Found python_cmake_module: 0.11.1 (/opt/ros/jazzy/share/python_cmake_module/cmake)\n'}
+[2.703418] (-) TimerEvent: {}
+[2.801195] (s2_msgs) StdoutLine: {'line': b'-- Found PythonExtra: /usr/bin/python3  \n'}
+[2.803509] (-) TimerEvent: {}
+[2.904975] (-) TimerEvent: {}
+[3.005119] (-) TimerEvent: {}
+[3.106504] (-) TimerEvent: {}
+[3.206649] (-) TimerEvent: {}
+[3.273129] (s2_msgs) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter Development NumPy Development.Module Development.Embed \n'}
+[3.306715] (-) TimerEvent: {}
+[3.323404] (s2_msgs) StdoutLine: {'line': b'-- Configuring done (3.3s)\n'}
+[3.366234] (s2_msgs) StdoutLine: {'line': b'-- Generating done (0.0s)\n'}
+[3.383067] (s2_msgs) StdoutLine: {'line': b'-- Build files have been written to: /workspace/s2_msgs_ws/build/s2_msgs\n'}
+[3.390486] (s2_msgs) CommandEnded: {'returncode': 0}
+[3.392352] (s2_msgs) JobProgress: {'identifier': 's2_msgs', 'progress': 'build'}
+[3.392412] (s2_msgs) Command: {'cmd': ['/usr/bin/cmake', '--build', '/workspace/s2_msgs_ws/build/s2_msgs', '--', '-j12', '-l12'], 'cwd': '/workspace/s2_msgs_ws/build/s2_msgs', 'env': OrderedDict({'GZ_CONFIG_PATH': '/opt/ros/jazzy/opt/sdformat_vendor/share/gz', 'HOSTNAME': '3859402a8b76', 'SHLVL': '1', 'LD_LIBRARY_PATH': '/opt/ros/jazzy/opt/sdformat_vendor/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu:/opt/ros/jazzy/opt/gz_math_vendor/lib:/opt/ros/jazzy/opt/gz_utils_vendor/lib:/opt/ros/jazzy/opt/gz_tools_vendor/lib:/opt/ros/jazzy/opt/gz_cmake_vendor/lib:/opt/ros/jazzy/lib', 'HOME': '/root', 'OLDPWD': '/workspace', 'ROS_PYTHON_VERSION': '3', 'LC_CTYPE': 'C.UTF-8', 'ROS_DISTRO': 'jazzy', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'PATH': '/opt/ros/jazzy/opt/gz_tools_vendor/bin:/opt/ros/jazzy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin', 'RMW_IMPLEMENTATION': 'rmw_fastrtps_cpp', 'AMENT_PREFIX_PATH': '/opt/ros/jazzy', 'DEBIAN_FRONTEND': 'noninteractive', 'ROS_AUTOMATIC_DISCOVERY_RANGE': 'SUBNET', 'PWD': '/workspace/s2_msgs_ws/build/s2_msgs', 'PYTHONPATH': '/opt/ros/jazzy/lib/python3.12/site-packages', 'COLCON': '1', 'CMAKE_PREFIX_PATH': '/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy'}), 'shell': False}
+[3.406805] (-) TimerEvent: {}
+[3.443223] (s2_msgs) StdoutLine: {'line': b'[  2%] Generating type hashes for ROS interfaces\n'}
+[3.506930] (-) TimerEvent: {}
+[3.607166] (-) TimerEvent: {}
+[3.693499] (s2_msgs) StdoutLine: {'line': b'[  2%] Built target s2_msgs__rosidl_generator_type_description\n'}
+[3.707264] (-) TimerEvent: {}
+[3.723369] (s2_msgs) StdoutLine: {'line': b'[  2%] Built target ament_cmake_python_symlink_s2_msgs\n'}
+[3.746337] (s2_msgs) StdoutLine: {'line': b'[  5%] Generating C++ code for ROS interfaces\n'}
+[3.807352] (-) TimerEvent: {}
+[3.907607] (-) TimerEvent: {}
+[4.007767] (-) TimerEvent: {}
+[4.107928] (-) TimerEvent: {}
+[4.159974] (s2_msgs) StdoutLine: {'line': b'[  5%] Built target s2_msgs__cpp\n'}
+[4.208042] (-) TimerEvent: {}
+[4.308347] (-) TimerEvent: {}
+[4.379825] (s2_msgs) StdoutLine: {'line': b'running egg_info\n'}
+[4.381103] (s2_msgs) StdoutLine: {'line': b'creating s2_msgs.egg-info\n'}
+[4.398733] (s2_msgs) StdoutLine: {'line': b'writing s2_msgs.egg-info/PKG-INFO\n'}
+[4.398913] (s2_msgs) StdoutLine: {'line': b'writing dependency_links to s2_msgs.egg-info/dependency_links.txt\n'}
+[4.399020] (s2_msgs) StdoutLine: {'line': b'writing top-level names to s2_msgs.egg-info/top_level.txt\n'}
+[4.399117] (s2_msgs) StdoutLine: {'line': b"writing manifest file 's2_msgs.egg-info/SOURCES.txt'\n"}
+[4.408424] (-) TimerEvent: {}
+[4.451709] (s2_msgs) StdoutLine: {'line': b"reading manifest file 's2_msgs.egg-info/SOURCES.txt'\n"}
+[4.452255] (s2_msgs) StdoutLine: {'line': b"writing manifest file 's2_msgs.egg-info/SOURCES.txt'\n"}
+[4.489749] (s2_msgs) StdoutLine: {'line': b'[  5%] Built target ament_cmake_python_build_s2_msgs_egg\n'}
+[4.499713] (s2_msgs) StdoutLine: {'line': b'[  8%] Generating C code for ROS interfaces\n'}
+[4.508514] (-) TimerEvent: {}
+[4.608654] (-) TimerEvent: {}
+[4.708808] (-) TimerEvent: {}
+[4.808957] (-) TimerEvent: {}
+[4.904179] (s2_msgs) StdoutLine: {'line': b'[ 11%] Building C object CMakeFiles/s2_msgs__rosidl_generator_c.dir/rosidl_generator_c/s2_msgs/srv/detail/plugin_call__description.c.o\n'}
+[4.913600] (-) TimerEvent: {}
+[4.965272] (s2_msgs) StdoutLine: {'line': b'[ 14%] Building C object CMakeFiles/s2_msgs__rosidl_generator_c.dir/rosidl_generator_c/s2_msgs/srv/detail/plugin_call__type_support.c.o\n'}
+[5.011608] (s2_msgs) StdoutLine: {'line': b'[ 17%] Building C object CMakeFiles/s2_msgs__rosidl_generator_c.dir/rosidl_generator_c/s2_msgs/srv/detail/plugin_call__functions.c.o\n'}
+[5.013692] (-) TimerEvent: {}
+[5.098615] (s2_msgs) StdoutLine: {'line': b'[ 20%] Linking C shared library libs2_msgs__rosidl_generator_c.so\n'}
+[5.113789] (-) TimerEvent: {}
+[5.141896] (s2_msgs) StdoutLine: {'line': b'[ 20%] Built target s2_msgs__rosidl_generator_c\n'}
+[5.151144] (s2_msgs) StdoutLine: {'line': b'[ 23%] Generating C++ type support dispatch for ROS interfaces\n'}
+[5.213873] (-) TimerEvent: {}
+[5.314018] (-) TimerEvent: {}
+[5.414153] (-) TimerEvent: {}
+[5.488650] (s2_msgs) StdoutLine: {'line': b'[ 26%] Building CXX object CMakeFiles/s2_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/s2_msgs/srv/plugin_call__type_support.cpp.o\n'}
+[5.514521] (-) TimerEvent: {}
+[5.614695] (-) TimerEvent: {}
+[5.714862] (-) TimerEvent: {}
+[5.815018] (-) TimerEvent: {}
+[5.915188] (-) TimerEvent: {}
+[5.920448] (s2_msgs) StdoutLine: {'line': b'[ 29%] Linking CXX shared library libs2_msgs__rosidl_typesupport_cpp.so\n'}
+[6.003665] (s2_msgs) StdoutLine: {'line': b'[ 29%] Built target s2_msgs__rosidl_typesupport_cpp\n'}
+[6.014063] (s2_msgs) StdoutLine: {'line': b'[ 32%] Generating C++ introspection for ROS interfaces\n'}
+[6.015265] (-) TimerEvent: {}
+[6.115401] (-) TimerEvent: {}
+[6.215506] (-) TimerEvent: {}
+[6.315641] (-) TimerEvent: {}
+[6.412311] (s2_msgs) StdoutLine: {'line': b'[ 35%] Building CXX object CMakeFiles/s2_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/s2_msgs/srv/detail/plugin_call__type_support.cpp.o\n'}
+[6.415732] (-) TimerEvent: {}
+[6.515881] (-) TimerEvent: {}
+[6.616305] (-) TimerEvent: {}
+[6.716487] (-) TimerEvent: {}
+[6.816638] (-) TimerEvent: {}
+[6.903471] (s2_msgs) StdoutLine: {'line': b'[ 38%] Linking CXX shared library libs2_msgs__rosidl_typesupport_introspection_cpp.so\n'}
+[6.918805] (-) TimerEvent: {}
+[6.994841] (s2_msgs) StdoutLine: {'line': b'[ 38%] Built target s2_msgs__rosidl_typesupport_introspection_cpp\n'}
+[7.004187] (s2_msgs) StdoutLine: {'line': b'[ 41%] Generating C type support dispatch for ROS interfaces\n'}
+[7.018907] (-) TimerEvent: {}
+[7.119092] (-) TimerEvent: {}
+[7.219258] (-) TimerEvent: {}
+[7.319526] (-) TimerEvent: {}
+[7.335748] (s2_msgs) StdoutLine: {'line': b'[ 44%] Building CXX object CMakeFiles/s2_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/s2_msgs/srv/plugin_call__type_support.cpp.o\n'}
+[7.387532] (s2_msgs) StdoutLine: {'line': b'[ 47%] Linking CXX shared library libs2_msgs__rosidl_typesupport_c.so\n'}
+[7.419613] (-) TimerEvent: {}
+[7.431147] (s2_msgs) StdoutLine: {'line': b'[ 47%] Built target s2_msgs__rosidl_typesupport_c\n'}
+[7.441867] (s2_msgs) StdoutLine: {'line': b'[ 50%] Generating C introspection for ROS interfaces\n'}
+[7.519712] (-) TimerEvent: {}
+[7.620068] (-) TimerEvent: {}
+[7.720225] (-) TimerEvent: {}
+[7.819668] (s2_msgs) StdoutLine: {'line': b'[ 52%] Building C object CMakeFiles/s2_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/s2_msgs/srv/detail/plugin_call__type_support.c.o\n'}
+[7.820301] (-) TimerEvent: {}
+[7.868319] (s2_msgs) StdoutLine: {'line': b'[ 55%] Linking C shared library libs2_msgs__rosidl_typesupport_introspection_c.so\n'}
+[7.899156] (s2_msgs) StdoutLine: {'line': b'[ 55%] Built target s2_msgs__rosidl_typesupport_introspection_c\n'}
+[7.909126] (s2_msgs) StdoutLine: {'line': b'[ 58%] Generating C type support for eProsima Fast-RTPS\n'}
+[7.920664] (-) TimerEvent: {}
+[8.020819] (-) TimerEvent: {}
+[8.120951] (-) TimerEvent: {}
+[8.221094] (-) TimerEvent: {}
+[8.321338] (-) TimerEvent: {}
+[8.329365] (s2_msgs) StdoutLine: {'line': b'[ 61%] Building CXX object CMakeFiles/s2_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/s2_msgs/srv/detail/plugin_call__type_support_c.cpp.o\n'}
+[8.421511] (-) TimerEvent: {}
+[8.524526] (-) TimerEvent: {}
+[8.624707] (-) TimerEvent: {}
+[8.724875] (-) TimerEvent: {}
+[8.825042] (-) TimerEvent: {}
+[8.925205] (-) TimerEvent: {}
+[8.939380] (s2_msgs) StdoutLine: {'line': b'[ 64%] Linking CXX shared library libs2_msgs__rosidl_typesupport_fastrtps_c.so\n'}
+[9.025304] (-) TimerEvent: {}
+[9.028737] (s2_msgs) StdoutLine: {'line': b'[ 64%] Built target s2_msgs__rosidl_typesupport_fastrtps_c\n'}
+[9.038347] (s2_msgs) StdoutLine: {'line': b'[ 67%] Generating C++ type support for eProsima Fast-RTPS\n'}
+[9.125428] (-) TimerEvent: {}
+[9.225568] (-) TimerEvent: {}
+[9.325831] (-) TimerEvent: {}
+[9.426036] (-) TimerEvent: {}
+[9.452360] (s2_msgs) StdoutLine: {'line': b'[ 70%] Building CXX object CMakeFiles/s2_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/s2_msgs/srv/detail/dds_fastrtps/plugin_call__type_support.cpp.o\n'}
+[9.526204] (-) TimerEvent: {}
+[9.626378] (-) TimerEvent: {}
+[9.726769] (-) TimerEvent: {}
+[9.826934] (-) TimerEvent: {}
+[9.927101] (-) TimerEvent: {}
+[10.027267] (-) TimerEvent: {}
+[10.117229] (s2_msgs) StdoutLine: {'line': b'[ 73%] Linking CXX shared library libs2_msgs__rosidl_typesupport_fastrtps_cpp.so\n'}
+[10.127359] (-) TimerEvent: {}
+[10.205148] (s2_msgs) StdoutLine: {'line': b'[ 73%] Built target s2_msgs__rosidl_typesupport_fastrtps_cpp\n'}
+[10.224554] (s2_msgs) StdoutLine: {'line': b'[ 73%] Built target s2_msgs\n'}
+[10.227446] (-) TimerEvent: {}
+[10.244599] (s2_msgs) StdoutLine: {'line': b'[ 76%] Generating Python code for ROS interfaces\n'}
+[10.327518] (-) TimerEvent: {}
+[10.427662] (-) TimerEvent: {}
+[10.527801] (-) TimerEvent: {}
+[10.627944] (-) TimerEvent: {}
+[10.728169] (-) TimerEvent: {}
+[10.782203] (s2_msgs) StdoutLine: {'line': b'[ 76%] Built target s2_msgs__py\n'}
+[10.801864] (s2_msgs) StdoutLine: {'line': b'[ 79%] Building C object CMakeFiles/s2_msgs__rosidl_generator_py.dir/rosidl_generator_py/s2_msgs/srv/_plugin_call_s.c.o\n'}
+[10.828251] (-) TimerEvent: {}
+[10.928385] (-) TimerEvent: {}
+[10.965178] (s2_msgs) StdoutLine: {'line': b'[ 82%] Linking C shared library libs2_msgs__rosidl_generator_py.so\n'}
+[11.007832] (s2_msgs) StdoutLine: {'line': b'[ 82%] Built target s2_msgs__rosidl_generator_py\n'}
+[11.028510] (s2_msgs) StdoutLine: {'line': b'[ 85%] Building C object CMakeFiles/s2_msgs_s__rosidl_typesupport_fastrtps_c.dir/rosidl_generator_py/s2_msgs/_s2_msgs_s.ep.rosidl_typesupport_fastrtps_c.c.o\n'}
+[11.028709] (-) TimerEvent: {}
+[11.128829] (-) TimerEvent: {}
+[11.164618] (s2_msgs) StdoutLine: {'line': b'[ 88%] Linking C shared module rosidl_generator_py/s2_msgs/s2_msgs_s__rosidl_typesupport_fastrtps_c.so\n'}
+[11.195910] (s2_msgs) StdoutLine: {'line': b'[ 88%] Built target s2_msgs_s__rosidl_typesupport_fastrtps_c\n'}
+[11.216823] (s2_msgs) StdoutLine: {'line': b'[ 91%] Building C object CMakeFiles/s2_msgs_s__rosidl_typesupport_c.dir/rosidl_generator_py/s2_msgs/_s2_msgs_s.ep.rosidl_typesupport_c.c.o\n'}
+[11.231489] (-) TimerEvent: {}
+[11.331649] (-) TimerEvent: {}
+[11.332614] (s2_msgs) StdoutLine: {'line': b'[ 94%] Linking C shared module rosidl_generator_py/s2_msgs/s2_msgs_s__rosidl_typesupport_c.so\n'}
+[11.364753] (s2_msgs) StdoutLine: {'line': b'[ 94%] Built target s2_msgs_s__rosidl_typesupport_c\n'}
+[11.384383] (s2_msgs) StdoutLine: {'line': b'[ 97%] Building C object CMakeFiles/s2_msgs_s__rosidl_typesupport_introspection_c.dir/rosidl_generator_py/s2_msgs/_s2_msgs_s.ep.rosidl_typesupport_introspection_c.c.o\n'}
+[11.431741] (-) TimerEvent: {}
+[11.505403] (s2_msgs) StdoutLine: {'line': b'[100%] Linking C shared module rosidl_generator_py/s2_msgs/s2_msgs_s__rosidl_typesupport_introspection_c.so\n'}
+[11.531829] (-) TimerEvent: {}
+[11.537824] (s2_msgs) StdoutLine: {'line': b'[100%] Built target s2_msgs_s__rosidl_typesupport_introspection_c\n'}
+[11.548628] (s2_msgs) CommandEnded: {'returncode': 0}
+[11.549676] (s2_msgs) JobProgress: {'identifier': 's2_msgs', 'progress': 'install'}
+[11.558274] (s2_msgs) Command: {'cmd': ['/usr/bin/cmake', '--install', '/workspace/s2_msgs_ws/build/s2_msgs'], 'cwd': '/workspace/s2_msgs_ws/build/s2_msgs', 'env': OrderedDict({'GZ_CONFIG_PATH': '/opt/ros/jazzy/opt/sdformat_vendor/share/gz', 'HOSTNAME': '3859402a8b76', 'SHLVL': '1', 'LD_LIBRARY_PATH': '/opt/ros/jazzy/opt/sdformat_vendor/lib:/opt/ros/jazzy/lib/x86_64-linux-gnu:/opt/ros/jazzy/opt/gz_math_vendor/lib:/opt/ros/jazzy/opt/gz_utils_vendor/lib:/opt/ros/jazzy/opt/gz_tools_vendor/lib:/opt/ros/jazzy/opt/gz_cmake_vendor/lib:/opt/ros/jazzy/lib', 'HOME': '/root', 'OLDPWD': '/workspace', 'ROS_PYTHON_VERSION': '3', 'LC_CTYPE': 'C.UTF-8', 'ROS_DISTRO': 'jazzy', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'PATH': '/opt/ros/jazzy/opt/gz_tools_vendor/bin:/opt/ros/jazzy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin', 'RMW_IMPLEMENTATION': 'rmw_fastrtps_cpp', 'AMENT_PREFIX_PATH': '/opt/ros/jazzy', 'DEBIAN_FRONTEND': 'noninteractive', 'ROS_AUTOMATIC_DISCOVERY_RANGE': 'SUBNET', 'PWD': '/workspace/s2_msgs_ws/build/s2_msgs', 'PYTHONPATH': '/opt/ros/jazzy/lib/python3.12/site-packages', 'COLCON': '1', 'CMAKE_PREFIX_PATH': '/opt/ros/jazzy/opt/sdformat_vendor:/opt/ros/jazzy/opt/gz_math_vendor:/opt/ros/jazzy/opt/gz_utils_vendor:/opt/ros/jazzy/opt/gz_tools_vendor:/opt/ros/jazzy/opt/gz_cmake_vendor:/opt/ros/jazzy'}), 'shell': False}
+[11.565644] (s2_msgs) StdoutLine: {'line': b'-- Install configuration: ""\n'}
+[11.566130] (s2_msgs) StdoutLine: {'line': b'-- Execute custom install script\n'}
+[11.566455] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/ament_index/resource_index/rosidl_interfaces/s2_msgs\n'}
+[11.577029] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/srv/PluginCall.json\n'}
+[11.586136] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/msg/rosidl_generator_c__visibility_control.h\n'}
+[11.594827] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/detail/plugin_call__functions.h\n'}
+[11.603507] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/detail/plugin_call__struct.h\n'}
+[11.615511] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/detail/plugin_call__type_support.h\n'}
+[11.624208] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/plugin_call.h\n'}
+[11.631867] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/environment/library_path.sh\n'}
+[11.631999] (-) TimerEvent: {}
+[11.640773] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/environment/library_path.dsv\n'}
+[11.651152] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h\n'}
+[11.659155] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/detail/plugin_call__rosidl_typesupport_fastrtps_c.h\n'}
+[11.667631] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/msg/rosidl_typesupport_introspection_c__visibility_control.h\n'}
+[11.677644] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/detail/plugin_call__rosidl_typesupport_introspection_c.h\n'}
+[11.686765] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/msg/rosidl_generator_cpp__visibility_control.hpp\n'}
+[11.695413] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/detail/plugin_call__builder.hpp\n'}
+[11.705358] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/detail/plugin_call__struct.hpp\n'}
+[11.714093] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/detail/plugin_call__traits.hpp\n'}
+[11.722805] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/detail/plugin_call__type_support.hpp\n'}
+[11.732103] (-) TimerEvent: {}
+[11.732728] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/plugin_call.hpp\n'}
+[11.742592] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h\n'}
+[11.751584] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/detail/plugin_call__rosidl_typesupport_fastrtps_cpp.hpp\n'}
+[11.760591] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/include/s2_msgs/s2_msgs/srv/detail/plugin_call__rosidl_typesupport_introspection_cpp.hpp\n'}
+[11.769979] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/environment/pythonpath.sh\n'}
+[11.778478] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/environment/pythonpath.dsv\n'}
+[11.787254] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs-0.1.0-py3.12.egg-info/PKG-INFO\n'}
+[11.796115] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs-0.1.0-py3.12.egg-info/SOURCES.txt\n'}
+[11.805042] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs-0.1.0-py3.12.egg-info/dependency_links.txt\n'}
+[11.812771] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs-0.1.0-py3.12.egg-info/top_level.txt\n'}
+[11.824300] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/__init__.py\n'}
+[11.832198] (-) TimerEvent: {}
+[11.833268] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/_s2_msgs_s.ep.rosidl_typesupport_c.c\n'}
+[11.841924] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/_s2_msgs_s.ep.rosidl_typesupport_fastrtps_c.c\n'}
+[11.852167] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/_s2_msgs_s.ep.rosidl_typesupport_introspection_c.c\n'}
+[11.861771] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/s2_msgs_s__rosidl_typesupport_c.so\n'}
+[11.870820] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/s2_msgs_s__rosidl_typesupport_fastrtps_c.so\n'}
+[11.879344] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/s2_msgs_s__rosidl_typesupport_introspection_c.so\n'}
+[11.891072] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/srv/__init__.py\n'}
+[11.901494] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/srv/_plugin_call.py\n'}
+[11.910466] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/srv/_plugin_call_s.c\n'}
+[11.920949] (s2_msgs) StdoutLine: {'line': b'-- Up-to-date symlink: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/s2_msgs_s__rosidl_typesupport_fastrtps_c.so\n'}
+[11.921311] (s2_msgs) StdoutLine: {'line': b'-- Up-to-date symlink: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/s2_msgs_s__rosidl_typesupport_introspection_c.so\n'}
+[11.921877] (s2_msgs) StdoutLine: {'line': b'-- Up-to-date symlink: /workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/s2_msgs_s__rosidl_typesupport_c.so\n'}
+[11.922044] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/srv/PluginCall.idl\n'}
+[11.930293] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/srv/PluginCall.srv\n'}
+[11.932281] (-) TimerEvent: {}
+[11.939014] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/ament_index/resource_index/package_run_dependencies/s2_msgs\n'}
+[11.948562] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/ament_index/resource_index/parent_prefix_path/s2_msgs\n'}
+[11.957355] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/environment/ament_prefix_path.sh\n'}
+[11.965171] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/environment/ament_prefix_path.dsv\n'}
+[11.973605] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/environment/path.sh\n'}
+[11.982738] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/environment/path.dsv\n'}
+[11.991314] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/local_setup.bash\n'}
+[11.999279] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/local_setup.sh\n'}
+[12.011123] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/local_setup.zsh\n'}
+[12.020636] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/local_setup.dsv\n'}
+[12.029640] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/package.dsv\n'}
+[12.032390] (-) TimerEvent: {}
+[12.039360] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/ament_index/resource_index/packages/s2_msgs\n'}
+[12.048233] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/rosidl_cmake-extras.cmake\n'}
+[12.057126] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/ament_cmake_export_dependencies-extras.cmake\n'}
+[12.065876] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/ament_cmake_export_include_directories-extras.cmake\n'}
+[12.075088] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/ament_cmake_export_libraries-extras.cmake\n'}
+[12.082945] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/ament_cmake_export_targets-extras.cmake\n'}
+[12.091154] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake\n'}
+[12.101361] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake\n'}
+[12.110512] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/s2_msgsConfig.cmake\n'}
+[12.120717] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/s2_msgsConfig-version.cmake\n'}
+[12.131092] (s2_msgs) StdoutLine: {'line': b'-- Symlinking: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/package.xml\n'}
+[12.132460] (-) TimerEvent: {}
+[12.139082] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_generator_c.so\n'}
+[12.139355] (s2_msgs) StdoutLine: {'line': b'-- Set non-toolchain portion of runtime path of "/workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_generator_c.so" to ""\n'}
+[12.139519] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_typesupport_fastrtps_c.so\n'}
+[12.139719] (s2_msgs) StdoutLine: {'line': b'-- Set non-toolchain portion of runtime path of "/workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_typesupport_fastrtps_c.so" to ""\n'}
+[12.139890] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_typesupport_introspection_c.so\n'}
+[12.140091] (s2_msgs) StdoutLine: {'line': b'-- Set non-toolchain portion of runtime path of "/workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_typesupport_introspection_c.so" to ""\n'}
+[12.140237] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_typesupport_c.so\n'}
+[12.140415] (s2_msgs) StdoutLine: {'line': b'-- Set non-toolchain portion of runtime path of "/workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_typesupport_c.so" to ""\n'}
+[12.140584] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_typesupport_fastrtps_cpp.so\n'}
+[12.140913] (s2_msgs) StdoutLine: {'line': b'-- Set non-toolchain portion of runtime path of "/workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_typesupport_fastrtps_cpp.so" to ""\n'}
+[12.141069] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_typesupport_introspection_cpp.so\n'}
+[12.141367] (s2_msgs) StdoutLine: {'line': b'-- Set non-toolchain portion of runtime path of "/workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_typesupport_introspection_cpp.so" to ""\n'}
+[12.141538] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_typesupport_cpp.so\n'}
+[12.141716] (s2_msgs) StdoutLine: {'line': b'-- Set non-toolchain portion of runtime path of "/workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_typesupport_cpp.so" to ""\n'}
+[12.183888] (s2_msgs) StdoutLine: {'line': b"Listing '/workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs'...\n"}
+[12.184080] (s2_msgs) StdoutLine: {'line': b"Compiling '/workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/__init__.py'...\n"}
+[12.184173] (s2_msgs) StdoutLine: {'line': b"Listing '/workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/srv'...\n"}
+[12.184256] (s2_msgs) StdoutLine: {'line': b"Compiling '/workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/srv/__init__.py'...\n"}
+[12.184344] (s2_msgs) StdoutLine: {'line': b"Compiling '/workspace/s2_msgs_ws/install/s2_msgs/lib/python3.12/site-packages/s2_msgs/srv/_plugin_call.py'...\n"}
+[12.193266] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_generator_py.so\n'}
+[12.193604] (s2_msgs) StdoutLine: {'line': b'-- Set non-toolchain portion of runtime path of "/workspace/s2_msgs_ws/install/s2_msgs/lib/libs2_msgs__rosidl_generator_py.so" to ""\n'}
+[12.193893] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/export_s2_msgs__rosidl_generator_cExport.cmake\n'}
+[12.194089] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/export_s2_msgs__rosidl_generator_cExport-noconfig.cmake\n'}
+[12.194240] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/export_s2_msgs__rosidl_typesupport_fastrtps_cExport.cmake\n'}
+[12.194337] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/export_s2_msgs__rosidl_typesupport_fastrtps_cExport-noconfig.cmake\n'}
+[12.194510] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/s2_msgs__rosidl_typesupport_introspection_cExport.cmake\n'}
+[12.194646] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/s2_msgs__rosidl_typesupport_introspection_cExport-noconfig.cmake\n'}
+[12.194734] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/s2_msgs__rosidl_typesupport_cExport.cmake\n'}
+[12.194826] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/s2_msgs__rosidl_typesupport_cExport-noconfig.cmake\n'}
+[12.196723] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/export_s2_msgs__rosidl_generator_cppExport.cmake\n'}
+[12.196894] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/export_s2_msgs__rosidl_typesupport_fastrtps_cppExport.cmake\n'}
+[12.197002] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/export_s2_msgs__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake\n'}
+[12.197096] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/s2_msgs__rosidl_typesupport_introspection_cppExport.cmake\n'}
+[12.197186] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/s2_msgs__rosidl_typesupport_introspection_cppExport-noconfig.cmake\n'}
+[12.197283] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/s2_msgs__rosidl_typesupport_cppExport.cmake\n'}
+[12.197371] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/s2_msgs__rosidl_typesupport_cppExport-noconfig.cmake\n'}
+[12.197457] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/export_s2_msgs__rosidl_generator_pyExport.cmake\n'}
+[12.197556] (s2_msgs) StdoutLine: {'line': b'-- Installing: /workspace/s2_msgs_ws/install/s2_msgs/share/s2_msgs/cmake/export_s2_msgs__rosidl_generator_pyExport-noconfig.cmake\n'}
+[12.197985] (s2_msgs) CommandEnded: {'returncode': 0}
+[12.226127] (s2_msgs) JobEnded: {'identifier': 's2_msgs', 'rc': 0}
+[12.226828] (-) EventReactorShutdown: {}

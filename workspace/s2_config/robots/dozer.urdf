@@ -1,0 +1,447 @@
+<?xml version="1.0"?>
+<robot name="dozer">
+  <link name="base_footprint">
+  </link>
+  <link name="base_link">
+    <!-- Основной корпус трактора -->
+    <visual>
+      <geometry>
+        <box size="2.5 1.5 1.5" />
+      </geometry>
+      <material name="orange">
+        <color rgba="1 0.3 0.1 1" />
+      </material>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+    </visual>
+    <!-- Добавленная линия: от центра base_link до arm_joint -->
+    <visual>
+      <origin rpy="0 -0.9463 0" xyz="0.55717 -0.00004 0.773155" />
+      <geometry>
+        <box size="1.906 0.15 0.15" />
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="2.5 1.5 1.5" />
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="1.5" />
+      <inertia ixx="0.5625" ixy="0.0" ixz="0.0" iyy="1.0625" iyz="0.0" izz="1.0625" />
+    </inertial>
+  </link>
+  
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint" />
+    <child link="base_link" />
+    <origin rpy="0 0 0" xyz="0 0 0" />
+  </joint>
+
+  <!-- ============================================== -->
+  <!-- MIDDLE BASE LINK (ADDITIONAL FRAME)            -->
+  <!-- ============================================== -->
+  <link name="middle_base_link">
+  </link>
+  <joint name="middle_base_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="middle_base_link" />
+    <origin rpy="0 0 0" xyz="0 0 0" />
+  </joint>
+  <!-- ============================================== -->
+
+  <link name="FR_wheel">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+      </geometry>
+      <material name="blue">
+        <color rgba="0.2 0.2 1 1" />
+      </material>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+        <origin rpy="0 0 0" xyz="0 0 0" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="0.2" />
+      <inertia ixx="0.013541666666666667" ixy="0.0" ixz="0.0" iyy="0.013541666666666667" iyz="0.0"
+        izz="0.025" />
+    </inertial>
+  </link>
+  <joint name="FR_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="FR_wheel" />
+    <origin rpy="-1.5707963267948966 0 0" xyz="1.25 -1.0 -0.5" />
+    <axis xyz="0 0 1" />
+  </joint>
+  
+  <link name="FL_wheel">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+      </geometry>
+      <material name="blue">
+        <color rgba="0.2 0.2 1 1" />
+      </material>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+        <origin rpy="0 0 0" xyz="0 0 0" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="0.2" />
+      <inertia ixx="0.013541666666666667" ixy="0.0" ixz="0.0" iyy="0.013541666666666667" iyz="0.0"
+        izz="0.025" />
+    </inertial>
+  </link>
+  <joint name="FL_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="FL_wheel" />
+    <origin rpy="-1.5707963267948966 0 0" xyz="1.25 1.0 -0.5" />
+    <axis xyz="0 0 1" />
+  </joint>
+  
+  <link name="BR_wheel">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+      </geometry>
+      <material name="blue">
+        <color rgba="0.2 0.2 1 1" />
+      </material>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+        <origin rpy="0 0 0" xyz="0 0 0" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="0.2" />
+      <inertia ixx="0.013541666666666667" ixy="0.0" ixz="0.0" iyy="0.013541666666666667" iyz="0.0"
+        izz="0.025" />
+    </inertial>
+  </link>
+  <joint name="BR_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="BR_wheel" />
+    <origin rpy="-1.5707963267948966 0 0" xyz="-1.25 -1.0 -0.5" />
+    <axis xyz="0 0 1" />
+  </joint>
+  
+  <link name="BL_wheel">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+      </geometry>
+      <material name="blue">
+        <color rgba="0.2 0.2 1 1" />
+      </material>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+        <origin rpy="0 0 0" xyz="0 0 0" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="0.2" />
+      <inertia ixx="0.013541666666666667" ixy="0.0" ixz="0.0" iyy="0.013541666666666667" iyz="0.0"
+        izz="0.025" />
+    </inertial>
+  </link>
+  <joint name="BL_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="BL_wheel" />
+    <origin rpy="-1.5707963267948966 0 0" xyz="-1.25 1.0 -0.5" />
+    <axis xyz="0 0 1" />
+  </joint>
+  
+  <link name="BMR_wheel">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+      </geometry>
+      <material name="blue">
+        <color rgba="0.2 0.2 1 1" />
+      </material>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+        <origin rpy="0 0 0" xyz="0 0 0" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="0.2" />
+      <inertia ixx="0.013541666666666667" ixy="0.0" ixz="0.0" iyy="0.013541666666666667" iyz="0.0"
+        izz="0.025" />
+    </inertial>
+  </link>
+  <joint name="BMR_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="BMR_wheel" />
+    <origin rpy="-1.5707963267948966 0 0" xyz="-0.625 -1.0 -0.5" />
+    <axis xyz="0 0 1" />
+  </joint>
+  
+  <link name="BML_wheel">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+      </geometry>
+      <material name="blue">
+        <color rgba="0.2 0.2 1 1" />
+      </material>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+        <origin rpy="0 0 0" xyz="0 0 0" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="0.2" />
+      <inertia ixx="0.013541666666666667" ixy="0.0" ixz="0.0" iyy="0.013541666666666667" iyz="0.0"
+        izz="0.025" />
+    </inertial>
+  </link>
+  <joint name="BML_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="BML_wheel" />
+    <origin rpy="-1.5707963267948966 0 0" xyz="-0.625 1.0 -0.5" />
+    <axis xyz="0 0 1" />
+  </joint>
+  
+  <link name="FMR_wheel">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+      </geometry>
+      <material name="blue">
+        <color rgba="0.2 0.2 1 1" />
+      </material>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+        <origin rpy="0 0 0" xyz="0 0 0" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="0.2" />
+      <inertia ixx="0.013541666666666667" ixy="0.0" ixz="0.0" iyy="0.013541666666666667" iyz="0.0"
+        izz="0.025" />
+    </inertial>
+  </link>
+  <joint name="FMR_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="FMR_wheel" />
+    <origin rpy="-1.5707963267948966 0 0" xyz="0.625 -1.0 -0.5" />
+    <axis xyz="0 0 1" />
+  </joint>
+  
+  <link name="FML_wheel">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+      </geometry>
+      <material name="blue">
+        <color rgba="0.2 0.2 1 1" />
+      </material>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+        <origin rpy="0 0 0" xyz="0 0 0" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="0.2" />
+      <inertia ixx="0.013541666666666667" ixy="0.0" ixz="0.0" iyy="0.013541666666666667" iyz="0.0"
+        izz="0.025" />
+    </inertial>
+  </link>
+  <joint name="FML_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="FML_wheel" />
+    <origin rpy="-1.5707963267948966 0 0" xyz="0.625 1.0 -0.5" />
+    <axis xyz="0 0 1" />
+  </joint>
+  
+  <link name="MR_wheel">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+      </geometry>
+      <material name="blue">
+        <color rgba="0.2 0.2 1 1" />
+      </material>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+        <origin rpy="0 0 0" xyz="0 0 0" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="0.2" />
+      <inertia ixx="0.013541666666666667" ixy="0.0" ixz="0.0" iyy="0.013541666666666667" iyz="0.0"
+        izz="0.025" />
+    </inertial>
+  </link>
+  <joint name="MR_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="MR_wheel" />
+    <origin rpy="-1.5707963267948966 0 0" xyz="0 -1.0 -0.5" />
+    <axis xyz="0 0 1" />
+  </joint>
+  
+  <link name="ML_wheel">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+      </geometry>
+      <material name="blue">
+        <color rgba="0.2 0.2 1 1" />
+      </material>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.5" />
+        <origin rpy="0 0 0" xyz="0 0 0" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="0.2" />
+      <inertia ixx="0.013541666666666667" ixy="0.0" ixz="0.0" iyy="0.013541666666666667" iyz="0.0"
+        izz="0.025" />
+    </inertial>
+  </link>
+  <joint name="ML_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="ML_wheel" />
+    <origin rpy="-1.5707963267948966 0 0" xyz="0 1.0 -0.5" />
+    <axis xyz="0 0 1" />
+  </joint>
+  
+  <link name="gps_right_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry>
+        <box size="0.1 0.1 0.1" />
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="gps_right_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="gps_right_link" />
+    <origin rpy="0 0 0" xyz="-1.25 -0.75 0.8" />
+  </joint>
+  
+  <link name="gps_left_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry>
+        <box size="0.1 0.1 0.1" />
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="gps_left_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="gps_left_link" />
+    <origin rpy="0 0 0" xyz="-1.25 0.75 0.8" />
+  </joint>
+  
+  <link name="gps_middle_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry>
+        <box size="0.1 0.1 0.1" />
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="gps_middle_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="gps_middle_link" />
+    <origin rpy="0 0 0" xyz="-1.25 0 0.8" />
+  </joint>
+  
+  <link name="arm">
+    <visual>
+      <!-- Вычислено на основе координат bucket_joint -->
+      <!-- Длина: ~2.8 м, центр смещен ровно наполовину, повернута на нужный угол Pitch -->
+      <origin rpy="0 0.5322 0" xyz="1.206385 0.00041 -0.71071" />
+      <geometry>
+        <box size="2.80 0.15 0.15" />
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="bucket">
+    <visual>
+      <!-- Смещаем ковш немного вперед и вниз от сустава, чтобы видеть его вращение -->
+      <origin rpy="0 0.785 0" xyz="0.3 0 -0.3" />
+      <geometry>
+        <box size="0.6 1.5 0.1" /> 
+      </geometry>
+      <material name="orange">
+         <color rgba="1 0.3 0.1 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="arm_joint" type="revolute">
+    <parent link="base_link" />
+    <child link="arm" />
+    <origin rpy="0.0 -0.5 0.0" xyz="1.11434 -0.00008 1.54631" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="-1.0" upper="0.57" effort="200000000" velocity="0.01" />
+  </joint>
+  <joint name="bucket_joint" type="revolute">
+    <parent link="arm" />
+    <child link="bucket" />
+    <origin rpy="0.0 0.0 0.0" xyz="2.41277 0.00082 -1.42142" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="0.0" upper="0.25" effort="200000000" velocity="0.01" />
+  </joint>
+</robot>

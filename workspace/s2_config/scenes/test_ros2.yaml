@@ -1,0 +1,66 @@
+s2:
+  update_rate: 100
+  viz_rate: 30
+
+  world:
+    surface: "flat"
+    geo_origin: {lat: 55.75, lon: 37.62, alt: 150.0}
+
+    geometry:
+      # Пол
+      - type: "box"
+        pose: {x: 0.0, y: 0.0, z: -0.05, yaw: 0.0}
+        size: {x: 50.0, y: 50.0, z: 0.1}
+        color: "#444444"
+
+  agents:
+    - name: "robot_0"
+      id: 0
+      domain_id: 50
+      pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#FF6B35"
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.5
+
+    - name: "robot_1"
+      id: 1
+      domain_id: 51
+      pose: {x: 3.0, y: 0.0, z: 0.0, yaw: 0.0}
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#35A0FF"
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.5
+
+    - name: "robot_2"
+      id: 2
+      domain_id: 52
+      pose: {x: -3.0, y: 0.0, z: 0.0, yaw: 0.0}
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#35FF6B"
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.5

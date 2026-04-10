@@ -1,0 +1,1 @@
+/workspace/s2_msgs_ws/build/s2_msgs/rosidl_typesupport_fastrtps_c/s2_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h

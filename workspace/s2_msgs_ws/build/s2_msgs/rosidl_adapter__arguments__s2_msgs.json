@@ -1,6 +1,0 @@
-{
-  "package_name": "s2_msgs",
-  "non_idl_tuples": [
-    "/workspace/s2_msgs_ws/src/s2_msgs:srv/PluginCall.srv"
-  ]
-}

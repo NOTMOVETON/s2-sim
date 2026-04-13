@@ -1,1 +1,0 @@
-/workspace/s2_msgs_ws/build/s2_msgs/rosidl_cmake/rosidl_cmake-extras.cmake

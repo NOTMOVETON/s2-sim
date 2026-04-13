@@ -1,6 +1,0 @@
-# Request: JSON-строка с параметрами вызова плагинового сервиса
-string request_json
----
-# Response: признак успеха и JSON-строка с ответом
-bool success
-string response_json

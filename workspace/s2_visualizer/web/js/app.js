@@ -217,7 +217,7 @@ function updateOrCreateMesh(key, type, pose, visual, opts = {}) {
     }
 
     mesh.position.set(pose.x || 0, pose.z || 0, -(pose.y || 0));
-    mesh.rotation.y = pose.yaw || 0;
+    mesh.rotation.set(pose.roll || 0, pose.yaw || 0, -(pose.pitch || 0), 'YZX');
 
     return mesh;
 }
@@ -603,11 +603,20 @@ function updateScene(data) {
         Object.keys(meshes).forEach(k => { if (k.startsWith('static_')) removeMesh(k); });
 
         data.geometry.forEach((geom, i) => {
-            const pose = { x: geom.x || 0, y: geom.y || 0, z: geom.z || 0, yaw: 0 };
+            const pose = {
+                x:     geom.x     || 0,
+                y:     geom.y     || 0,
+                z:     geom.z     || 0,
+                yaw:   geom.yaw   || 0,
+                pitch: geom.pitch || 0,
+                roll:  geom.roll  || 0,
+            };
             const visual = {
-                type: geom.type || 'box',
-                size: [geom.sx || 1, geom.sy || 1, geom.sz || 1],
-                color: geom.color || '#808080',
+                type:   geom.type   || 'box',
+                size:   [geom.sx || 1, geom.sy || 1, geom.sz || 1],
+                color:  geom.color  || '#808080',
+                radius: geom.radius || 0.5,
+                height: geom.height || 1.0,
             };
             updateOrCreateMesh(`static_${i}`, geom.type, pose, visual);
         });
@@ -919,6 +928,8 @@ function connectSSE() {
         console.log('SSE connected');
         document.getElementById('conn-status').textContent = 'Connected';
         document.getElementById('conn-status').className = 'connected';
+        geometrySent = false;
+        Object.keys(meshes).forEach(k => { if (k.startsWith('static_')) removeMesh(k); });
     };
 
     evtSource.onmessage = (event) => {

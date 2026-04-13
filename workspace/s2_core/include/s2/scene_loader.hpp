@@ -309,10 +309,12 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
 
 inline Pose3D SceneLoader::parse_pose(const YAML::Node& node) {
     Pose3D pose;
-    pose.x = node["x"].as<double>(0.0);
-    pose.y = node["y"].as<double>(0.0);
-    pose.z = node["z"].as<double>(0.0);
-    pose.yaw = node["yaw"].as<double>(0.0);
+    pose.x     = node["x"].as<double>(0.0);
+    pose.y     = node["y"].as<double>(0.0);
+    pose.z     = node["z"].as<double>(0.0);
+    pose.yaw   = node["yaw"].as<double>(0.0);
+    pose.pitch = node["pitch"].as<double>(0.0);
+    pose.roll  = node["roll"].as<double>(0.0);
     return pose;
 }
 

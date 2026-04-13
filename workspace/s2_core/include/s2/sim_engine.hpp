@@ -328,9 +328,12 @@ public:
     for (const auto& prim : world_.static_geometry()) {
       GeometrySnapshot gs;
       gs.type = prim.type;
-      gs.x = prim.pose.position().x();
-      gs.y = prim.pose.position().y();
-      gs.z = prim.pose.position().z();
+      gs.x = prim.pose.x;
+      gs.y = prim.pose.y;
+      gs.z = prim.pose.z;
+      gs.yaw   = prim.pose.yaw;
+      gs.pitch = prim.pose.pitch;
+      gs.roll  = prim.pose.roll;
       gs.sx = prim.size.x();
       gs.sy = prim.size.y();
       gs.sz = prim.size.z();

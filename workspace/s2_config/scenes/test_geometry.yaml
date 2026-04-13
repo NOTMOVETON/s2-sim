@@ -1,0 +1,43 @@
+s2:
+  update_rate: 50
+  visualizer:
+    enabled: true
+    port: 1937
+  transport:
+    type: stub
+
+  world:
+    geometry:
+      - type: box
+        pose: { x: 3.0, y: 0.0, z: 0.5 }
+        size: [2.0, 1.0, 1.0]
+        color: "#4444FF"
+
+      - type: cylinder
+        pose: { x: -2.0, y: 2.0, z: 1.0 }
+        radius: 0.5
+        height: 2.0
+        color: "#44FF44"
+
+      - type: sphere
+        pose: { x: 0.0, y: -3.0, z: 0.5 }
+        radius: 0.5
+        color: "#FF4444"
+
+      - type: box
+        pose: { x: 1.0, y: 1.0, z: 0.25, pitch: 0.3 }
+        size: [3.0, 0.5, 0.5]
+        color: "#FF8800"
+
+  agents:
+    - name: robot_0
+      pose: { x: 0.0, y: 0.0 }
+      visual:
+        type: box
+        size: [0.6, 0.4, 0.3]
+        color: "#FF6B35"
+      plugins:
+        - type: diff_drive
+          wheel_base: 0.4
+          max_linear_vel: 1.0
+          max_angular_vel: 1.5

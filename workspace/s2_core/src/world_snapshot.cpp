@@ -148,6 +148,9 @@ nlohmann::json geometry_snapshot_to_json(const GeometrySnapshot& geom) {
     j["x"] = geom.x;
     j["y"] = geom.y;
     j["z"] = geom.z;
+    j["yaw"]   = geom.yaw;
+    j["pitch"] = geom.pitch;
+    j["roll"]  = geom.roll;
     j["sx"] = geom.sx;
     j["sy"] = geom.sy;
     j["sz"] = geom.sz;

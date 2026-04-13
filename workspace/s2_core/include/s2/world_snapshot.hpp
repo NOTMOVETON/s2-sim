@@ -63,6 +63,7 @@ struct ZoneSnapshot {
 struct GeometrySnapshot {
     std::string type;         /// "box", "sphere", "cylinder"
     double x{0}, y{0}, z{0};  /// позиция
+    double yaw{0}, pitch{0}, roll{0}; /// ориентация (ZYX Euler, радианы)
     double sx{1}, sy{1}, sz{1}; /// размер
     double radius{0.5};       /// радиус для sphere/cylinder
     double height{1.0};       /// высота для cylinder

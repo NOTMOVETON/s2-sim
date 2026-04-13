@@ -76,3 +76,29 @@ External input (от ROS2 или UI) сохраняется до получен�
 
 ### ID конфликт во фронтенде
 При нескольких агентах с одинаковыми плагинами ID формы включает agentId: `plugin-form-${agentId}-${pluginName}`.
+
+### Редактор сцены (задачи 14–19)
+- Editor mode — клиентский режим, симуляция продолжает тикать
+- `editorPrimitives` — клиентская копия геометрии; изменения отправляются через `POST /api/scene/geometry`
+- `undoStack` — массив JSON-снапшотов `editorPrimitives` (до 50 операций)
+- Shift+LMB для pan вместо средней кнопки (OrbitControls переопределён через capture phase)
+- Загрузка сцены = полный перезапуск SimEngine (SimWorld очищается, время сбрасывается)
+
+### CollisionSystem (задача 20)
+- Только агенты с `has_collision = true` участвуют в коллизиях
+- Иерархия источников коллизии: URDF `<collision>` → YAML `collision:` → нет коллизии
+- Slide-реакция: убрать нормальную компоненту velocity, оставить тангенциальную
+- Пол = явный box-примитив (нет неявного глобального пола)
+- `find_support_surface()` используется GravityPlugin
+
+### GravityPlugin (задача 21)
+- Тип Resource, инжекция CollisionSystem через `dynamic_cast` в SimEngine
+- Управляет только Z-координатой и Z-скоростью
+- Горизонтальное движение остаётся за DiffDrive
+
+### LidarPlugin (задача 22)
+- Использует `RaycastEngine` (уже реализован в `raycast_engine.hpp`)
+- Видит: статика (`static_geometry`) + агенты с `has_collision = true`
+- Динамические агенты добавляются через `RaycastEngine::set_dynamic_agents()` каждый тик
+- Визуализация: `THREE.Points` в браузере через `plugins_data["agent_X"]["lidar"]`
+- ROS2: `sensor_msgs/LaserScan` на топик `/<name>/<sensor_name>`

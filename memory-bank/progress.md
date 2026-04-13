@@ -178,7 +178,17 @@ axes.rotation.set(pose.roll || 0, pose.yaw || 0, -(pose.pitch || 0), 'YZX');
 ## Известные проблемы
 Нет открытых критических проблем.
 
-## Следующие задачи
-- Фича 05 — Зоны и эффекты (docs/05-zones-effects.md)
-- Фича 06 — Сенсоры и ресурсы (docs/06-sensors-resources.md)
-- Фича 07 — Акторы и двери (docs/07-actors-door.md)
+## Следующие задачи (новый блок, запланирован 2026-04-14)
+
+### Блок A: Визуал и редактор сцены
+- Задача 14 — Патч визуализации геометрии (rotation, cylinder params, reconnect)
+- Задача 15 — Editor mode: CRUD примитивов, сохранение YAML
+- Задача 16 — Редактор агентов в UI
+- Задача 17 — Face-snapping примитивов
+- Задача 18 — Shift+LMB pan, Ctrl+Z undo, Ctrl+C/V
+- Задача 19 — Браузер сцен, runtime load (перезапуск симуляции)
+
+### Блок B: Физика
+- Задача 20 — CollisionSystem: slide-реакция, наклонные плоскости, floor как box
+- Задача 21 — GravityPlugin: свободное падение
+- Задача 22 — LidarPlugin: 2D raycast, LaserScan ROS2, визуализация

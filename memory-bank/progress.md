@@ -105,6 +105,16 @@
   - `JointVelPlugin`: `handle_input()` поддерживает именованные поля джоинтов
   - Тесты: обновлены тесты `JointVelPlugin`
 
+### Фича 04.10 — ColorPlugin ✅ ЗАВЕРШЕНА
+
+- **`IAgentPlugin`**: добавлен виртуальный метод `initialize(Agent&)` — вызывается до первого `update()` для запоминания начального состояния агента
+- **`SimTransportBridge::init()`**: вызов `plugin->initialize(agent)` после регистрации плагинов
+- **`ColorPlugin`**: изменяет `agent.visual.color` на заданное время по запросу ROS2 сервиса (`/set_color`)
+  - Принимает запрос `{"color": "#FF0000", "duration": 3.0}`
+  - По истечении таймера восстанавливает оригинальный цвет
+  - `to_json()` отдаёт текущий цвет и оставшееся время
+- **Тесты** (`test_color_plugin.cpp`): 5 тестов — инициализация, вызов сервиса, истечение таймера, нулевая длительность, `to_json()`
+
 ### Фича 04.9.1 — JointVel UI: корректный поворот базы и рабочее управление скоростями фреймов ✅ ЗАВЕРШЕНО
 
 #### Проблема A: Неверная ориентация кинематических фреймов при вращении
@@ -127,6 +137,34 @@ axes.rotation.set(pose.roll || 0, pose.yaw || 0, -(pose.pitch || 0), 'YZX');
 #### Новый тест
 - `JointNamesMatchUrdfLinks` — регрессионный тест: проверяет что конфигурация с link-name (не joint-name) корректно двигает оба звена.
 
+### Фича 12 — Плагины визуализации данных робота ✅ ЗАВЕРШЕНА
+
+- **`TrajectoryRecorderPlugin`**: записывает и отображает собственную траекторию робота
+  - `from_config()`: `record_interval_s`, `max_points`, `color`
+  - `update()`: каждые `record_interval_s` секунд добавляет позу в кольцевой буфер
+  - `to_json()`: `{"type":"trajectory","points":[...],"color":"#FFAA00"}`
+  - Работает без ROS2, полностью автономно
+- **`PathDisplayPlugin`**: подписывается на `nav_msgs/Path` и отображает планируемый путь
+  - `subscribe_topics()` — новый опциональный метод `IAgentPlugin`
+  - `handle_subscription(topic, json)` — получает путь в JSON, обновляет буфер точек
+  - В stub-режиме ничего не отображает
+- **`IAgentPlugin`**: добавлены `subscribe_topics()` и `handle_subscription()`
+- **`SimTransportBridge::init()`**: регистрирует подписки для плагинов с `subscribe_topics()`
+- **`Ros2TransportAdapter`**: создаёт `rclcpp::Subscription<nav_msgs::msg::Path>`
+- **`app.js`**: `renderOverlayLine(id, points, color)` — рендеринг `THREE.Line` поверх сцены; обработка `type:"trajectory"` и `type:"path"` из `plugins_data`
+- **Демо-сцена**: `test_viz_overlay.yaml`
+
+### Фича 13 — Полная документация симуляции S2 ✅ ЗАВЕРШЕНА
+
+- **`workspace/README.md`**: единый самодостаточный файл документации
+  - Общий обзор системы, ASCII-диаграмма потоков данных, таблица модулей
+  - Ядро симуляции: `SimEngine`, тиковый цикл, `SharedState`, объекты мира
+  - Система плагинов: полный интерфейс `IAgentPlugin`, жизненный цикл, реестр, типы плагинов
+  - Примеры полных реализаций: `range_sensor`, `gnss`, `imu`, `diff_drive`, `ackermann_drive`, `slope_limiter`, `battery`, `trajectory_recorder`, `path_display`
+  - Транспортный слой: `ITransportAdapter`, `SimTransportBridge`, `Ros2TransportAdapter`, инструкция по новому транспорту
+  - Визуализатор: `VizServer`, формат `WorldSnapshot`, Three.js фронтенд, инструкция по кастомному клиенту
+  - YAML-конфиг сцены: полный справочник всех секций
+
 ### Фича 11 — Конфигурация транспорта и визуализатора из YAML ✅ ЗАВЕРШЕНА
 
 #### Что сделано
@@ -142,3 +180,5 @@ axes.rotation.set(pose.roll || 0, pose.yaw || 0, -(pose.pitch || 0), 'YZX');
 
 ## Следующие задачи
 - Фича 05 — Зоны и эффекты (docs/05-zones-effects.md)
+- Фича 06 — Сенсоры и ресурсы (docs/06-sensors-resources.md)
+- Фича 07 — Акторы и двери (docs/07-actors-door.md)

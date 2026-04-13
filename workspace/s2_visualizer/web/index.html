@@ -70,12 +70,45 @@
             font-family: 'Courier New', monospace;
             font-size: 13px;
             border-radius: 6px;
-            padding: 14px;
             z-index: 101;
-            overflow-y: auto;
+            overflow: visible;
             display: none;
         }
         #side-panel.visible { display: block; }
+        #side-panel-scroll {
+            padding: 14px;
+            overflow-y: auto;
+            max-height: calc(100vh - 140px);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        /* Ресайзер боковой панели */
+        #side-panel-resizer {
+            position: absolute;
+            top: 0;
+            right: -6px;
+            width: 14px;
+            height: 100%;
+            cursor: ew-resize;
+            z-index: 102;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #side-panel-resizer::after {
+            content: '⟺';
+            color: #aaa;
+            font-size: 16px;
+            opacity: 0;
+            transition: opacity 0.15s;
+            pointer-events: none;
+            user-select: none;
+        }
+        #side-panel-resizer:hover::after,
+        #side-panel-resizer.dragging::after {
+            opacity: 1;
+        }
         #side-panel h3 {
             margin: 0 0 10px 0;
             color: #fff;
@@ -292,43 +325,46 @@
 
     <!-- Боковая панель робота -->
     <div id="side-panel">
-        <h3 id="side-agent-title">Agent</h3>
-        
-        <div class="section">
-            <div class="section-title">Метаинформация</div>
-            <div class="row"><span class="label">ID:</span><span class="value" id="sp-agent-id">-</span></div>
-            <div class="row"><span class="label">Name:</span><span class="value" id="sp-agent-name">-</span></div>
-        </div>
+        <div id="side-panel-scroll">
+            <h3 id="side-agent-title">Agent</h3>
 
-        <div class="section">
-            <div class="section-title">Текущее состояние</div>
-            <div class="row"><span class="label">X:</span><span class="value" id="sp-pos-x">0.00</span></div>
-            <div class="row"><span class="label">Y:</span><span class="value" id="sp-pos-y">0.00</span></div>
-            <div class="row"><span class="label">Z:</span><span class="value" id="sp-pos-z">0.00</span></div>
-            <div class="row"><span class="label">Yaw:</span><span class="value" id="sp-yaw">0.00</span></div>
-            <div class="row"><span class="label">Vx:</span><span class="value" id="sp-vx">0.00</span></div>
-            <div class="row"><span class="label">Vy:</span><span class="value" id="sp-vy">0.00</span></div>
-            <div class="row"><span class="label">Wz:</span><span class="value" id="sp-wz">0.00</span></div>
-        </div>
-
-        <div class="section">
-            <div class="section-title">Режим слежения</div>
-            <button class="follow-btn" id="btn-follow" onclick="toggleFollow()">Follow</button>
-            <div class="tf-toggle">
-                <input type="checkbox" id="tf-frames-toggle" />
-                <label for="tf-frames-toggle">Show TF frames</label>
+            <div class="section">
+                <div class="section-title">Метаинформация</div>
+                <div class="row"><span class="label">ID:</span><span class="value" id="sp-agent-id">-</span></div>
+                <div class="row"><span class="label">Name:</span><span class="value" id="sp-agent-name">-</span></div>
             </div>
-        </div>
 
-        <div class="section">
-            <div class="section-title">Плагины</div>
-            <div id="plugin-container">
-                <div style="color: #666; font-size: 12px;">нет данных</div>
+            <div class="section">
+                <div class="section-title">Текущее состояние</div>
+                <div class="row"><span class="label">X:</span><span class="value" id="sp-pos-x">0.00</span></div>
+                <div class="row"><span class="label">Y:</span><span class="value" id="sp-pos-y">0.00</span></div>
+                <div class="row"><span class="label">Z:</span><span class="value" id="sp-pos-z">0.00</span></div>
+                <div class="row"><span class="label">Yaw:</span><span class="value" id="sp-yaw">0.00</span></div>
+                <div class="row"><span class="label">Vx:</span><span class="value" id="sp-vx">0.00</span></div>
+                <div class="row"><span class="label">Vy:</span><span class="value" id="sp-vy">0.00</span></div>
+                <div class="row"><span class="label">Wz:</span><span class="value" id="sp-wz">0.00</span></div>
             </div>
-        </div>
 
-        <button class="close-btn" onclick="closeSidePanel()">✕ Закрыть</button>
-        <div style="clear: both;"></div>
+            <div class="section">
+                <div class="section-title">Режим слежения</div>
+                <button class="follow-btn" id="btn-follow" onclick="toggleFollow()">Follow</button>
+                <div class="tf-toggle">
+                    <input type="checkbox" id="tf-frames-toggle" />
+                    <label for="tf-frames-toggle">Show TF frames</label>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Плагины</div>
+                <div id="plugin-container">
+                    <div style="color: #666; font-size: 12px;">нет данных</div>
+                </div>
+            </div>
+
+            <button class="close-btn" onclick="closeSidePanel()">✕ Закрыть</button>
+            <div style="clear: both;"></div>
+        </div>
+        <div id="side-panel-resizer"></div>
     </div>
 
     <script type="importmap">
@@ -340,5 +376,41 @@
     }
     </script>
     <script type="module" src="js/app.js"></script>
+    <script>
+        // Side panel resize handle
+        (function() {
+            const panel = document.getElementById('side-panel');
+            const resizer = document.getElementById('side-panel-resizer');
+            const scroll = document.getElementById('side-panel-scroll');
+            const MIN_WIDTH = 200;
+            const MAX_WIDTH = 700;
+
+            resizer.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                const startX = e.clientX;
+                const startWidth = parseInt(getComputedStyle(panel).width, 10);
+                resizer.classList.add('dragging');
+                document.body.style.cursor = 'ew-resize';
+                document.body.style.userSelect = 'none';
+
+                function onMouseMove(e) {
+                    const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + e.clientX - startX));
+                    panel.style.width = newWidth + 'px';
+                    scroll.style.maxHeight = 'calc(100vh - 140px)';
+                }
+
+                function onMouseUp() {
+                    resizer.classList.remove('dragging');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                }
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+        })();
+    </script>
 </body>
 </html>

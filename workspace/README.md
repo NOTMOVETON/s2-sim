@@ -9,10 +9,9 @@ S2 — это модульный симулятор автономных роб�
 1. [Общий обзор системы](#1-общий-обзор-системы)
 2. [Ядро симуляции — s2_core](#2-ядро-симуляции--s2_core)
 3. [Система плагинов](#3-система-плагинов)
-4. [Примеры плагинов — полные реализации](#4-примеры-плагинов--полные-реализации)
-5. [Транспортный слой](#5-транспортный-слой)
-6. [Визуализатор](#6-визуализатор)
-7. [YAML-конфигурация сцены — полный справочник](#7-yaml-конфигурация-сцены--полный-справочник)
+4. [Транспортный слой](#4-транспортный-слой)
+5. [Визуализатор](#5-визуализатор)
+6. [YAML-конфигурация сцены — полный справочник](#6-yaml-конфигурация-сцены--полный-справочник)
 
 ---
 
@@ -104,20 +103,22 @@ struct SimEngine::Config {
 
 ```
 SimEngine::tick():
-  1. Актуализация Акторов (FSM-переходы)
-  2. Проверка зон (entry/exit, обновление active_zones агентов)
+  1. Актуализация Акторов (FSM-переходы)                        [planned]
+  2. Проверка зон (entry/exit, обновление active_zones агентов) [planned]
   3. Для каждого агента:
-     a. Resource-плагины → agent.state.add_scale/add_lock/add_velocity_addition
-     b. Собственные эффекты агента (CONTINUOUS)
-     c. Эффекты активных зон (CONTINUOUS)
-     d. RESOLVER: agent.state.resolve() → effective_speed_scale, motion_locked, velocity_addition
-     e. Плагины update(dt, agent) — actuator'ы, sensor'ы, viz overlay
-     f. КИНЕМАТИКА: интеграция позиции
-     g. Привязка к поверхности / обнаружение коллизий / сочленения / обновление KinematicTree
-     h. Очистка вкладов: agent.state.clear_contributions()
-  4. Обработка прикреплённых объектов (Prop attached_to)
-  5. [Каждые 1/viz_rate сек] build_snapshot() → VizServer::push_snapshot()
-  6. [Каждые 1/transport_rate сек] PostTickCallback → SimTransportBridge::on_post_tick()
+     a. Resource-плагины → add_scale/add_lock/add_velocity_addition [planned]
+     b. Собственные эффекты агента (CONTINUOUS)                  [planned]
+     c. Эффекты активных зон (CONTINUOUS)                        [planned]
+     d. RESOLVER: agent.state.resolve()                          ✓
+     e. Плагины update(dt, agent)                                ✓
+     f. КИНЕМАТИКА: интеграция позиции                           ✓
+     g. Привязка к поверхности                                   [planned]
+     h. Обнаружение коллизий                                     [planned]
+     i. Обновление KinematicTree / сочленений                    [planned]
+     j. Очистка вкладов: agent.state.clear_contributions()       ✓
+  4. Обработка прикреплённых объектов (Prop attached_to)        [planned]
+  5. [Каждые 1/viz_rate сек] build_snapshot() → VizServer       ✓
+  6. [Каждые 1/transport_rate сек] SimTransportBridge           ✓
 ```
 
 #### Кинематика: перевод скорости в мировые координаты
@@ -503,13 +504,14 @@ SimEngine::tick():
 #include "s2/plugins/diff_drive.hpp"
 // ...
 
-static PluginRegistrar<DiffDrivePlugin>      reg_diff_drive("diff_drive");
-static PluginRegistrar<GnssPlugin>           reg_gnss("gnss");
-static PluginRegistrar<ImuPlugin>            reg_imu("imu");
-static PluginRegistrar<JointVelPlugin>       reg_joint_vel("joint_vel");
-static PluginRegistrar<ColorPlugin>          reg_color("color");
+static PluginRegistrar<DiffDrivePlugin>          reg_diff_drive("diff_drive");
+static PluginRegistrar<GnssPlugin>               reg_gnss("gnss");
+static PluginRegistrar<ImuPlugin>                reg_imu("imu");
+static PluginRegistrar<JointVelPlugin>           reg_joint_vel("joint_vel");
+static PluginRegistrar<ColorPlugin>              reg_color("color");
 static PluginRegistrar<TrajectoryRecorderPlugin> reg_traj("trajectory_recorder");
-static PluginRegistrar<PathDisplayPlugin>    reg_path("path_display");
+static PluginRegistrar<PathDisplayPlugin>        reg_path("path_display");
+static PluginRegistrar<TopicDisplayPlugin>       reg_topic("topic_display");
 ```
 
 Регистратор при создании добавляет фабричную функцию в глобальный словарь.
@@ -527,708 +529,17 @@ std::unique_ptr<IAgentPlugin> create_plugin(const std::string& type,
 
 ### Типы плагинов
 
-| Тип | Назначение | Читает | Пишет |
-|-----|------------|--------|-------|
-| **Actuator** | Управляет скоростью агента | `agent.state.effective()` | `agent.world_velocity` |
-| **Sensor** | Генерирует данные измерений | `agent.world_pose`, `world_velocity` | `agent.state.emplace<T>()` |
-| **Resource** | Ограничивает движение | `agent.world_pose`, `world_pose.pitch` и др. | `agent.state.add_scale/lock()` |
-| **Interaction** | Взаимодействует с Prop/Actor | `SimBus` события | `SimBus` события |
-| **Viz overlay** | Только визуализация | `agent.world_pose` | Только `to_json()` |
+| Тип | Назначение | Читает | Пишет | Статус |
+|-----|------------|--------|-------|--------|
+| **Actuator** | Управляет скоростью агента | `agent.state.effective()` | `agent.world_velocity` | ✓ |
+| **Sensor** | Генерирует данные измерений | `agent.world_pose`, `world_velocity` | `agent.state.emplace<T>()` | ✓ |
+| **Resource** | Ограничивает движение | `agent.world_pose`, `world_pose.pitch` и др. | `agent.state.add_scale/lock()` | [planned] |
+| **Interaction** | Взаимодействует с Prop/Actor | `SimBus` события | `SimBus` события | [planned] |
+| **Viz overlay** | Только визуализация | `agent.world_pose` | Только `to_json()` | ✓ |
 
 ---
 
-## 4. Примеры плагинов — полные реализации
-
-### 4.1 Sensor: дальномер `range_sensor`
-
-Ультразвуковой дальномер с гауссовым шумом.
-
-```cpp
-// s2_plugins/include/s2/plugins/range_sensor.hpp
-#pragma once
-#include <s2/plugin_base.hpp>
-#include <random>
-
-struct RangeData {
-    uint64_t seq      = 0;
-    double   distance = 0.0;
-};
-
-class RangeSensorPlugin : public IAgentPlugin {
-public:
-    std::string type() const override { return "range_sensor"; }
-    double default_publish_rate_hz() const override { return 10.0; }
-
-    void from_config(const YAML::Node& node) override {
-        max_range_  = node["max_range"].as<double>(10.0);
-        noise_std_  = node["noise_std"].as<double>(0.02);
-        dist_       = std::normal_distribution<double>(0.0, noise_std_);
-    }
-
-    void update(double dt, Agent& agent) override {
-        timer_ += dt;
-        if (timer_ < 1.0 / publish_rate_hz()) return;
-        timer_ = 0;
-
-        // Заглушка: реальная реализация использует рейкаст
-        double true_dist = 3.0;
-        double noise     = dist_(rng_);
-        double measured  = std::min(true_dist + noise, max_range_);
-
-        auto& d = agent.state.emplace<RangeData>();
-        d.distance = measured;
-        d.seq++;
-    }
-
-    std::string to_json() const override {
-        const RangeData* d = /* agent.state.get */ nullptr;
-        // В реальной реализации получить через хранимую ссылку или по-другому
-        return R"({"distance": 3.0})";
-    }
-
-private:
-    double max_range_ = 10.0;
-    double noise_std_ = 0.02;
-    double timer_     = 0;
-    std::mt19937 rng_{std::random_device{}()};
-    std::normal_distribution<double> dist_;
-};
-```
-
-Регистрация в `plugins_registry.cpp`:
-```cpp
-static PluginRegistrar<RangeSensorPlugin> reg_range("range_sensor");
-```
-
-Фрагмент YAML:
-```yaml
-plugins:
-  - type: range_sensor
-    max_range: 8.0
-    noise_std: 0.05
-    publish_rate_hz: 20
-    name: front_sonar
-    mount: {x: 0.4, y: 0, z: 0.1}
-```
-
-**Ключевые моменты:**
-- Внутренний таймер `timer_` обеспечивает независимую частоту публикации от тактовой частоты симулятора.
-- `seq` увеличивается только при реальном обновлении — транспортный мост использует это для дедупликации.
-- `max_range_` клампует значение перед записью в `RangeData`.
-
----
-
-### 4.2 Sensor: GNSS-приёмник `gnss`
-
-GPS с шумом и конвертацией метрических координат в WGS84.
-
-```cpp
-// s2_plugins/include/s2/plugins/gnss.hpp
-#pragma once
-#include <s2/plugin_base.hpp>
-#include <GeographicLib/LocalCartesian.hpp>
-#include <random>
-
-class GnssPlugin : public IAgentPlugin {
-public:
-    std::string type() const override { return "gnss"; }
-    double default_publish_rate_hz() const override { return 10.0; }
-
-    void from_config(const YAML::Node& node) override {
-        noise_std_ = node["noise_std"].as<double>(0.3);
-        dist_      = std::normal_distribution<double>(0.0, noise_std_);
-    }
-
-    // Вызывается из main.cpp для всех GNSS-плагинов
-    void set_geo_origin(const GeoOrigin& origin) {
-        geo_origin_ = origin;
-        converter_.Reset(origin.lat, origin.lon, origin.alt);
-    }
-
-    void update(double dt, Agent& agent) override {
-        publish_timer_ += dt;
-        if (publish_timer_ < 1.0 / publish_rate_hz()) return;
-        publish_timer_ = 0;
-
-        double noisy_x = agent.world_pose.x + dist_(rng_);
-        double noisy_y = agent.world_pose.y + dist_(rng_);
-
-        // Конвертация метрических координат → WGS84
-        double lat, lon, alt;
-        converter_.Reverse(noisy_x, noisy_y, agent.world_pose.z, lat, lon, alt);
-
-        auto& d = agent.state.emplace<GnssData>();
-        d.lat      = lat;
-        d.lon      = lon;
-        d.alt      = alt;
-        d.azimuth  = agent.world_pose.yaw;
-        d.accuracy = noise_std_;
-        d.seq++;
-    }
-
-    std::string to_json() const override {
-        // Сериализация последнего GnssData
-        return R"({"lat":55.75,"lon":37.61,"alt":156.0,"azimuth":0.0})";
-    }
-
-private:
-    GeoOrigin geo_origin_;
-    GeographicLib::LocalCartesian converter_;
-    double noise_std_     = 0.3;
-    double publish_timer_ = 0;
-    uint64_t seq_         = 0;
-    std::mt19937 rng_{std::random_device{}()};
-    std::normal_distribution<double> dist_;
-};
-```
-
-Регистрация:
-```cpp
-static PluginRegistrar<GnssPlugin> reg_gnss("gnss");
-```
-
-YAML:
-```yaml
-- type: gnss
-  noise_std: 0.3
-  publish_rate_hz: 10
-  name: main_gps
-  mount: {x: 0.1, y: 0, z: 0.3}
-```
-
-**Ключевые моменты:**
-- `GeographicLib::LocalCartesian` хранит ENU-начало координат. `Reverse(x, y, z)` даёт точные WGS84.
-- `set_geo_origin()` вызывается из `main.cpp` после загрузки сцены, до `bridge.init()`.
-- `mount_pose` смещает точку измерения: в `update()` нужно учитывать `agent.world_pose + mount_pose`.
-
----
-
-### 4.3 Sensor: IMU `imu`
-
-Акселерометр + гироскоп + компас.
-
-```cpp
-// s2_plugins/include/s2/plugins/imu.hpp
-#pragma once
-#include <s2/plugin_base.hpp>
-
-class ImuPlugin : public IAgentPlugin {
-public:
-    std::string type() const override { return "imu"; }
-    double default_publish_rate_hz() const override { return 100.0; }
-
-    void from_config(const YAML::Node& node) override {
-        // publish_rate_hz задаётся через set_base_rate()
-    }
-
-    void update(double dt, Agent& agent) override {
-        timer_ += dt;
-        if (timer_ < 1.0 / publish_rate_hz()) return;
-        timer_ = 0;
-
-        auto& d = agent.state.emplace<ImuData>();
-
-        // Гироскоп
-        d.gyro_x = agent.world_velocity.angular.x();
-        d.gyro_y = agent.world_velocity.angular.y();
-        d.gyro_z = agent.world_velocity.angular.z();
-
-        // Акселерометр: разность скоростей / dt + гравитация
-        d.accel_x = (agent.world_velocity.linear.x() - prev_vx_) / dt;
-        d.accel_y = (agent.world_velocity.linear.y() - prev_vy_) / dt;
-        d.accel_z = 9.81; // гравитация всегда в z
-
-        // Компас
-        d.yaw = agent.world_pose.yaw;
-        d.seq++;
-
-        prev_vx_ = agent.world_velocity.linear.x();
-        prev_vy_ = agent.world_velocity.linear.y();
-    }
-
-    std::string to_json() const override {
-        return R"({"gyro_x":0,"gyro_y":0,"gyro_z":0,"accel_x":0,"accel_y":0,"accel_z":9.81,"yaw":0})";
-    }
-
-private:
-    double timer_   = 0;
-    double prev_vx_ = 0, prev_vy_ = 0;
-};
-```
-
-Регистрация:
-```cpp
-static PluginRegistrar<ImuPlugin> reg_imu("imu");
-```
-
-YAML:
-```yaml
-- type: imu
-  publish_rate_hz: 100
-```
-
-**Ключевые моменты:**
-- Линейное ускорение вычисляется численно через разность скоростей. При первом тике (`prev_v = 0`) будет скачок — его можно подавить флагом `initialized_`.
-- `accel_z = 9.81` — статическое значение гравитации. Реальный IMU показывал бы 0 при свободном падении.
-- Шум можно добавить отдельно для каждой оси через `normal_distribution`.
-
----
-
-### 4.4 Actuator: дифференциальный привод `diff_drive`
-
-```cpp
-// s2_plugins/include/s2/plugins/diff_drive.hpp
-#pragma once
-#include <s2/plugin_base.hpp>
-#include <atomic>
-#include <mutex>
-
-class DiffDrivePlugin : public IAgentPlugin {
-public:
-    std::string type() const override { return "diff_drive"; }
-    bool has_inputs() const override { return true; }
-
-    std::string inputs_schema() const override {
-        return R"({
-          "type": "object",
-          "properties": {
-            "linear_velocity":  {"type": "number", "min": -2, "max": 2},
-            "angular_velocity": {"type": "number", "min": -2, "max": 2}
-          }
-        })";
-    }
-
-    std::vector<std::string> command_topics() const override {
-        return {"/cmd_vel"};
-    }
-
-    void from_config(const YAML::Node& node) override {
-        max_linear_  = node["max_linear"].as<double>(1.0);
-        max_angular_ = node["max_angular"].as<double>(1.0);
-    }
-
-    // Вызывается из транспорта (ROS2 или браузер)
-    void handle_input(const std::string& json) override {
-        // Парсим {"linear_velocity": x, "angular_velocity": z}
-        std::lock_guard lock(mutex_);
-        // ... парсинг json ...
-        has_external_input_ = true;
-    }
-
-    void update(double dt, Agent& agent) override {
-        std::lock_guard lock(mutex_);
-        double scale = agent.state.effective().speed_scale;
-        bool locked  = agent.state.effective().motion_locked;
-
-        if (locked) {
-            agent.world_velocity.linear  = Vec3::Zero();
-            agent.world_velocity.angular = Vec3::Zero();
-            return;
-        }
-
-        double lv = std::clamp(external_linear_velocity_,  -max_linear_,  max_linear_)  * scale;
-        double av = std::clamp(external_angular_velocity_, -max_angular_, max_angular_) * scale;
-
-        agent.world_velocity.linear  = Vec3(lv, 0, 0);
-        agent.world_velocity.angular = Vec3(0, 0, av);
-
-        auto& d = agent.state.emplace<DiffDriveData>();
-        d.desired_linear  = lv;
-        d.desired_angular = av;
-        d.max_linear      = max_linear_;
-        d.max_angular     = max_angular_;
-        d.seq++;
-    }
-
-    std::string to_json() const override {
-        return R"({"has_inputs":true,"linear_velocity":0,"angular_velocity":0})";
-    }
-
-private:
-    double max_linear_  = 1.0;
-    double max_angular_ = 1.0;
-    double external_linear_velocity_  = 0;
-    double external_angular_velocity_ = 0;
-    bool   has_external_input_ = false;
-    std::mutex mutex_;
-};
-```
-
-Регистрация:
-```cpp
-static PluginRegistrar<DiffDrivePlugin> reg_diff_drive("diff_drive");
-```
-
-YAML:
-```yaml
-- type: diff_drive
-  max_linear: 2.0
-  max_angular: 1.5
-```
-
-**Ключевые моменты:**
-- `mutex_` защищает `external_*` поля — `handle_input()` вызывается из потока транспорта, `update()` — из потока симулятора.
-- `agent.state.effective().speed_scale` применяется к скоростям: зоны льда, разряд батареи автоматически замедлят робота.
-- `motion_locked` от ресурс-плагинов полностью останавливает движение.
-
----
-
-### 4.5 Actuator: привод Акерманна `ackermann_drive`
-
-Кинематика рулевого управления (автомобильная модель).
-
-```cpp
-// s2_plugins/include/s2/plugins/ackermann_drive.hpp
-#pragma once
-#include <s2/plugin_base.hpp>
-#include <cmath>
-
-class AckermannDrivePlugin : public IAgentPlugin {
-public:
-    std::string type() const override { return "ackermann_drive"; }
-    bool has_inputs() const override { return true; }
-
-    std::string inputs_schema() const override {
-        return R"({
-          "type": "object",
-          "properties": {
-            "speed":       {"type": "number"},
-            "steer_angle": {"type": "number", "min": -0.5, "max": 0.5}
-          }
-        })";
-    }
-
-    void from_config(const YAML::Node& node) override {
-        wheelbase_       = node["wheelbase"].as<double>(1.0);
-        max_steer_angle_ = node["max_steer_angle"].as<double>(0.5);
-        max_speed_       = node["max_speed"].as<double>(3.0);
-    }
-
-    void handle_input(const std::string& json) override {
-        std::lock_guard lock(mutex_);
-        // Парсим {"speed": v, "steer_angle": delta}
-        // cmd_speed_ = v; cmd_steer_ = delta;
-    }
-
-    void update(double dt, Agent& agent) override {
-        std::lock_guard lock(mutex_);
-        double scale  = agent.state.effective().speed_scale;
-        bool   locked = agent.state.effective().motion_locked;
-
-        if (locked) {
-            agent.world_velocity.linear  = Vec3::Zero();
-            agent.world_velocity.angular = Vec3::Zero();
-            return;
-        }
-
-        double speed = std::clamp(cmd_speed_, -max_speed_, max_speed_) * scale;
-        double delta = std::clamp(cmd_steer_, -max_steer_angle_, max_steer_angle_);
-
-        // Кинематика Акерманна:
-        // angular_velocity = speed * tan(steer_angle) / wheelbase
-        double angular = speed * std::tan(delta) / wheelbase_;
-
-        agent.world_velocity.linear  = Vec3(speed, 0, 0);
-        agent.world_velocity.angular = Vec3(0, 0, angular);
-    }
-
-    std::string to_json() const override {
-        return R"({"speed":0,"steer_angle":0})";
-    }
-
-private:
-    double wheelbase_       = 1.0;
-    double max_steer_angle_ = 0.5;  // рад
-    double max_speed_       = 3.0;  // м/с
-    double cmd_speed_       = 0;
-    double cmd_steer_       = 0;
-    std::mutex mutex_;
-};
-```
-
-YAML:
-```yaml
-- type: ackermann_drive
-  wheelbase: 2.7
-  max_steer_angle: 0.44
-  max_speed: 5.0
-```
-
-**Ключевые моменты:**
-- Формула `ω = v * tan(δ) / L` — точная для модели одноколёсного велосипеда.
-- При `delta = 0` угловая скорость равна нулю — прямолинейное движение.
-- При `v → 0` радиус поворота → 0 (разворот на месте не работает, в отличие от diff_drive).
-
----
-
-### 4.6 Resource: ограничитель скорости на уклоне `slope_limiter`
-
-```cpp
-// s2_plugins/include/s2/plugins/slope_limiter.hpp
-#pragma once
-#include <s2/plugin_base.hpp>
-#include <cmath>
-
-class SlopeLimiterPlugin : public IAgentPlugin {
-public:
-    std::string type() const override { return "slope_limiter"; }
-
-    void from_config(const YAML::Node& node) override {
-        max_slope_deg_   = node["max_slope_deg"].as<double>(30.0);
-        min_speed_factor_ = node["min_speed_factor"].as<double>(0.1);
-    }
-
-    void update(double dt, Agent& agent) override {
-        double pitch_deg = agent.world_pose.pitch * (180.0 / M_PI);
-        double abs_slope = std::abs(pitch_deg);
-
-        double speed_factor = 1.0;
-        if (abs_slope >= max_slope_deg_) {
-            speed_factor = min_speed_factor_;
-        } else if (abs_slope > 0) {
-            // Линейная интерполяция: 0° → 1.0, max_slope° → min_speed_factor_
-            double t = abs_slope / max_slope_deg_;
-            speed_factor = 1.0 - t * (1.0 - min_speed_factor_);
-        }
-
-        agent.state.add_scale(speed_factor, "slope_limiter");
-    }
-
-    std::string to_json() const override { return "{}"; }
-};
-```
-
-YAML:
-```yaml
-- type: slope_limiter
-  max_slope_deg: 25.0
-  min_speed_factor: 0.15
-```
-
-**Ключевые моменты:**
-- Resource-плагины вызываются до резолвера в тиковом цикле — вклады `add_scale` уже включены в `effective()` при вызове actuator'а.
-- `to_json()` → `{}` — этот плагин не показывает данных в браузере.
-- Плагин не взаимодействует с транспортом.
-
----
-
-### 4.7 Resource: батарея `battery`
-
-```cpp
-// s2_plugins/include/s2/plugins/battery.hpp
-#pragma once
-#include <s2/plugin_base.hpp>
-#include <algorithm>
-#include <sstream>
-#include <iomanip>
-
-class BatteryPlugin : public IAgentPlugin {
-public:
-    std::string type() const override { return "battery"; }
-
-    void from_config(const YAML::Node& node) override {
-        capacity_wh_      = node["capacity_wh"].as<double>(100.0);
-        discharge_rate_w_ = node["discharge_rate_w"].as<double>(10.0);
-        charge_           = capacity_wh_;
-    }
-
-    void update(double dt, Agent& agent) override {
-        if (charge_ > 0) {
-            charge_ -= discharge_rate_w_ * (dt / 3600.0); // Вт·ч
-            charge_ = std::max(charge_, 0.0);
-        }
-
-        double speed_factor = charge_ / capacity_wh_;
-        agent.state.add_scale(speed_factor, "battery");
-
-        if (charge_ <= 0) {
-            agent.state.add_lock(true, "battery_dead");
-        }
-    }
-
-    std::string to_json() const override {
-        double percent = (charge_ / capacity_wh_) * 100.0;
-        std::ostringstream oss;
-        oss << std::fixed << std::setprecision(1);
-        oss << R"({"charge_percent":)" << percent << "}";
-        return oss.str();
-    }
-
-private:
-    double capacity_wh_      = 100.0;
-    double discharge_rate_w_ = 10.0;
-    double charge_           = 100.0;
-};
-```
-
-YAML:
-```yaml
-- type: battery
-  capacity_wh: 50.0
-  discharge_rate_w: 8.0
-```
-
-**Ключевые моменты:**
-- `charge_percent` отображается в браузерной боковой панели через `to_json()`.
-- При полном разряде `add_lock(true)` блокирует движение полностью.
-- `add_scale(0..1)` плавно замедляет агента по мере разряда.
-
----
-
-### 4.8 Viz overlay: записыватель траектории `trajectory_recorder`
-
-```cpp
-// s2_plugins/include/s2/plugins/trajectory_recorder.hpp
-#pragma once
-#include <s2/plugin_base.hpp>
-#include <deque>
-#include <sstream>
-
-class TrajectoryRecorderPlugin : public IAgentPlugin {
-public:
-    std::string type() const override { return "trajectory_recorder"; }
-    bool has_inputs() const override { return true; }
-
-    std::string inputs_schema() const override {
-        return R"({"type":"object","properties":{"enabled":{"type":"boolean"}}})";
-    }
-
-    void from_config(const YAML::Node& node) override {
-        interval_s_ = node["record_interval_s"].as<double>(1.0);
-        max_points_ = node["max_points"].as<int>(200);
-        color_      = node["color"].as<std::string>("#FFAA00");
-    }
-
-    void handle_input(const std::string& json) override {
-        // Парсим {"enabled": true/false}
-        // enabled_ = ...
-    }
-
-    void update(double dt, Agent& agent) override {
-        if (!enabled_) return;
-        timer_ += dt;
-        if (timer_ < interval_s_) return;
-        timer_ = 0;
-
-        if ((int)points_.size() >= max_points_) points_.pop_front();
-        points_.push_back({agent.world_pose.x, agent.world_pose.y, agent.world_pose.z});
-    }
-
-    std::string to_json() const override {
-        std::ostringstream oss;
-        oss << R"({"type":"trajectory","color":")" << color_ << R"(","points":[)";
-        bool first = true;
-        for (auto& [x, y, z] : points_) {
-            if (!first) oss << ",";
-            oss << "[" << x << "," << y << "," << z << "]";
-            first = false;
-        }
-        oss << "]}";
-        return oss.str();
-    }
-
-private:
-    struct Point { double x, y, z; };
-    std::deque<Point> points_;
-    double interval_s_ = 1.0;
-    int    max_points_ = 200;
-    double timer_      = 0;
-    bool   enabled_    = true;
-    std::string color_ = "#FFAA00";
-};
-```
-
-YAML:
-```yaml
-- type: trajectory_recorder
-  record_interval_s: 0.5
-  max_points: 200
-  color: "#FFAA00"
-```
-
-**Ключевые моменты:**
-- `to_json()` возвращает специальный формат `"type":"trajectory"` — браузер рендерит его как `THREE.Line`.
-- Кольцевой буфер на основе `deque::pop_front()` ограничивает память.
-- Плагин полностью автономен: не требует транспорта.
-
----
-
-### 4.9 Viz overlay: отображение пути `path_display`
-
-```cpp
-// s2_plugins/include/s2/plugins/path_display.hpp
-#pragma once
-#include <s2/plugin_base.hpp>
-#include <deque>
-
-class PathDisplayPlugin : public IAgentPlugin {
-public:
-    std::string type() const override { return "path_display"; }
-    bool has_inputs() const override { return true; }
-
-    std::string inputs_schema() const override {
-        return R"({"type":"object","properties":{"visible":{"type":"boolean"}}})";
-    }
-
-    std::vector<std::string> subscribe_topics() const override {
-        return {topic_};
-    }
-
-    void from_config(const YAML::Node& node) override {
-        topic_      = node["topic"].as<std::string>("/plan");
-        max_points_ = node["max_points"].as<int>(500);
-        color_      = node["color"].as<std::string>("#00FF88");
-    }
-
-    void handle_subscription(const std::string& topic,
-                             const std::string& msg_json) override {
-        // Парсим nav_msgs/Path JSON:
-        // {"poses": [{"pose": {"position": {"x":..., "y":..., "z":...}}}, ...]}
-        points_.clear();
-        // ... парсинг ...
-    }
-
-    void handle_input(const std::string& json) override {
-        // {"visible": true/false}
-    }
-
-    void update(double dt, Agent& agent) override {}  // Ничего не делает
-
-    std::string to_json() const override {
-        if (!visible_) return R"({"type":"path","points":[]})";
-        std::ostringstream oss;
-        oss << R"({"type":"path","color":")" << color_ << R"(","points":[)";
-        // ... сериализация points_ ...
-        oss << "]}";
-        return oss.str();
-    }
-
-private:
-    struct Point { double x, y, z; };
-    std::deque<Point> points_;
-    std::string topic_   = "/plan";
-    std::string color_   = "#00FF88";
-    int  max_points_     = 500;
-    bool visible_        = true;
-};
-```
-
-YAML:
-```yaml
-- type: path_display
-  topic: /global_plan
-  max_points: 500
-  color: "#00FF88"
-```
-
-**Ключевые моменты:**
-- `subscribe_topics()` регистрирует ROS2-подписку через транспортный мост.
-- `handle_subscription()` вызывается из потока ROS2 при получении `nav_msgs/Path`.
-- `update()` — пустой, плагин реактивен (обновляется только при получении сообщений).
-
----
-
-## 5. Транспортный слой
+## 4. Транспортный слой
 
 ### ITransportAdapter — интерфейс
 
@@ -1468,7 +779,7 @@ if (scene.transport_config.type == "stub") {
 
 ---
 
-## 6. Визуализатор
+## 5. Визуализатор
 
 ### VizServer
 
@@ -1718,7 +1029,7 @@ function driveForward(agentId) {
 
 ---
 
-## 7. YAML-конфигурация сцены — полный справочник
+## 6. YAML-конфигурация сцены — полный справочник
 
 ### Корневая структура
 
@@ -1776,8 +1087,8 @@ world:
     alt: 156.0           # Высота над уровнем моря [м]. По умолч.: 0.
   geometry: [...]        # Статическая геометрия (стены, колонны)
   props: [...]           # Пассивные объекты (ящики, бочки)
-  actors: [...]          # Активные объекты с FSM (двери, лифты)
-  zones: [...]           # Зоны эффектов
+  actors: [...]          # Активные объекты с FSM (двери, лифты) [парсируются; FSM-обработка — planned]
+  zones: [...]           # Зоны эффектов [парсируются; entry/exit-события и эффекты — planned]
 ```
 
 #### Статическая геометрия (`geometry`)
@@ -1809,7 +1120,7 @@ geometry:
 | `height` | float | для cylinder | Высота |
 | `color` | string | нет | Hex-цвет |
 
-#### Пропы (`props`)
+#### Пропы (`props`) [парсируются; крепление к агентам — planned]
 
 ```yaml
 props:
@@ -1827,7 +1138,7 @@ props:
       color: "#AA4400"
 ```
 
-#### Зоны (`zones`)
+#### Зоны (`zones`) [planned — парсируются, но runtime entry/exit и эффекты не реализованы]
 
 ```yaml
 zones:
@@ -1896,15 +1207,6 @@ agents:
   max_angular: 1.5    # [рад/с] Макс. угловая скорость. По умолч.: 1.0
 ```
 
-#### ackermann_drive
-
-```yaml
-- type: ackermann_drive
-  wheelbase: 2.7          # [м] Колёсная база. По умолч.: 1.0
-  max_steer_angle: 0.44   # [рад] Макс. угол поворота. По умолч.: 0.5
-  max_speed: 5.0          # [м/с] Макс. скорость. По умолч.: 3.0
-```
-
 #### gnss
 
 ```yaml
@@ -1963,22 +1265,6 @@ agents:
   duration: 5.0           # [с] Длительность подсветки. 0 = навсегда.
 ```
 
-#### slope_limiter
-
-```yaml
-- type: slope_limiter
-  max_slope_deg: 25.0     # [°] Угол при котором скорость = min_speed_factor. По умолч.: 30
-  min_speed_factor: 0.15  # Минимальный коэффициент скорости [0..1]. По умолч.: 0.1
-```
-
-#### battery
-
-```yaml
-- type: battery
-  capacity_wh: 50.0       # [Вт·ч] Ёмкость батареи. По умолч.: 100
-  discharge_rate_w: 8.0   # [Вт] Мощность разряда. По умолч.: 10
-```
-
 ---
 
 ### Полный пример конфигурации
@@ -2034,9 +1320,6 @@ s2:
           record_interval_s: 0.5
           max_points: 200
           color: "#FFAA00"
-        - type: battery
-          capacity_wh: 50.0
-          discharge_rate_w: 5.0
 
     - name: robot_1
       id: 1
@@ -2047,10 +1330,9 @@ s2:
         size: [0.8, 0.5, 0.3]
         color: "#3567FF"
       plugins:
-        - type: ackermann_drive
-          wheelbase: 0.6
-          max_steer_angle: 0.44
-          max_speed: 3.0
+        - type: diff_drive
+          max_linear: 1.5
+          max_angular: 1.0
         - type: gnss
           noise_std: 0.1
 ```

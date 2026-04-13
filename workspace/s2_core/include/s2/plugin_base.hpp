@@ -179,6 +179,14 @@ public:
     virtual std::vector<std::string> subscribe_topics() const { return {}; }
 
     /**
+     * @brief ROS2 тип сообщения для топиков из subscribe_topics().
+     * Транспортный адаптер использует это значение для выбора нужного десериализатора.
+     * Переопределяется плагином, если он подписывается не на nav_msgs/Path.
+     * Пример: TopicDisplayPlugin возвращает "std_msgs/String".
+     */
+    virtual std::string subscription_msg_type() const { return "nav_msgs/Path"; }
+
+    /**
      * @brief Обработать входящее сообщение из подписанного топика.
      * @param topic  Имя топика из subscribe_topics()
      * @param msg_json  JSON-представление сообщения

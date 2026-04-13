@@ -7,6 +7,7 @@
 
 #include <s2/ros2_transport_adapter.hpp>
 #include <nlohmann/json.hpp>
+#include <unordered_map>
 
 #include <cmath>
 #include <iostream>
@@ -255,6 +256,69 @@ void Ros2TransportAdapter::register_static_transforms(
     }
 }
 
+// ─── Реестр десериализаторов подписок ─────────────────────────────────────────
+//
+// Тип фабрики: принимает node, имя топика и callback → создаёт подписку.
+// Для добавления нового типа сообщений достаточно добавить новый static-блок
+// ниже; функция register_subscription() при этом не изменяется.
+
+using SubscriberCreator = std::function<
+    rclcpp::SubscriptionBase::SharedPtr(
+        rclcpp::Node&,
+        const std::string& topic,
+        std::function<void(const std::string&, const std::string&)> cb)>;
+
+static std::unordered_map<std::string, SubscriberCreator>& sub_registry()
+{
+    static std::unordered_map<std::string, SubscriberCreator> map;
+    return map;
+}
+
+// nav_msgs/Path
+static bool s_reg_path = []()
+{
+    sub_registry()["nav_msgs/Path"] =
+        [](rclcpp::Node& node, const std::string& topic, auto cb)
+        {
+            return node.create_subscription<nav_msgs::msg::Path>(
+                topic, rclcpp::QoS(10),
+                [cb, topic](nav_msgs::msg::Path::ConstSharedPtr msg)
+                {
+                    nlohmann::json j;
+                    nlohmann::json poses = nlohmann::json::array();
+                    for (const auto& ps : msg->poses)
+                    {
+                        nlohmann::json p;
+                        p["position"]["x"] = ps.pose.position.x;
+                        p["position"]["y"] = ps.pose.position.y;
+                        p["position"]["z"] = ps.pose.position.z;
+                        poses.push_back(p);
+                    }
+                    j["poses"] = poses;
+                    cb(topic, j.dump());
+                });
+        };
+    return true;
+}();
+
+// std_msgs/String
+static bool s_reg_string = []()
+{
+    sub_registry()["std_msgs/String"] =
+        [](rclcpp::Node& node, const std::string& topic, auto cb)
+        {
+            return node.create_subscription<std_msgs::msg::String>(
+                topic, rclcpp::QoS(10),
+                [cb, topic](std_msgs::msg::String::ConstSharedPtr msg)
+                {
+                    nlohmann::json j;
+                    j["data"] = msg->data;
+                    cb(topic, j.dump());
+                });
+        };
+    return true;
+}();
+
 void Ros2TransportAdapter::register_subscription(SubscriptionDesc desc)
 {
     auto it = domain_nodes_.find(desc.domain_id);
@@ -266,33 +330,22 @@ void Ros2TransportAdapter::register_subscription(SubscriptionDesc desc)
     }
     auto& info = it->second;
 
+    auto reg_it = sub_registry().find(desc.msg_type);
+    if (reg_it == sub_registry().end())
+    {
+        std::cerr << "[Ros2TransportAdapter] register_subscription: unknown msg_type '"
+                  << desc.msg_type << "'" << std::endl;
+        return;
+    }
+
     auto callback_fn = std::move(desc.callback);
     const std::string topic = desc.topic;
 
-    // Поддерживаем nav_msgs/Path
-    auto sub = info.node->create_subscription<nav_msgs::msg::Path>(
-        topic, rclcpp::QoS(10),
-        [callback_fn, topic](const nav_msgs::msg::Path::SharedPtr msg)
-        {
-            // Конвертируем nav_msgs/Path в JSON
-            nlohmann::json j;
-            nlohmann::json poses = nlohmann::json::array();
-            for (const auto& pose_stamped : msg->poses)
-            {
-                nlohmann::json p;
-                p["position"]["x"] = pose_stamped.pose.position.x;
-                p["position"]["y"] = pose_stamped.pose.position.y;
-                p["position"]["z"] = pose_stamped.pose.position.z;
-                poses.push_back(p);
-            }
-            j["poses"] = poses;
-            callback_fn(topic, j.dump());
-        });
-
+    auto sub = reg_it->second(*info.node, topic, callback_fn);
     info.subscriptions.push_back(sub);
 
-    std::cout << "[Ros2TransportAdapter] Subscribed to Path " << desc.topic
-              << " (domain " << desc.domain_id << ")" << std::endl;
+    std::cout << "[Ros2TransportAdapter] Subscribed to " << desc.msg_type
+              << " " << topic << " (domain " << desc.domain_id << ")" << std::endl;
 }
 
 void Ros2TransportAdapter::register_input_topic(InputTopicDesc desc)

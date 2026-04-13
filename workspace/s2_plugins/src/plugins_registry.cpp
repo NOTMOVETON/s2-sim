@@ -6,6 +6,7 @@
 #include <s2/plugins/joint_vel.hpp>
 #include <s2/plugins/trajectory_recorder.hpp>
 #include <s2/plugins/path_display.hpp>
+#include <s2/plugins/topic_display.hpp>
 
 #include <unordered_map>
 #include <functional>
@@ -38,6 +39,7 @@ static const PluginRegistrar register_imu("imu", []() { return std::make_unique<
 static const PluginRegistrar register_joint_vel("joint_vel", []() { return std::make_unique<JointVelPlugin>(); });
 static const PluginRegistrar register_trajectory_recorder("trajectory_recorder", []() { return std::make_unique<TrajectoryRecorderPlugin>(); });
 static const PluginRegistrar register_path_display("path_display", []() { return std::make_unique<PathDisplayPlugin>(); });
+static const PluginRegistrar register_topic_display("topic_display", []() { return std::make_unique<TopicDisplayPlugin>(); });
 
 std::unique_ptr<IAgentPlugin> create_plugin(const std::string& type, const YAML::Node& node)
 {

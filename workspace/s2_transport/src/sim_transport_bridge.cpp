@@ -108,7 +108,7 @@ void SimTransportBridge::init(const GeoOrigin& geo_origin)
             {
                 SubscriptionDesc desc;
                 desc.topic       = topic;
-                desc.msg_type    = "nav_msgs/Path";  // единственный поддерживаемый тип
+                desc.msg_type    = plugin->subscription_msg_type();
                 desc.plugin_type = plugin->type();
                 desc.agent_id    = agent.id;
                 desc.domain_id   = agent.domain_id;

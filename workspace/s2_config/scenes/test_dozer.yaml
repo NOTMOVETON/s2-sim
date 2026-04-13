@@ -72,6 +72,14 @@ s2:
         - type: "path_display"
           topic: "/plan"
           color: "#00FF88"
+        
+        - type: "topic_display"
+          name: "robot_state"
+          topic: "/robot_state"
+
+        - type: "topic_display"
+          name: "nav_info"
+          topic: "/nav_info"
 
     # Robot 1 — обычный, domain 51
     - name: "robot_1"

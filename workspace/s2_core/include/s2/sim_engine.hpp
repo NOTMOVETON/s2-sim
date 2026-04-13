@@ -529,8 +529,18 @@ private:
   }
 
   /**
+   * @brief Ключ плагина в карте данных/схем.
+   * Если задан sensor_name — "type_name", иначе "type".
+   * Позволяет иметь несколько плагинов одного типа с разными именами.
+   */
+  static std::string plugin_key(const plugins::IAgentPlugin& p)
+  {
+    return p.sensor_name().empty() ? p.type() : p.type() + "_" + p.sensor_name();
+  }
+
+  /**
    * @brief Собрать данные плагинов для снапшота.
-   * Формат: agent_id -> { plugin_type -> json_string }
+   * Формат: agent_id -> { plugin_key -> json_string }
    */
   std::map<std::string, std::map<std::string, std::string>> build_plugins_data() const
   {
@@ -538,7 +548,7 @@ private:
     for (const auto& agent : world_.agents()) {
       std::string agent_key = "agent_" + std::to_string(agent.id);
       for (const auto& plugin : agent.plugins) {
-        result[agent_key][plugin->type()] = plugin->to_json();
+        result[agent_key][plugin_key(*plugin)] = plugin->to_json();
       }
     }
     return result;
@@ -546,7 +556,7 @@ private:
 
   /**
    * @brief Собрать схемы входных данных плагинов для снапшота.
-   * Формат: agent_id -> JSON-string { plugin_type -> schema }
+   * Формат: agent_id -> JSON-string { plugin_key -> schema }
    */
   std::map<std::string, std::string> build_plugin_inputs_schemas() const
   {
@@ -558,7 +568,7 @@ private:
         if (plugin->has_inputs() && !plugin->inputs_schema().empty()) {
           nlohmann::json schema = nlohmann::json::parse(plugin->inputs_schema(), nullptr, false);
           if (!schema.is_discarded()) {
-            agent_schemas[plugin->type()] = schema;
+            agent_schemas[plugin_key(*plugin)] = schema;
           }
         }
       }

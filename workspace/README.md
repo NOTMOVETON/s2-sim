@@ -787,10 +787,11 @@ HTTP + SSE сервер на C++ (без внешних зависимостей
 
 ```
 Эндпоинты:
-  GET  /stream        → SSE поток снапшотов (Content-Type: text/event-stream)
-  POST /command       → Управляющие команды от браузера
-  GET  /              → Статика (index.html, app.js, Three.js)
-  GET  /inputs_schema → JSON-схемы плагинов (для генерации форм)
+  GET  /stream                → SSE поток снапшотов (Content-Type: text/event-stream)
+  POST /command               → Управляющие команды от браузера
+  GET  /                      → Статика (index.html, app.js, Three.js)
+  POST /api/scene/geometry    → Обновить статическую геометрию (заменяет текущий список)
+  POST /api/scene/save        → Сохранить текущую геометрию в YAML-файл сцены
 ```
 
 Параметры:
@@ -800,15 +801,30 @@ HTTP + SSE сервер на C++ (без внешних зависимостей
 
 SSE `/stream` отправляет одну строку `data: {...}\n\n` на каждый визуальный тик. Клиент использует `EventSource` для чтения потока.
 
-`/command` принимает JSON:
-```json
-{"cmd": "pause"}
-{"cmd": "resume"}
-{"cmd": "reset"}
-{"cmd": "move_agent", "agent_id": 0, "x": 1.0, "y": 2.0, "yaw": 0.5}
-{"cmd": "plugin_input", "agent_id": 0, "plugin": "diff_drive",
- "data": "{\"linear_velocity\": 1.0, \"angular_velocity\": 0.0}"}
+`/command` принимает параметры в query string:
 ```
+POST /command?cmd=pause
+POST /command?cmd=resume
+POST /command?cmd=reset
+POST /command?cmd=move_agent&id=0&x=1.0&y=2.0&yaw=0.5
+POST /command?cmd=plugin_input&agent_id=0&plugin=diff_drive&body={"linear_velocity":1.0}
+```
+
+`POST /api/scene/geometry` — тело запроса:
+```json
+{
+  "geometry": [
+    { "type": "box",
+      "x": 3.0, "y": 0.0, "z": 0.5, "yaw": 0, "pitch": 0, "roll": 0,
+      "sx": 2.0, "sy": 1.0, "sz": 1.0, "color": "#4444FF" },
+    { "type": "cylinder",
+      "x": -2.0, "y": 2.0, "z": 1.0,
+      "radius": 0.5, "height": 2.0, "color": "#44FF44" }
+  ]
+}
+```
+
+`POST /api/scene/save` — тело не требуется. Ответ: `{"ok": true, "path": "/path/to/scene.yaml"}`.
 
 ---
 
@@ -852,11 +868,11 @@ SSE `/stream` отправляет одну строку `data: {...}\n\n` на 
       "visual": {"type": "box", "size": [0.1, 1.2, 2.0], "color": "#AAAAFF"}
     }
   ],
-  "static_geometry": [
+  "geometry": [
     {
       "type": "box", "color": "#888888",
-      "pose": {"x": 10, "y": 0, "z": 0, "yaw": 0},
-      "size": {"x": 1, "y": 5, "z": 0.5}
+      "x": 10, "y": 0, "z": 0, "yaw": 0, "pitch": 0, "roll": 0,
+      "sx": 1, "sy": 5, "sz": 0.5
     }
   ]
 }
@@ -872,96 +888,57 @@ SSE `/stream` отправляет одну строку `data: {...}\n\n` на 
 
 #### Как app.js разбирает снапшот
 
+SSE подключение:
 ```javascript
-// SSE подключение
 const src = new EventSource('/stream');
-src.onmessage = (e) => {
-    const snap = JSON.parse(e.data);
-    updateScene(snap);
-};
-
-function updateScene(snap) {
-    // Агенты
-    for (const agent of snap.agents) {
-        updateOrCreateMesh('agent_' + agent.id, 'agent', agent.pose, agent.visual);
-        updateSidePanel(agent);
-        renderPluginsData(agent.id, agent.plugins_data);
-    }
-    // Пропы
-    for (const prop of snap.props) {
-        updateOrCreateMesh('prop_' + prop.id, 'prop', prop.pose, prop.visual);
-    }
-    // Статическая геометрия (только при изменении)
-    for (const geom of snap.static_geometry) {
-        updateOrCreateMesh('geom_' + geom.id, 'geom', geom.pose, geom.visual);
-    }
-}
+src.onmessage = (e) => updateScene(JSON.parse(e.data));
 ```
 
-#### Создание геометрии
+`updateScene(data)` обрабатывает поля снапшота:
+- `data.agents` — обновляет/создаёт меши агентов, обновляет боковую панель
+- `data.props` — меши пропов
+- `data.actors` — меши акторов
+- `data.geometry` — статическая геометрия (присылается при первом подключении и после `POST /api/scene/geometry`); в режиме редактора не обновляется автоматически
+- `data.plugins_data` — данные плагинов (аккордеон + overlay-линии траекторий)
+- `data.plugin_inputs_schemas` — JSON-схемы входных данных плагинов (для генерации форм)
 
-```javascript
-function createGeometry(type, size, radius, height) {
-    switch (type) {
-        case 'box':      return new THREE.BoxGeometry(size[0], size[2], size[1]);
-        case 'sphere':   return new THREE.SphereGeometry(radius);
-        case 'cylinder': return new THREE.CylinderGeometry(radius, radius, height);
-        default:         return new THREE.BoxGeometry(0.5, 0.5, 0.5);
-    }
-}
-```
+Координатная система: симулятор использует Z-up, Three.js — Y-up.
+Преобразование: `position.set(x, z, -y)`, `rotation.set(roll, yaw, -pitch, 'YZX')`.
 
-#### Рендеринг траектории и пути
+#### Именование мешей
 
-```javascript
-function renderPluginsData(agentId, pluginsData) {
-    for (const [plugin, jsonStr] of Object.entries(pluginsData)) {
-        const data = JSON.parse(jsonStr);
-        if (data.type === 'trajectory' || data.type === 'path') {
-            renderOverlayLine('overlay_' + agentId + '_' + plugin,
-                              data.points, data.color);
-        }
-    }
-}
-
-function renderOverlayLine(id, points, color) {
-    const geometry = new THREE.BufferGeometry().setFromPoints(
-        points.map(([x, y, z]) => new THREE.Vector3(x, z, -y))
-    );
-    const line = new THREE.Line(geometry,
-        new THREE.LineBasicMaterial({color: color}));
-    scene.add(line);
-    // ... обновление существующей линии ...
-}
-```
+| Префикс | Описание |
+|---------|----------|
+| `agent_N` | Агент с ID=N |
+| `static_N` | Статический примитив с индексом N (в режиме симуляции) |
+| `prop_N` | Проп |
+| `actor_N` | Актор |
+| `zone_N` | Зона (wireframe) |
+| `lm_N_name` | URDF-звено агента N |
 
 #### Боковая панель с данными плагинов
 
-Для каждого агента браузер показывает аккордеон с плагинами. Плагины с `has_inputs: true` получают форму:
+Для каждого агента браузер показывает аккордеон с плагинами. Плагины с `has_inputs: true` получают форму с полями согласно `inputs_schema()`. Кнопка "Send" запускает непрерывную отправку (20 Гц), "Stop" отправляет нулевые значения и останавливает интервал.
 
-```javascript
-function renderPluginForm(agentId, pluginType, schema) {
-    // schema — JSON Schema из inputs_schema()
-    // Генерируем <input> / <input type="range"> / <input type="checkbox">
-    // по полям schema.properties
-}
-```
+---
 
-Отправка команды агенту:
-```javascript
-function sendPluginInput(agentId, pluginType, data) {
-    fetch('/command', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            cmd: 'plugin_input',
-            agent_id: agentId,
-            plugin: pluginType,
-            data: JSON.stringify(data)
-        })
-    });
-}
-```
+### Редактор сцены
+
+Браузерный редактор позволяет изменять статическую геометрию без перезапуска симуляции.
+
+**Включение:** кнопка "Edit Scene" в панели управления.
+
+В режиме редактора:
+- Кнопки "+ Box", "+ Cylinder", "+ Sphere" добавляют примитив в начало координат.
+- Клик по примитиву выбирает его (TransformControls прикрепляется к мешу).
+- Кнопки "Move" / "Rotate" / "Scale" переключают режим трансформации.
+- Панель свойств справа показывает цвет и размеры выбранного примитива.
+- "Применить" — отправляет текущее состояние на сервер (`POST /api/scene/geometry`), симулятор немедленно обновляет коллизионную геометрию.
+- "Сохранить" — записывает геометрию в YAML-файл сцены (`POST /api/scene/save`), сохраняя остальные секции нетронутыми.
+
+В режиме симуляции (не Editor) примитивы нельзя выбрать или переместить.
+
+**SceneWriter** (`s2_core/include/s2/scene_writer.hpp`) — C++-класс, загружающий YAML, заменяющий секцию `s2.world.geometry` и записывающий файл обратно. Агенты, пропы и прочие секции не затрагиваются.
 
 ---
 
@@ -1100,14 +1077,16 @@ geometry:
       x: 10.0            # [м]
       y: 0.0
       z: 0.0
-      yaw: 0.0           # [рад]
+      yaw: 0.0           # [рад] поворот вокруг Z (вверх)
+      pitch: 0.0         # [рад] поворот вокруг Y (по умолч. 0)
+      roll: 0.0          # [рад] поворот вокруг X (по умолч. 0)
     size:
       x: 1.0             # [м] ширина (только для box)
       y: 5.0             # [м] глубина (только для box)
       z: 0.5             # [м] высота (только для box)
     radius: 0.5          # [м] только для cylinder/sphere
     height: 2.0          # [м] только для cylinder
-    color: "#888888"     # Hex-цвет. По умолч.: "#AAAAAA"
+    color: "#888888"     # Hex-цвет. По умолч.: "#808080"
 ```
 
 | Поле | Тип | Обязательно | Описание |
@@ -1115,10 +1094,12 @@ geometry:
 | `type` | string | да | `box`, `cylinder`, `sphere` |
 | `pose.x/y/z` | float | нет | Позиция (по умолч. 0) |
 | `pose.yaw` | float | нет | Поворот вокруг Z [рад] (по умолч. 0) |
-| `size.x/y/z` | float | для box | Габариты |
-| `radius` | float | для cylinder/sphere | Радиус |
-| `height` | float | для cylinder | Высота |
-| `color` | string | нет | Hex-цвет |
+| `pose.pitch` | float | нет | Поворот вокруг Y [рад] (по умолч. 0) |
+| `pose.roll` | float | нет | Поворот вокруг X [рад] (по умолч. 0) |
+| `size.x/y/z` | float | для box | Габариты [м] |
+| `radius` | float | для cylinder/sphere | Радиус [м] |
+| `height` | float | для cylinder | Высота [м] |
+| `color` | string | нет | Hex-цвет (по умолч. `#808080`) |
 
 #### Пропы (`props`) [парсируются; крепление к агентам — planned]
 

@@ -10,10 +10,55 @@
 #include "viz_server.hpp"
 
 #include <nlohmann/json.hpp>
+#include <yaml-cpp/yaml.h>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <csignal>
 #include <string>
 #include <memory>
+
+namespace {
+
+// Рекурсивное преобразование YAML::Node → nlohmann::json
+nlohmann::json yaml_to_json(const YAML::Node& node)
+{
+    switch (node.Type())
+    {
+        case YAML::NodeType::Null:
+            return nullptr;
+
+        case YAML::NodeType::Scalar:
+        {
+            // Пробуем числа и булевы
+            try { return node.as<int64_t>(); } catch (...) {}
+            try { return node.as<double>(); } catch (...) {}
+            try { return node.as<bool>(); } catch (...) {}
+            return node.as<std::string>();
+        }
+
+        case YAML::NodeType::Sequence:
+        {
+            nlohmann::json arr = nlohmann::json::array();
+            for (const auto& item : node)
+                arr.push_back(yaml_to_json(item));
+            return arr;
+        }
+
+        case YAML::NodeType::Map:
+        {
+            nlohmann::json obj = nlohmann::json::object();
+            for (const auto& kv : node)
+                obj[kv.first.as<std::string>()] = yaml_to_json(kv.second);
+            return obj;
+        }
+
+        default:
+            return nullptr;
+    }
+}
+
+} // anonymous namespace
 
 #ifdef S2_WITH_ROS2
 #include <rclcpp/rclcpp.hpp>
@@ -107,6 +152,78 @@ public:
         }
         try {
             s2::SceneWriter::save_geometry(scene_path_, engine_->world().static_geometry());
+            return {true, scene_path_};
+        } catch (const std::exception& e) {
+            return {false, e.what()};
+        }
+    }
+
+    std::string on_get_scene_state() override {
+        if (scene_path_.empty()) {
+            return "{\"agents\":[],\"geometry\":[]}";
+        }
+        try {
+            YAML::Node root = YAML::LoadFile(scene_path_);
+            nlohmann::json j;
+            j["yaml_path"] = scene_path_;
+            j["agents"] = nlohmann::json::array();
+
+            if (root["s2"] && root["s2"]["agents"]) {
+                for (const auto& agent_node : root["s2"]["agents"]) {
+                    nlohmann::json agent = yaml_to_json(agent_node);
+                    j["agents"].push_back(agent);
+                }
+            }
+
+            j["geometry"] = nlohmann::json::array();
+            if (root["s2"] && root["s2"]["world"] && root["s2"]["world"]["geometry"]) {
+                j["geometry"] = yaml_to_json(root["s2"]["world"]["geometry"]);
+            }
+
+            return j.dump();
+        } catch (const std::exception& e) {
+            return std::string("{\"error\":\"") + e.what() + "\"}";
+        }
+    }
+
+    std::string on_get_urdf_list() override {
+        nlohmann::json j;
+        j["files"] = nlohmann::json::array();
+
+        if (scene_path_.empty()) return j.dump();
+
+        try {
+            // Ищем URDF в <scene_dir>/../robots/
+            std::filesystem::path scene_dir =
+                std::filesystem::path(scene_path_).parent_path();
+            std::filesystem::path robots_dir = scene_dir / ".." / "robots";
+
+            if (std::filesystem::exists(robots_dir)) {
+                for (const auto& entry :
+                     std::filesystem::directory_iterator(robots_dir))
+                {
+                    if (entry.path().extension() == ".urdf") {
+                        // Возвращаем путь относительно директории сцены
+                        std::string rel = std::filesystem::relative(
+                            entry.path(), scene_dir).string();
+                        j["files"].push_back(rel);
+                    }
+                }
+            }
+        } catch (...) {}
+
+        return j.dump();
+    }
+
+    SaveSceneResult on_update_agents(const std::string& agents_json) override {
+        if (scene_path_.empty()) {
+            return {false, "путь к файлу сцены не задан"};
+        }
+        try {
+            auto j = nlohmann::json::parse(agents_json);
+            // Принимаем как массив напрямую или как {"agents":[...]}
+            nlohmann::json agents_array = j.is_array() ? j : j.value("agents", nlohmann::json::array());
+            s2::SceneWriter::save_agents(scene_path_, agents_array);
             return {true, scene_path_};
         } catch (const std::exception& e) {
             return {false, e.what()};

@@ -176,14 +176,52 @@ axes.rotation.set(pose.roll || 0, pose.yaw || 0, -(pose.pitch || 0), 'YZX');
 - **YAML-сцены** обновлены (test_basic, test_dozer, test_ros2_full): добавлены секции `transport:` и `visualizer:`
 
 ## Известные проблемы
-Нет открытых критических проблем.
 
-## Следующие задачи (новый блок, запланирован 2026-04-14)
+### [BUG] Превью нового агента не отображается после размещения в редакторе
+
+**Симптом:** Полупрозрачный бокс нового агента появляется только при изменении любого поля в форме, но не сразу после клика на сцену (после шага размещения).
+
+**Ожидаемое поведение:** После клика на сцену форма открывается с видимым превью-боксом на выбранной позиции. Превью обновляется при изменении полей формы (x, y, yaw, размер, цвет).
+
+**Что было попробовано:**
+- Исключение `agent_edit_*` из SSE-очистки мешей в `updateScene` — не помогло.
+- Первоначальный вызов `refreshNewAgentPreview()` в конце `openAgentForm` — меш создаётся, но не отображается.
+
+**Предположительная причина:** `refreshNewAgentPreview()` вызывается до того как браузер отрисовывает фрейм, либо что-то в цикле обновления сцены скрывает/удаляет меш раньше первого рендера. Точная причина не установлена.
+
+**Где искать:** [app.js](workspace/s2_visualizer/web/js/app.js) — функции `openAgentForm`, `refreshNewAgentPreview`, `updateScene` (строка ~1050).
+
+### Фича 14 — Патч визуализации статической геометрии ✅ ЗАВЕРШЕНА
+
+- Корректная передача roll/pitch/yaw в GeometrySnapshot
+- Параметры cylinder (radius/height) в JSON снапшоте
+- Переподключение клиента: `geometrySent` сбрасывается в `onopen`
+
+### Фича 15 — Редактор сцены: CRUD примитивов ✅ ЗАВЕРШЕНА
+
+- **Фронтенд**: кнопка "Edit Scene", panel редактора (box/cylinder/sphere), TransformControls
+  для примитивов, panель свойств (цвет, размеры), raycaster по static_ мешам в editor mode,
+  `sendGeometryToServer()` и `saveScene()` (POST-запросы)
+- **Бэкенд**: `POST /api/scene/geometry` и `POST /api/scene/save` в `VizServer`
+- **`SimEngineCommandAdapter`**: `on_update_geometry()` и `on_save_scene()` подключены
+- **`SceneWriter::save_geometry()`**: сохранение геометрии в YAML, остальные секции не трогаются
+- **Тесты**: `test_scene_writer.cpp` (SceneWriter + SimWorld geometry update), `s2_editor_tests` в CMake
+
+### Фича 16 — Редактор агентов в UI ✅ ЗАВЕРШЕНА
+
+- **Без хардкодов для UI**: каждый плагин объявляет свою схему через `config_schema()`, фронтенд строит формы динамически из `GET /api/plugins/registry`
+- **`IAgentPlugin`**: добавлены `display_label()` и `config_schema()` с дефолтными реализациями
+- **Все плагины**: реализован `config_schema()` (diff_drive, gnss, imu, trajectory_recorder, path_display, topic_display, joint_vel, color)
+- **`list_plugin_schemas()`** в `plugins_registry.cpp` — собирает схемы всех плагинов в JSON
+- **`SceneWriter::save_agents()`** — сохранение JSON-массива агентов в YAML с рекурсивным `json_to_yaml()`
+- **Новые HTTP-эндпоинты**: `GET /api/plugins/registry`, `GET /api/scene/state`, `GET /api/scene/urdf-list`, `POST /api/scene/agents`
+- **`SimEngineCommandAdapter`**: `on_get_scene_state()`, `on_get_urdf_list()`, `on_update_agents()`
+- **Фронтенд (index.html + app.js)**: вкладки в editor panel, форма с preview-мешами, raycast в плоскость земли для размещения агентов
+- **Тесты**: `SceneWriterAgents` (3 теста), все проходят
+
+## Следующие задачи (запланирован 2026-04-14)
 
 ### Блок A: Визуал и редактор сцены
-- Задача 14 — Патч визуализации геометрии (rotation, cylinder params, reconnect)
-- Задача 15 — Editor mode: CRUD примитивов, сохранение YAML
-- Задача 16 — Редактор агентов в UI
 - Задача 17 — Face-snapping примитивов
 - Задача 18 — Shift+LMB pan, Ctrl+Z undo, Ctrl+C/V
 - Задача 19 — Браузер сцен, runtime load (перезапуск симуляции)

@@ -33,6 +33,12 @@ class JointVelPlugin : public IAgentPlugin
 {
 public:
     std::string type() const override { return "joint_vel"; }
+
+    std::string display_label() const override { return "Joint Velocity"; }
+
+    // Параметры задаются динамически (по джоинтам URDF), схема пустая
+    std::string config_schema() const override { return "[]"; }
+
     bool has_inputs() const override { return true; }
     std::string inputs_schema() const override;
 

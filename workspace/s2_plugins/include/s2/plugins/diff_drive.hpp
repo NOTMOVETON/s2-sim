@@ -72,10 +72,25 @@ public:
         agent.state.emplace<DiffDriveData>(current_data);
     }
 
+    std::string display_label() const override { return "DiffDrive (привод)"; }
+
+    std::string config_schema() const override
+    {
+        return "["
+            "{\"key\":\"wheel_base\",      \"label\":\"База колёс (м)\",       \"type\":\"number\",\"default\":0.4},"
+            "{\"key\":\"max_linear_vel\",  \"label\":\"Макс линейная (м/с)\",  \"type\":\"number\",\"default\":1.5},"
+            "{\"key\":\"max_angular_vel\", \"label\":\"Макс угловая (рад/с)\", \"type\":\"number\",\"default\":2.0}"
+            "]";
+    }
+
     void from_config(const YAML::Node& node) override
     {
-        if (node["max_linear"]) max_linear_ = node["max_linear"].as<double>();
-        if (node["max_angular"]) max_angular_ = node["max_angular"].as<double>();
+        // Принимаем оба варианта имён для совместимости с разными версиями конфигов
+        if      (node["max_linear_vel"]) max_linear_  = node["max_linear_vel"].as<double>();
+        else if (node["max_linear"])     max_linear_  = node["max_linear"].as<double>();
+
+        if      (node["max_angular_vel"]) max_angular_ = node["max_angular_vel"].as<double>();
+        else if (node["max_angular"])     max_angular_ = node["max_angular"].as<double>();
     }
 
     std::string to_json() const override

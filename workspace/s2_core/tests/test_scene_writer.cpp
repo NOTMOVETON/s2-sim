@@ -220,4 +220,123 @@ TEST(SimWorldUpdateGeometry, ClearThenAdd) {
     EXPECT_EQ(world.static_geometry()[0].type, "sphere");
 }
 
+// ─── SceneWriter::save_agents Tests ────────────────────────────
+
+TEST(SceneWriterAgents, SaveAndReloadAgents) {
+    // Исходная сцена с одним агентом
+    const std::string yaml_content = R"(
+s2:
+  update_rate: 100
+  visualizer:
+    enabled: false
+  world:
+    surface: "flat"
+    geometry: []
+  agents:
+    - name: "old_robot"
+      pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
+)";
+    auto path = make_temp_yaml(yaml_content);
+
+    // Новый список агентов (JSON)
+    nlohmann::json agents = nlohmann::json::array();
+    {
+        nlohmann::json a;
+        a["name"] = "robot_0";
+        a["domain_id"] = 0;
+        nlohmann::json pose;
+        pose["x"] = 3.5;
+        pose["y"] = -1.0;
+        pose["z"] = 0.0;
+        pose["yaw"] = 1.57;
+        a["pose"] = pose;
+        nlohmann::json visual;
+        visual["type"] = "box";
+        visual["color"] = "#FF6B35";
+        a["visual"] = visual;
+        agents.push_back(a);
+    }
+
+    ASSERT_NO_THROW(SceneWriter::save_agents(path, agents));
+
+    // Перечитываем и проверяем через SceneLoader
+    auto data = SceneLoader::load(path);
+    ASSERT_EQ(data.agents.size(), 1u);
+    EXPECT_EQ(data.agents[0].name, "robot_0");
+    EXPECT_NEAR(data.agents[0].world_pose.x, 3.5, 1e-6);
+    EXPECT_NEAR(data.agents[0].world_pose.y, -1.0, 1e-6);
+    EXPECT_NEAR(data.agents[0].world_pose.yaw, 1.57, 1e-4);
+
+    std::remove(path.c_str());
+}
+
+TEST(SceneWriterAgents, AgentsPreserveGeometry) {
+    // Проверяем что сохранение агентов не ломает геометрию
+    const std::string yaml_content = R"(
+s2:
+  update_rate: 50
+  visualizer:
+    enabled: false
+  world:
+    surface: "flat"
+    geometry:
+      - type: "box"
+        pose: {x: 5.0, y: 5.0, z: 0.5, yaw: 0.0}
+        size: {x: 2.0, y: 2.0, z: 1.0}
+        color: "#808080"
+  agents: []
+)";
+    auto path = make_temp_yaml(yaml_content);
+
+    // Добавляем одного агента
+    nlohmann::json agents = nlohmann::json::array();
+    nlohmann::json a;
+    a["name"] = "new_robot";
+    a["domain_id"] = 1;
+    nlohmann::json pose;
+    pose["x"] = 1.0; pose["y"] = 2.0; pose["z"] = 0.0; pose["yaw"] = 0.0;
+    a["pose"] = pose;
+    agents.push_back(a);
+
+    ASSERT_NO_THROW(SceneWriter::save_agents(path, agents));
+
+    // Агенты сохранены
+    auto data = SceneLoader::load(path);
+    ASSERT_EQ(data.agents.size(), 1u);
+    EXPECT_EQ(data.agents[0].name, "new_robot");
+
+    // Геометрия сохранена
+    ASSERT_EQ(data.geometry.size(), 1u);
+    EXPECT_EQ(data.geometry[0].type, "box");
+    EXPECT_NEAR(data.geometry[0].pose.x, 5.0, 1e-6);
+
+    // update_rate сохранён
+    EXPECT_NEAR(data.engine_config.update_rate, 50.0, 1e-6);
+
+    std::remove(path.c_str());
+}
+
+TEST(SceneWriterAgents, SaveEmptyAgents) {
+    // Сохранить пустой список агентов
+    const std::string yaml_content = R"(
+s2:
+  visualizer:
+    enabled: false
+  world:
+    surface: "flat"
+    geometry: []
+  agents:
+    - name: "robot_to_delete"
+      pose: {x: 0, y: 0, z: 0, yaw: 0}
+)";
+    auto path = make_temp_yaml(yaml_content);
+
+    ASSERT_NO_THROW(SceneWriter::save_agents(path, nlohmann::json::array()));
+
+    auto data = SceneLoader::load(path);
+    EXPECT_EQ(data.agents.size(), 0u);
+
+    std::remove(path.c_str());
+}
+
 } // namespace s2

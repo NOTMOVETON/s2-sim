@@ -78,6 +78,16 @@ public:
         agent.state.emplace<GnssData>(data);
     }
 
+    std::string display_label() const override { return "GNSS"; }
+
+    std::string config_schema() const override
+    {
+        return "["
+            "{\"key\":\"publish_rate_hz\",\"label\":\"Частота (Гц)\",\"type\":\"number\",\"default\":10},"
+            "{\"key\":\"noise_std\",      \"label\":\"Шум (м)\",      \"type\":\"number\",\"default\":0.5}"
+            "]";
+    }
+
     void from_config(const YAML::Node& node) override
     {
         if (node["noise_std"])       noise_std_        = node["noise_std"].as<double>();

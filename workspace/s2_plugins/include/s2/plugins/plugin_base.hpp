@@ -21,5 +21,15 @@ namespace plugins {
  */
 std::unique_ptr<IAgentPlugin> create_plugin(const std::string& type, const YAML::Node& node);
 
+/**
+ * @brief Получить реестр схем всех зарегистрированных плагинов в виде JSON-строки.
+ *
+ * Формат: JSON-массив объектов:
+ * [{"type":"diff_drive","label":"DiffDrive (привод)","params":[...]}, ...]
+ *
+ * Используется фронтендом для построения UI-редактора агентов без хардкодов.
+ */
+std::string list_plugin_schemas();
+
 } // namespace plugins
 } // namespace s2

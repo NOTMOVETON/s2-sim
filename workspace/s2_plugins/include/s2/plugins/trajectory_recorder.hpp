@@ -30,6 +30,17 @@ class TrajectoryRecorderPlugin : public IAgentPlugin
 public:
     std::string type() const override { return "trajectory_recorder"; }
 
+    std::string display_label() const override { return "Запись траектории"; }
+
+    std::string config_schema() const override
+    {
+        return "["
+            "{\"key\":\"record_interval_s\",\"label\":\"Интервал записи (с)\",\"type\":\"number\",\"default\":0.5},"
+            "{\"key\":\"max_points\",       \"label\":\"Макс точек\",          \"type\":\"number\",\"default\":200},"
+            "{\"key\":\"color\",            \"label\":\"Цвет линии\",          \"type\":\"color\", \"default\":\"#FFAA00\"}"
+            "]";
+    }
+
     void from_config(const YAML::Node& node) override
     {
         if (node["record_interval_s"])

@@ -56,8 +56,8 @@ s2:
         color: "#FF8800"
       - type: box
         pose:
-          x: -0.35594742666967427
-          y: -7.0580654493490353
+          x: -7.4358254577748095
+          y: -3.9818335114138756
           z: 2.2816247841654054
           yaw: -0.032051536713995986
           pitch: -0.056742560354701675
@@ -69,7 +69,7 @@ s2:
         color: "#a60c0c"
       - type: sphere
         pose:
-          x: -1.0933592774169929
+          x: -4.7470131889848055
           y: 7.0379861058431192
           z: 0.87480965468674587
           yaw: 0
@@ -77,15 +77,37 @@ s2:
           roll: 0
         radius: -2.6919614062942467
         color: "#040cfb"
+      - type: box
+        pose:
+          x: 2.4699679918340003
+          y: 5.134453000749728
+          z: 0.5
+          yaw: 0
+          pitch: 0
+          roll: 0
+        size:
+          x: 4.4335824488413902
+          y: 2.6380140866991519
+          z: 4.5960579387167444
+        color: "#09b364"
   agents:
-    - name: robot_0
-      pose: {x: 0.0, y: 0.0}
-      visual:
-        type: box
-        size: [0.6, 0.4, 0.3]
-        color: "#FF6B35"
+    - domain_id: 1
+      name: robot_1
       plugins:
-        - type: diff_drive
-          wheel_base: 0.4
-          max_linear_vel: 1.0
-          max_angular_vel: 1.5
+        - max_angular_vel: 2
+          max_linear_vel: 1.5
+          type: diff_drive
+          wheel_base: 0.40000000000000002
+      pose:
+        x: 6.9100000000000001
+        y: -3.8199999999999998
+        yaw: 0
+        z: 0
+      urdf: ../robots/dozer.urdf
+      visual:
+        color: "#ff6b35"
+        size:
+          - 0.59999999999999998
+          - 0.40000000000000002
+          - 0.29999999999999999
+        type: box

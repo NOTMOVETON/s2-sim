@@ -51,6 +51,15 @@ public:
         agent.state.emplace<ImuData>(data);
     }
 
+    std::string display_label() const override { return "IMU"; }
+
+    std::string config_schema() const override
+    {
+        return "["
+            "{\"key\":\"publish_rate_hz\",\"label\":\"Частота (Гц)\",\"type\":\"number\",\"default\":100}"
+            "]";
+    }
+
     void from_config(const YAML::Node& node) override
     {
         if (node["publish_rate_hz"]) publish_rate_hz_ = node["publish_rate_hz"].as<double>();

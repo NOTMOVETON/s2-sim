@@ -202,8 +202,8 @@ function updateOrCreateMesh(key, type, pose, visual, opts = {}) {
         const geometry = createGeometry(geomType, size, radius, height);
         const material = new THREE.MeshStandardMaterial({
             color: hexToColor(visual?.color),
-            transparent: opts.wireframe || false,
-            opacity: opts.opacity || 1.0,
+            transparent: opts.wireframe || opts.transparent || false,
+            opacity: opts.opacity !== undefined ? opts.opacity : 1.0,
             wireframe: opts.wireframe || false,
         });
 
@@ -529,6 +529,19 @@ let nextPrimitiveId = 0;
 let editorTransformMode = 'translate';
 let staticGeometryData = [];         // кеш последних данных geometry от сервера
 
+// Редактор агентов — состояние
+let editorAgents = [];               // { localId, name, domain_id, pose, visual, urdf, plugins }
+let nextAgentLocalId = 0;
+let placingAgentMode = false;        // ожидаем клик в сцену для позиционирования агента
+let editingAgentLocalId = null;      // localId редактируемого агента (null = новый)
+let pluginRegistry = [];             // кеш реестра плагинов с сервера
+let urdfList = [];                   // кеш списка URDF-файлов
+let activeEditorTab = 'geometry';    // 'geometry' | 'agents'
+let _newAgentFormListener = null;    // ссылка на input-listener формы нового агента
+
+// Плоскость Y=0 (= Z=0 в симуляторе) для raycast при размещении агента
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
 // ============================================================
 // Редактор сцены — вспомогательные функции
 // ============================================================
@@ -743,16 +756,21 @@ window.applyGeometry = function() {
 };
 
 /** Сохранить сцену в YAML */
-window.saveScene = function() {
+window.saveScene = async function() {
     const host = window.location.hostname || 'localhost';
     const port = window.location.port || '1937';
-    fetch(`http://${host}:${port}/api/scene/save`, { method: 'POST' })
-        .then(r => r.json())
-        .then(d => {
-            if (d.ok) showToast(`Сцена сохранена: ${d.path}`);
-            else showToast(`Ошибка сохранения: ${d.error}`);
-        })
-        .catch(err => showToast(`Ошибка: ${err.message}`));
+    try {
+        // Сначала сохраняем агентов (если вкладка агентов активна или есть изменения)
+        if (editorAgents.length > 0) {
+            await sendAgentsToServer();
+        }
+        const r = await fetch(`http://${host}:${port}/api/scene/save`, { method: 'POST' });
+        const d = await r.json();
+        if (d.ok) showToast(`Сцена сохранена: ${d.path}`);
+        else showToast(`Ошибка сохранения: ${d.error}`);
+    } catch (err) {
+        showToast(`Ошибка: ${err.message}`);
+    }
 };
 
 /** Войти в режим редактора сцены */
@@ -789,6 +807,10 @@ function enterEditorMode() {
 
     // Устанавливаем режим трансформации
     transformControls.setMode(editorTransformMode);
+
+    // Предзагружаем реестр плагинов и список URDF (нужно для вкладки агентов)
+    fetchPluginRegistry();
+    fetchUrdfList();
 }
 
 /** Выйти из режима редактора сцены */
@@ -824,6 +846,16 @@ function exitEditorMode() {
 
     // Восстановить режим агентов
     transformControls.setMode(transformMode);
+
+    // Очистить состояние редактора агентов
+    cancelPlaceAgent();
+    window.closeAgentForm();
+    // Удалить все preview-меши агентов
+    Object.keys(meshes).forEach(k => { if (k.startsWith('agent_edit_')) removeMesh(k); });
+    editorAgents = [];
+    editingAgentLocalId = null;
+    // Сбросить вкладку на геометрию при следующем открытии
+    activeEditorTab = 'geometry';
 }
 
 /** Переключить режим редактора */
@@ -1015,7 +1047,8 @@ function updateScene(data) {
         });
     }
     Object.keys(meshes).forEach(k => {
-        if (k.startsWith('agent_') && !currentAgentKeys.has(k)) removeMesh(k);
+        // agent_edit_* — превью редактора, живут отдельно от SSE-снапшота
+        if (k.startsWith('agent_') && !k.startsWith('agent_edit_') && !currentAgentKeys.has(k)) removeMesh(k);
     });
     // Удаляем TF-frames для удалённых агентов/звеньев
     Object.keys(tfFrames).forEach(k => {
@@ -1210,6 +1243,19 @@ renderer.domElement.addEventListener('click', (event) => {
 
     raycaster.setFromCamera(mouse, camera);
 
+    // Режим размещения агента — кликаем в плоскость земли
+    if (placingAgentMode) {
+        const pos = raycastOnGroundPlane(event);
+        if (pos) {
+            // Конвертируем: Three.js X→sim X, Three.js Z→sim -Y
+            const simX = pos.x;
+            const simY = -pos.z;
+            cancelPlaceAgent();
+            openAgentForm(null, simX, simY);
+        }
+        return;
+    }
+
     // В режиме редактора — кликаем по примитивам
     if (editorMode) {
         const staticMeshList = Object.entries(meshes)
@@ -1247,6 +1293,18 @@ renderer.domElement.addEventListener('click', (event) => {
     } else {
         closeSidePanel();
     }
+});
+
+// Превью агента при размещении: полупрозрачный бокс следует за курсором
+renderer.domElement.addEventListener('mousemove', (event) => {
+    if (!placingAgentMode) return;
+    const pos = raycastOnGroundPlane(event);
+    if (!pos) return;
+    const sz = 0.3;
+    const pose = { x: pos.x, y: -pos.z, z: sz / 2, yaw: 0, pitch: 0, roll: 0 };
+    const visual = { type: 'box', color: '#FF6B35', size: [0.6, 0.4, sz] };
+    updateOrCreateMesh('agent_place_preview', 'box', pose, visual,
+        { transparent: true, opacity: 0.4 });
 });
 
 function selectAgent(agentId, mesh) {
@@ -1499,6 +1557,478 @@ function startPluginInput(agentId, pluginName) {
     pluginInputLastValues[key] = { ...values };
     _sendValues(agentId, pluginName, values);
     pluginInputIntervals[key] = setInterval(() => _sendValues(agentId, pluginName, values), 50);
+}
+
+// ============================================================
+// Редактор агентов — загрузка данных с сервера
+// ============================================================
+
+/** Загрузить и кешировать реестр плагинов */
+async function fetchPluginRegistry() {
+    if (pluginRegistry.length > 0) return pluginRegistry;
+    try {
+        const host = window.location.hostname || 'localhost';
+        const port = window.location.port || '1937';
+        const r = await fetch(`http://${host}:${port}/api/plugins/registry`);
+        pluginRegistry = await r.json();
+    } catch (e) {
+        console.error('[PluginRegistry] ошибка загрузки:', e);
+        pluginRegistry = [];
+    }
+    return pluginRegistry;
+}
+
+/** Загрузить текущее состояние сцены (агенты) */
+async function fetchSceneAgents() {
+    try {
+        const host = window.location.hostname || 'localhost';
+        const port = window.location.port || '1937';
+        const r = await fetch(`http://${host}:${port}/api/scene/state`);
+        const data = await r.json();
+        if (data.agents) {
+            editorAgents = data.agents.map((a, i) => ({
+                localId: nextAgentLocalId++,
+                name: a.name || `robot_${i}`,
+                domain_id: a.domain_id || 0,
+                pose: {
+                    x: a.pose?.x || 0,
+                    y: a.pose?.y || 0,
+                    z: a.pose?.z || 0,
+                    yaw: a.pose?.yaw || 0
+                },
+                visual: {
+                    type: a.visual?.type || 'box',
+                    size: a.visual?.size || [0.6, 0.4, 0.3],
+                    color: a.visual?.color || '#FF6B35',
+                },
+                urdf: a.urdf || '',
+                plugins: (a.plugins || []).map(p => ({ ...p })),
+            }));
+            // Показываем preview-меши для существующих агентов
+            editorAgents.forEach(a => createAgentPreviewMesh(a));
+        }
+    } catch (e) {
+        console.error('[SceneState] ошибка загрузки:', e);
+    }
+}
+
+/** Загрузить список URDF-файлов и заполнить select */
+async function fetchUrdfList() {
+    if (urdfList.length > 0) return;
+    try {
+        const host = window.location.hostname || 'localhost';
+        const port = window.location.port || '1937';
+        const r = await fetch(`http://${host}:${port}/api/scene/urdf-list`);
+        const data = await r.json();
+        urdfList = data.files || [];
+    } catch (e) {
+        urdfList = [];
+    }
+    // Заполняем select если форма открыта
+    const sel = document.getElementById('af-urdf');
+    if (sel) {
+        while (sel.options.length > 1) sel.remove(1);
+        urdfList.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f;
+            opt.textContent = f.split('/').pop();
+            sel.appendChild(opt);
+        });
+    }
+}
+
+// ============================================================
+// Редактор агентов — управление вкладками
+// ============================================================
+
+window.switchEditorTab = function(tab) {
+    activeEditorTab = tab;
+    document.getElementById('editor-tab-geometry').style.display =
+        tab === 'geometry' ? '' : 'none';
+    document.getElementById('editor-tab-agents').style.display =
+        tab === 'agents' ? '' : 'none';
+    document.querySelectorAll('.editor-tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tab);
+    });
+
+    if (tab === 'agents') {
+        // Загружаем реестр и агентов при первом открытии
+        fetchPluginRegistry().then(() => {
+            if (editorAgents.length === 0) {
+                fetchSceneAgents().then(() => renderAgentList());
+            } else {
+                renderAgentList();
+            }
+        });
+        fetchUrdfList();
+    } else {
+        closeAgentForm();
+    }
+};
+
+// ============================================================
+// Редактор агентов — preview-меши
+// ============================================================
+
+function createAgentPreviewMesh(agent) {
+    const key = `agent_edit_${agent.localId}`;
+    const size = agent.visual.size || [0.6, 0.4, 0.3];
+    const color = agent.visual.color || '#FF6B35';
+    removeMesh(key);
+    const pose = {
+        x: agent.pose.x, y: agent.pose.y, z: (agent.pose.z || 0) + (size[2] || 0.3) / 2,
+        yaw: agent.pose.yaw || 0, pitch: 0, roll: 0
+    };
+    const visual = { type: 'box', size: [size[0] || 0.6, size[1] || 0.4, size[2] || 0.3], color };
+    updateOrCreateMesh(key, 'box', pose, visual);
+    const m = meshes[key];
+    if (m) {
+        m.userData.key = key;
+        m.userData.agentLocalId = agent.localId;
+    }
+}
+
+function removeAgentPreviewMesh(localId) {
+    removeMesh(`agent_edit_${localId}`);
+}
+
+// ============================================================
+// Редактор агентов — список
+// ============================================================
+
+function renderAgentList() {
+    const list = document.getElementById('agent-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (editorAgents.length === 0) {
+        list.innerHTML = '<div style="color:#666;font-size:11px;">Агентов нет</div>';
+        return;
+    }
+
+    editorAgents.forEach(agent => {
+        const pluginNames = (agent.plugins || []).map(p => p.type).join(' + ') || '—';
+
+        const row = document.createElement('div');
+        row.className = 'agent-list-item';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'agent-name';
+        nameSpan.textContent = `[${agent.name}]`;
+
+        const pluginsSpan = document.createElement('span');
+        pluginsSpan.className = 'agent-plugins';
+        pluginsSpan.textContent = pluginNames;
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '✎';
+        editBtn.title = 'Редактировать';
+        editBtn.onclick = () => openAgentForm(agent);
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '✕';
+        delBtn.className = 'danger';
+        delBtn.title = 'Удалить';
+        delBtn.onclick = () => deleteAgent(agent.localId);
+
+        row.appendChild(nameSpan);
+        row.appendChild(pluginsSpan);
+        row.appendChild(editBtn);
+        row.appendChild(delBtn);
+        list.appendChild(row);
+    });
+}
+
+// ============================================================
+// Редактор агентов — размещение
+// ============================================================
+
+window.startPlaceAgent = function() {
+    placingAgentMode = true;
+    renderer.domElement.style.cursor = 'crosshair';
+    showToast('Кликните в сцену для размещения агента');
+};
+
+function cancelPlaceAgent() {
+    placingAgentMode = false;
+    renderer.domElement.style.cursor = '';
+    removeMesh('agent_place_preview');
+}
+
+/** Перерисовать превью нового агента по текущим значениям формы */
+function refreshNewAgentPreview() {
+    if (editingAgentLocalId !== null) return;
+    const x     = parseFloat(document.getElementById('af-x')?.value) || 0;
+    const y     = parseFloat(document.getElementById('af-y')?.value) || 0;
+    const yaw   = parseFloat(document.getElementById('af-yaw')?.value) || 0;
+    const color = document.getElementById('af-color')?.value || '#FF6B35';
+    const sx    = parseFloat(document.getElementById('af-sx')?.value) || 0.6;
+    const sy    = parseFloat(document.getElementById('af-sy')?.value) || 0.4;
+    const sz    = parseFloat(document.getElementById('af-sz')?.value) || 0.3;
+    removeMesh('agent_edit_pending');
+    const pose   = { x, y, z: sz / 2, yaw, pitch: 0, roll: 0 };
+    const visual = { type: 'box', size: [sx, sy, sz], color };
+    updateOrCreateMesh('agent_edit_pending', 'box', pose, visual,
+        { transparent: true, opacity: 0.5 });
+}
+
+/** Raycast на плоскость Y=0 (= Z=0 симулятора) */
+function raycastOnGroundPlane(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mx = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const my = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera({ x: mx, y: my }, camera);
+    const target = new THREE.Vector3();
+    raycaster.ray.intersectPlane(groundPlane, target);
+    return target;
+}
+
+// ============================================================
+// Редактор агентов — форма
+// ============================================================
+
+/** Открыть форму создания/редактирования агента */
+function openAgentForm(existingAgent, posX, posY) {
+    document.getElementById('agents-list-view').style.display = 'none';
+    document.getElementById('agent-form-view').style.display = '';
+
+    editingAgentLocalId = existingAgent ? existingAgent.localId : null;
+    document.getElementById('af-title').textContent =
+        existingAgent ? `Редактировать: ${existingAgent.name}` : 'Новый агент';
+
+    const name    = existingAgent?.name || `robot_${editorAgents.length}`;
+    const domain  = existingAgent?.domain_id ?? 0;
+    const x       = posX !== undefined ? posX : (existingAgent?.pose?.x ?? 0);
+    const y       = posY !== undefined ? posY : (existingAgent?.pose?.y ?? 0);
+    const yaw     = existingAgent?.pose?.yaw ?? 0;
+    const color   = existingAgent?.visual?.color ?? '#FF6B35';
+    const size    = existingAgent?.visual?.size ?? [0.6, 0.4, 0.3];
+    const urdf    = existingAgent?.urdf ?? '';
+
+    document.getElementById('af-name').value    = name;
+    document.getElementById('af-domain').value  = domain;
+    document.getElementById('af-x').value       = x.toFixed(2);
+    document.getElementById('af-y').value       = y.toFixed(2);
+    document.getElementById('af-yaw').value     = yaw.toFixed(3);
+    document.getElementById('af-color').value   = color;
+    document.getElementById('af-sx').value      = (size[0] ?? 0.6).toFixed(2);
+    document.getElementById('af-sy').value      = (size[1] ?? 0.4).toFixed(2);
+    document.getElementById('af-sz').value      = (size[2] ?? 0.3).toFixed(2);
+
+    // Заполнить URDF select
+    const sel = document.getElementById('af-urdf');
+    while (sel.options.length > 1) sel.remove(1);
+    urdfList.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = f.split('/').pop();
+        sel.appendChild(opt);
+    });
+    sel.value = urdf;
+
+    // Построить форму плагинов
+    buildPluginForm(existingAgent?.plugins || []);
+
+    // Превью нового агента: полупрозрачный бокс с live-обновлением по полям формы
+    if (!existingAgent) {
+        const formEl = document.getElementById('agent-form-view');
+        if (_newAgentFormListener) formEl.removeEventListener('input', _newAgentFormListener);
+        _newAgentFormListener = refreshNewAgentPreview;
+        formEl.addEventListener('input', _newAgentFormListener);
+        refreshNewAgentPreview();
+    }
+}
+
+window.closeAgentForm = function() {
+    document.getElementById('agent-form-view').style.display = 'none';
+    document.getElementById('agents-list-view').style.display = '';
+    editingAgentLocalId = null;
+    cancelPlaceAgent();
+    // Убираем превью нового агента и listener
+    removeMesh('agent_edit_pending');
+    const formEl = document.getElementById('agent-form-view');
+    if (_newAgentFormListener) {
+        formEl.removeEventListener('input', _newAgentFormListener);
+        _newAgentFormListener = null;
+    }
+};
+
+/** Построить секцию плагинов в форме из pluginRegistry */
+function buildPluginForm(activePlugins) {
+    const container = document.getElementById('af-plugins-list');
+    if (!container) return;
+    container.innerHTML = '';
+
+    for (const pluginDef of pluginRegistry) {
+        const activePlugin = activePlugins.find(p => p.type === pluginDef.type);
+        const isEnabled = !!activePlugin;
+
+        const row = document.createElement('div');
+        row.className = 'af-plugin-row';
+
+        // Заголовок с чекбоксом
+        const header = document.createElement('div');
+        header.className = 'af-plugin-header';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = `af-cb-${pluginDef.type}`;
+        cb.checked = isEnabled;
+
+        const lbl = document.createElement('label');
+        lbl.htmlFor = cb.id;
+        lbl.textContent = pluginDef.label;
+
+        header.appendChild(cb);
+        header.appendChild(lbl);
+        row.appendChild(header);
+
+        // Параметры (показываем только если плагин включён и есть параметры)
+        if (pluginDef.params && pluginDef.params.length > 0) {
+            const paramsDiv = document.createElement('div');
+            paramsDiv.className = 'af-plugin-params' + (isEnabled ? ' open' : '');
+            paramsDiv.id = `af-params-${pluginDef.type}`;
+
+            for (const param of pluginDef.params) {
+                const currentVal = activePlugin?.[param.key] ?? param.default;
+                const paramRow = document.createElement('div');
+                paramRow.className = 'af-param-row';
+
+                const paramLbl = document.createElement('span');
+                paramLbl.textContent = param.label + ':';
+
+                const input = document.createElement('input');
+                input.id = `af-param-${pluginDef.type}-${param.key}`;
+                if (param.type === 'color') {
+                    input.type = 'color';
+                    input.value = currentVal;
+                } else if (param.type === 'number') {
+                    input.type = 'number';
+                    input.step = '0.01';
+                    input.value = currentVal;
+                } else {
+                    input.type = 'text';
+                    input.value = currentVal;
+                }
+
+                paramRow.appendChild(paramLbl);
+                paramRow.appendChild(input);
+                paramsDiv.appendChild(paramRow);
+            }
+
+            row.appendChild(paramsDiv);
+
+            // Переключение видимости параметров при клике на чекбокс
+            cb.addEventListener('change', () => {
+                paramsDiv.classList.toggle('open', cb.checked);
+            });
+        }
+
+        container.appendChild(row);
+    }
+}
+
+/** Прочитать текущие значения из формы и вернуть объект агента */
+function readAgentFromForm() {
+    const name     = document.getElementById('af-name').value.trim() || 'robot_0';
+    const domain   = parseInt(document.getElementById('af-domain').value) || 0;
+    const x        = parseFloat(document.getElementById('af-x').value) || 0;
+    const y        = parseFloat(document.getElementById('af-y').value) || 0;
+    const yaw      = parseFloat(document.getElementById('af-yaw').value) || 0;
+    const color    = document.getElementById('af-color').value;
+    const sx       = parseFloat(document.getElementById('af-sx').value) || 0.6;
+    const sy       = parseFloat(document.getElementById('af-sy').value) || 0.4;
+    const sz       = parseFloat(document.getElementById('af-sz').value) || 0.3;
+    const urdf     = document.getElementById('af-urdf').value;
+
+    // Собираем плагины из формы
+    const plugins = [];
+    for (const pluginDef of pluginRegistry) {
+        const cb = document.getElementById(`af-cb-${pluginDef.type}`);
+        if (!cb || !cb.checked) continue;
+
+        const plugin = { type: pluginDef.type };
+        for (const param of (pluginDef.params || [])) {
+            const input = document.getElementById(`af-param-${pluginDef.type}-${param.key}`);
+            if (!input) continue;
+            if (param.type === 'number') {
+                plugin[param.key] = parseFloat(input.value);
+            } else {
+                plugin[param.key] = input.value;
+            }
+        }
+        plugins.push(plugin);
+    }
+
+    return {
+        name, domain_id: domain,
+        pose: { x, y, z: 0, yaw },
+        visual: { type: 'box', size: [sx, sy, sz], color },
+        urdf,
+        plugins,
+    };
+}
+
+/** Подтвердить форму: добавить или обновить агента в editorAgents */
+window.confirmAgent = function() {
+    const agentData = readAgentFromForm();
+
+    if (editingAgentLocalId !== null) {
+        // Обновление существующего агента
+        const idx = editorAgents.findIndex(a => a.localId === editingAgentLocalId);
+        if (idx >= 0) {
+            removeAgentPreviewMesh(editingAgentLocalId);
+            editorAgents[idx] = { ...agentData, localId: editingAgentLocalId };
+            createAgentPreviewMesh(editorAgents[idx]);
+        }
+    } else {
+        // Новый агент: убираем временное превью, создаём постоянный меш
+        removeMesh('agent_edit_pending');
+        const localId = nextAgentLocalId++;
+        const newAgent = { ...agentData, localId };
+        editorAgents.push(newAgent);
+        createAgentPreviewMesh(newAgent);
+    }
+
+    closeAgentForm();
+    renderAgentList();
+};
+
+/** Удалить агента из редактора */
+function deleteAgent(localId) {
+    if (!confirm('Удалить агента?')) return;
+    editorAgents = editorAgents.filter(a => a.localId !== localId);
+    removeAgentPreviewMesh(localId);
+    renderAgentList();
+}
+
+/** Отправить список агентов на сервер для сохранения в YAML */
+async function sendAgentsToServer() {
+    const host = window.location.hostname || 'localhost';
+    const port = window.location.port || '1937';
+
+    // Преобразуем editorAgents в формат для YAML
+    const agents = editorAgents.map(a => {
+        const obj = {
+            name: a.name,
+            domain_id: a.domain_id,
+            pose: { x: a.pose.x, y: a.pose.y, z: a.pose.z || 0, yaw: a.pose.yaw || 0 },
+            visual: {
+                type: a.visual.type || 'box',
+                size: a.visual.size || [0.6, 0.4, 0.3],
+                color: a.visual.color || '#FF6B35',
+            },
+            plugins: a.plugins || [],
+        };
+        if (a.urdf) obj.urdf = a.urdf;
+        return obj;
+    });
+
+    await fetch(`http://${host}:${port}/api/scene/agents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(agents),
+    });
 }
 
 // Экспортируем функции в глобальную область для onclick

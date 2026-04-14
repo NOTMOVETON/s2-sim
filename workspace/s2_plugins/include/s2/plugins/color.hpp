@@ -30,6 +30,10 @@ class ColorPlugin : public IAgentPlugin
 public:
     std::string type() const override { return "color"; }
 
+    std::string display_label() const override { return "Color Service"; }
+
+    std::string config_schema() const override { return "[]"; }
+
     std::vector<std::string> service_names() const override
     {
         return {service_name_};

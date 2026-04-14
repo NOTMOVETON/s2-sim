@@ -1,5 +1,6 @@
 #include "viz_server.hpp"
 #include <s2/types.hpp>
+#include <s2/plugins/plugin_base.hpp>
 #include <nlohmann/json.hpp>
 
 #include <sys/socket.h>
@@ -471,6 +472,69 @@ void VizServer::serve_http(int client_fd, const std::string& request) {
             "Connection: close\r\n\r\n";
         send(client_fd, resp.c_str(), resp.size(), MSG_NOSIGNAL);
         close(client_fd);
+        return;
+    }
+
+    // GET /api/plugins/registry — реестр плагинов со схемами конфигурации
+    if (method == "GET" && url.find("/api/plugins/registry") != std::string::npos) {
+        std::string body = s2::plugins::list_plugin_schemas();
+        std::string http_response =
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Content-Length: " + std::to_string(body.size()) + "\r\n"
+            "Access-Control-Allow-Origin: *\r\n"
+            "Connection: close\r\n\r\n" + body;
+        send(client_fd, http_response.c_str(), http_response.size(), 0);
+        close(client_fd);
+        return;
+    }
+
+    // GET /api/scene/state — текущее состояние сцены (агенты + геометрия)
+    if (method == "GET" && url.find("/api/scene/state") != std::string::npos) {
+        std::string body = command_handler_
+            ? command_handler_->on_get_scene_state()
+            : "{\"agents\":[],\"geometry\":[]}";
+        std::string http_response =
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Content-Length: " + std::to_string(body.size()) + "\r\n"
+            "Access-Control-Allow-Origin: *\r\n"
+            "Connection: close\r\n\r\n" + body;
+        send(client_fd, http_response.c_str(), http_response.size(), 0);
+        close(client_fd);
+        return;
+    }
+
+    // GET /api/scene/urdf-list — список URDF-файлов
+    if (method == "GET" && url.find("/api/scene/urdf-list") != std::string::npos) {
+        std::string body = command_handler_
+            ? command_handler_->on_get_urdf_list()
+            : "{\"files\":[]}";
+        std::string http_response =
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Content-Length: " + std::to_string(body.size()) + "\r\n"
+            "Access-Control-Allow-Origin: *\r\n"
+            "Connection: close\r\n\r\n" + body;
+        send(client_fd, http_response.c_str(), http_response.size(), 0);
+        close(client_fd);
+        return;
+    }
+
+    // POST /api/scene/agents — сохранить список агентов в YAML
+    if (method == "POST" && url.find("/api/scene/agents") != std::string::npos) {
+        if (!command_handler_) {
+            send_json_response(client_fd, {{"ok", false}, {"error", "no command handler"}}, 400);
+            return;
+        }
+        std::string body = extract_http_body(client_fd, request);
+        auto result = command_handler_->on_update_agents(body);
+        if (result.ok) {
+            send_json_response(client_fd, {{"ok", true}, {"path", result.path_or_error}});
+        } else {
+            send_json_response(client_fd,
+                {{"ok", false}, {"error", result.path_or_error}}, 400);
+        }
         return;
     }
 

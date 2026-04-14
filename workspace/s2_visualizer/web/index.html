@@ -310,7 +310,9 @@
             position: fixed;
             top: calc(100px + 16px);
             left: 12px;
-            width: 260px;
+            width: 290px;
+            max-height: calc(100vh - 140px);
+            overflow-y: auto;
             background: rgba(0, 0, 0, 0.9);
             color: #e0e0e0;
             font-family: 'Courier New', monospace;
@@ -396,6 +398,170 @@
             cursor: pointer;
         }
 
+        /* Вкладки редактора */
+        .editor-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+        .editor-tab-btn {
+            flex: 1;
+            background: #333;
+            color: #ccc;
+            border: 1px solid #555;
+            padding: 5px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            transition: background 0.15s;
+        }
+        .editor-tab-btn:hover { background: #444; }
+        .editor-tab-btn.active { background: #1a6e3c; border-color: #4caf50; color: #fff; }
+
+        /* Редактор агентов */
+        .editor-hint {
+            color: #888;
+            font-size: 11px;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+        #agent-list {
+            margin-top: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .agent-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 6px;
+            border: 1px solid #3a3a4e;
+            border-radius: 3px;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+        .agent-list-item .agent-name { color: #fff; flex: 1; }
+        .agent-list-item .agent-plugins { color: #888; font-size: 10px; flex: 2; padding: 0 4px; }
+        .agent-list-item button {
+            background: #444;
+            color: #ccc;
+            border: 1px solid #555;
+            border-radius: 3px;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            margin-left: 2px;
+        }
+        .agent-list-item button:hover { background: #555; }
+        .agent-list-item button.danger { background: #5a1515; border-color: #8a2222; }
+        .agent-list-item button.danger:hover { background: #7a2020; }
+
+        /* Форма агента */
+        #agent-form-view {
+            overflow-y: auto;
+        }
+        #agent-form-view h5 {
+            color: #4caf50;
+            margin: 0 0 8px 0;
+            font-size: 13px;
+        }
+        #agent-form-view label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #bbb;
+        }
+        #agent-form-view input[type="text"],
+        #agent-form-view input[type="number"],
+        #agent-form-view select {
+            background: #2a2a3e;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 3px;
+            padding: 3px 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            width: 110px;
+        }
+        #agent-form-view input[type="color"] {
+            width: 50px;
+            height: 22px;
+            padding: 1px;
+            background: #2a2a3e;
+            border: 1px solid #444;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        #agent-form-view h6 {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin: 8px 0 4px 0;
+        }
+        .af-plugin-row {
+            border: 1px solid #2a2a3e;
+            border-radius: 3px;
+            margin-bottom: 4px;
+            overflow: hidden;
+        }
+        .af-plugin-header {
+            display: flex;
+            align-items: center;
+            padding: 4px 6px;
+            background: #1e1e2e;
+            cursor: pointer;
+        }
+        .af-plugin-header input[type="checkbox"] { margin-right: 6px; cursor: pointer; }
+        .af-plugin-header label { color: #ccc; font-size: 11px; cursor: pointer; margin: 0; }
+        .af-plugin-params {
+            background: #12122a;
+            padding: 4px 8px;
+            display: none;
+        }
+        .af-plugin-params.open { display: block; }
+        .af-param-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+            font-size: 11px;
+            color: #999;
+        }
+        .af-param-row input[type="number"],
+        .af-param-row input[type="text"] {
+            width: 80px;
+            background: #2a2a3e;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 3px;
+            padding: 2px 5px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+        }
+        .af-param-row input[type="color"] {
+            width: 44px;
+            height: 20px;
+            padding: 1px;
+            background: #2a2a3e;
+            border: 1px solid #444;
+            border-radius: 3px;
+        }
+        .af-buttons {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .af-buttons button {
+            flex: 1;
+            padding: 6px 8px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
         /* TF Frames checkbox */
         .tf-toggle {
             display: flex;
@@ -438,52 +604,95 @@
     <div id="editor-panel">
         <h4>&#9998; Редактор сцены</h4>
 
-        <div class="editor-section">
-            <div class="editor-section-title">Добавить примитив</div>
-            <div class="editor-add-buttons">
-                <button id="btn-add-box" onclick="addPrimitiveBox()">+ Box</button>
-                <button id="btn-add-cylinder" onclick="addPrimitiveCylinder()">+ Cyl</button>
-                <button id="btn-add-sphere" onclick="addPrimitiveSphere()">+ Sphere</button>
+        <!-- Вкладки -->
+        <div class="editor-tabs">
+            <button class="editor-tab-btn active" data-tab="geometry" onclick="switchEditorTab('geometry')">Геометрия</button>
+            <button class="editor-tab-btn" data-tab="agents" onclick="switchEditorTab('agents')">Агенты</button>
+        </div>
+
+        <!-- Вкладка: Геометрия -->
+        <div id="editor-tab-geometry">
+            <div class="editor-section">
+                <div class="editor-section-title">Добавить примитив</div>
+                <div class="editor-add-buttons">
+                    <button id="btn-add-box" onclick="addPrimitiveBox()">+ Box</button>
+                    <button id="btn-add-cylinder" onclick="addPrimitiveCylinder()">+ Cyl</button>
+                    <button id="btn-add-sphere" onclick="addPrimitiveSphere()">+ Sphere</button>
+                </div>
+            </div>
+
+            <div class="editor-section">
+                <div class="editor-section-title">Режим трансформации</div>
+                <div class="editor-transform-mode">
+                    <button id="btn-mode-translate" class="active" onclick="setEditorTransformMode('translate')">Move</button>
+                    <button id="btn-mode-rotate" onclick="setEditorTransformMode('rotate')">Rotate</button>
+                    <button id="btn-mode-scale" onclick="setEditorTransformMode('scale')">Scale</button>
+                </div>
+            </div>
+
+            <!-- Свойства выбранного примитива -->
+            <div id="primitive-props" style="display:none">
+                <h4 id="primitive-type-label">Box</h4>
+
+                <label>Цвет: <input type="color" id="prop-color" value="#808080" oninput="onPrimColorChange(this.value)"></label>
+
+                <div id="props-box">
+                    <label>W (x): <input type="number" id="prop-sx" step="0.1" value="1" min="0.05" oninput="onPrimSizeChange()"></label>
+                    <label>D (y): <input type="number" id="prop-sy" step="0.1" value="1" min="0.05" oninput="onPrimSizeChange()"></label>
+                    <label>H (z): <input type="number" id="prop-sz" step="0.1" value="1" min="0.05" oninput="onPrimSizeChange()"></label>
+                </div>
+
+                <div id="props-cylinder" style="display:none">
+                    <label>Radius: <input type="number" id="prop-radius" step="0.1" value="0.5" min="0.05" oninput="onPrimSizeChange()"></label>
+                    <label>Height: <input type="number" id="prop-height" step="0.1" value="1.0" min="0.05" oninput="onPrimSizeChange()"></label>
+                </div>
+
+                <div id="props-sphere" style="display:none">
+                    <label>Radius: <input type="number" id="prop-radius-sphere" step="0.1" value="0.5" min="0.05" oninput="onPrimSizeChange()"></label>
+                </div>
+
+                <button class="danger" onclick="deleteSelectedPrimitive()" style="margin-top: 6px; width: 100%;">Удалить</button>
+            </div>
+
+            <div class="editor-section" style="margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">
+                <div class="editor-save-buttons">
+                    <button class="save" onclick="applyGeometry()" style="flex:1;">Применить</button>
+                    <button class="save" onclick="saveScene()" style="flex:1;">Сохранить</button>
+                </div>
             </div>
         </div>
 
-        <div class="editor-section">
-            <div class="editor-section-title">Режим трансформации</div>
-            <div class="editor-transform-mode">
-                <button id="btn-mode-translate" class="active" onclick="setEditorTransformMode('translate')">Move</button>
-                <button id="btn-mode-rotate" onclick="setEditorTransformMode('rotate')">Rotate</button>
-                <button id="btn-mode-scale" onclick="setEditorTransformMode('scale')">Scale</button>
-            </div>
-        </div>
-
-        <!-- Свойства выбранного примитива -->
-        <div id="primitive-props" style="display:none">
-            <h4 id="primitive-type-label">Box</h4>
-
-            <label>Цвет: <input type="color" id="prop-color" value="#808080" oninput="onPrimColorChange(this.value)"></label>
-
-            <div id="props-box">
-                <label>W (x): <input type="number" id="prop-sx" step="0.1" value="1" min="0.05" oninput="onPrimSizeChange()"></label>
-                <label>D (y): <input type="number" id="prop-sy" step="0.1" value="1" min="0.05" oninput="onPrimSizeChange()"></label>
-                <label>H (z): <input type="number" id="prop-sz" step="0.1" value="1" min="0.05" oninput="onPrimSizeChange()"></label>
+        <!-- Вкладка: Агенты -->
+        <div id="editor-tab-agents" style="display:none">
+            <!-- Список агентов -->
+            <div id="agents-list-view">
+                <button class="save" onclick="startPlaceAgent()" style="width:100%;margin-bottom:6px;">+ Добавить агента</button>
+                <div id="agent-list"></div>
+                <p class="editor-hint">Агенты применяются после перезапуска симуляции</p>
+                <div style="margin-top:8px;border-top:1px solid #444;padding-top:8px;">
+                    <button class="save" onclick="saveScene()" style="width:100%;">Сохранить сцену</button>
+                </div>
             </div>
 
-            <div id="props-cylinder" style="display:none">
-                <label>Radius: <input type="number" id="prop-radius" step="0.1" value="0.5" min="0.05" oninput="onPrimSizeChange()"></label>
-                <label>Height: <input type="number" id="prop-height" step="0.1" value="1.0" min="0.05" oninput="onPrimSizeChange()"></label>
-            </div>
-
-            <div id="props-sphere" style="display:none">
-                <label>Radius: <input type="number" id="prop-radius-sphere" step="0.1" value="0.5" min="0.05" oninput="onPrimSizeChange()"></label>
-            </div>
-
-            <button class="danger" onclick="deleteSelectedPrimitive()" style="margin-top: 6px; width: 100%;">Удалить</button>
-        </div>
-
-        <div class="editor-section" style="margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">
-            <div class="editor-save-buttons">
-                <button class="save" onclick="applyGeometry()" style="flex:1;">Применить</button>
-                <button class="save" onclick="saveScene()" style="flex:1;">Сохранить</button>
+            <!-- Форма редактирования/создания агента -->
+            <div id="agent-form-view" style="display:none">
+                <h5 id="af-title">Новый агент</h5>
+                <label>Имя: <input type="text" id="af-name" value="robot_0" style="width:110px;"></label>
+                <label>Domain ID: <input type="number" id="af-domain" value="0" min="0" style="width:70px;"></label>
+                <label>X: <input type="number" id="af-x" step="0.1" value="0" style="width:70px;"></label>
+                <label>Y: <input type="number" id="af-y" step="0.1" value="0" style="width:70px;"></label>
+                <label>Yaw: <input type="number" id="af-yaw" step="0.05" value="0" style="width:70px;"></label>
+                <label>Цвет: <input type="color" id="af-color" value="#FF6B35"></label>
+                <label>W (x): <input type="number" id="af-sx" step="0.1" value="0.6" min="0.05" style="width:70px;"></label>
+                <label>D (y): <input type="number" id="af-sy" step="0.1" value="0.4" min="0.05" style="width:70px;"></label>
+                <label>H (z): <input type="number" id="af-sz" step="0.1" value="0.3" min="0.05" style="width:70px;"></label>
+                <label>URDF: <select id="af-urdf" style="width:110px;"><option value="">— нет —</option></select></label>
+                <h6>Плагины</h6>
+                <div id="af-plugins-list"></div>
+                <div class="af-buttons">
+                    <button class="save" onclick="confirmAgent()">Подтвердить</button>
+                    <button class="danger" onclick="closeAgentForm()">Отмена</button>
+                </div>
             </div>
         </div>
     </div>

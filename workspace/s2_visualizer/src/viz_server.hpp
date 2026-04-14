@@ -37,6 +37,33 @@ struct VizCommandHandler {
 
     /** Сохранить текущую сцену (геометрию) в YAML-файл на диске. */
     virtual SaveSceneResult on_save_scene() = 0;
+
+    /**
+     * @brief Получить текущее состояние сцены (агенты + геометрия) как JSON-строку.
+     *
+     * Читает из YAML-файла сцены. Используется редактором для загрузки текущих агентов.
+     * Формат ответа: {"yaml_path":"...","agents":[...],"geometry":[...]}
+     */
+    virtual std::string on_get_scene_state() { return "{\"agents\":[],\"geometry\":[]}"; }
+
+    /**
+     * @brief Получить список URDF-файлов как JSON-строку.
+     *
+     * Сканирует директорию robots/ рядом со сценой.
+     * Формат ответа: {"files":["dozer.urdf",...]}
+     */
+    virtual std::string on_get_urdf_list() { return "{\"files\":[]}"; }
+
+    /**
+     * @brief Сохранить обновлённый список агентов в YAML-файл сцены.
+     *
+     * @param agents_json  JSON-строка: массив агентов [{"name":"robot_0",...},...]
+     */
+    virtual SaveSceneResult on_update_agents(const std::string& agents_json)
+    {
+        (void)agents_json;
+        return {false, "not implemented"};
+    }
 };
 
 /**

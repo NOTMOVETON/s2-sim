@@ -2,13 +2,23 @@
 
 ## Текущая работа
 
-Запланированы задачи 14–22 (новые фичи): статическая геометрия, редактор сцены,
-коллизии, гравитация, лидар. Планирование завершено. README обновлён (задача 13).
+Задача 16 завершена. После завершения — мелкие доработки UX редактора агентов:
+- Полупрозрачный бокс следует за курсором при размещении агента (`agent_place_preview`) — работает.
+- Превью нового агента после клика на сцену (`agent_edit_pending`) — **не работает**, см. known bugs.
 
-### Что сделано в последней сессии
-- README обновлён: убрана Секция 4 (незарегистрированные плагины), tick-фазы
-  помечены [planned]/✓, YAML-примеры исправлены
-- Спланированы и задокументированы задачи 14–22
+Следующая — задача 17 (face-snapping) или 18 (undo/copy-paste).
+
+### Что сделано в последней сессии (задача 16)
+- **IAgentPlugin**: `display_label()` и `config_schema()` — виртуальные методы с дефолтами
+- **Все плагины**: реализован `config_schema()` (diff_drive, gnss, imu, trajectory_recorder, path_display, topic_display, joint_vel, color)
+- **`list_plugin_schemas()`** в реестре плагинов — создаёт временные экземпляры и собирает схемы
+- **`SceneWriter::save_agents()`** — сохранение JSON-массива агентов в YAML, c рекурсивным `json_to_yaml()`
+- **Новые HTTP-эндпоинты** в VizServer: `GET /api/plugins/registry`, `GET /api/scene/state`, `GET /api/scene/urdf-list`, `POST /api/scene/agents`
+- **`SimEngineCommandAdapter`**: `on_get_scene_state()`, `on_get_urdf_list()`, `on_update_agents()`
+- **Фронтенд**: вкладки "Геометрия" / "Агенты" в editor panel; форма добавления агента с динамическими полями плагинов из реестра; preview-меши `agent_edit_*`; размещение кликом по сцене
+- **Исправлен баг**: сырые строки `R"([...)"` с `)"` внутри заменены на конкатенацию строк
+- Тесты `SceneWriterAgents` (3 теста): SaveAndReload, PreserveGeometry, SaveEmpty — все проходят
+- 100% тесты (2/2 test suites)
 
 ## Следующие задачи (по порядку реализации)
 
@@ -16,8 +26,8 @@
 
 | # | Файл | Описание |
 |---|------|----------|
-| 14 | `docs/14-static-geometry-viz.md` | Патч: корректный рендер примитивов (rotation, cylinder, reconnect) |
-| 15 | `docs/15-scene-editor-primitives.md` | Editor mode, CRUD примитивов, сохранение YAML |
+| 14 | `docs/14-static-geometry-viz.md` | ✅ Патч: корректный рендер примитивов (rotation, cylinder, reconnect) |
+| 15 | `docs/15-scene-editor-primitives.md` | ✅ Editor mode, CRUD примитивов, сохранение YAML |
 | 16 | `docs/16-scene-editor-agents.md` | Редактор агентов в UI |
 | 17 | `docs/17-scene-editor-facesnap.md` | Face-snapping примитивов (Shift+LMB) |
 | 18 | `docs/18-scene-editor-nav-undo-copy.md` | Shift+LMB pan, Ctrl+Z undo, Ctrl+C/V copy-paste |

@@ -34,6 +34,15 @@ class PathDisplayPlugin : public IAgentPlugin
 public:
     std::string type() const override { return "path_display"; }
 
+    std::string display_label() const override { return "Отображение пути"; }
+
+    std::string config_schema() const override
+    {
+        return R"([
+            {"key":"color","label":"Цвет пути","type":"color","default":"#00FF88"}
+        ])";
+    }
+
     void from_config(const YAML::Node& node) override
     {
         if (node["topic"])

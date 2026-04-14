@@ -48,6 +48,37 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.target.copy(defaultCameraTarget);
+controls.mouseButtons = {
+    LEFT:   THREE.MOUSE.ROTATE,
+    MIDDLE: null,
+    RIGHT:  THREE.MOUSE.PAN,
+};
+
+// Shift+LMB по пустому месту → ручной pan (capture phase — до OrbitControls)
+renderer.domElement.addEventListener('mousedown', e => {
+    if (e.button === 0 && e.shiftKey) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        const tempRay = new THREE.Raycaster();
+        tempRay.setFromCamera(new THREE.Vector2(mx, my), camera);
+        const staticMeshList = Object.entries(meshes)
+            .filter(([k]) => k.startsWith('static_'))
+            .map(([, m]) => m);
+        if (tempRay.intersectObjects(staticMeshList).length === 0) {
+            e.stopImmediatePropagation();
+            controls.enabled = false;
+            startManualPan(e);
+        }
+    }
+}, true);
+
+renderer.domElement.addEventListener('mouseup', () => {
+    if (manualPanning) {
+        stopManualPan();
+        controls.enabled = true;
+    }
+});
 
 // TransformControls для перетаскивания агентов
 const transformControls = new TransformControls(camera, renderer.domElement);
@@ -61,6 +92,12 @@ transformControls.addEventListener('dragging-changed', function (event) {
 
 // Задержка после отпускания гизмо: не перезаписываем позицию из SSE пока сервер не обработал move
 const DRAG_GRACE_MS = 800;
+
+transformControls.addEventListener('mouseDown', function () {
+    if (editorMode && selectedPrimitiveId !== null) {
+        pushUndoSnapshot();
+    }
+});
 
 transformControls.addEventListener('mouseUp', function () {
     if (editorMode && selectedPrimitiveId !== null) {
@@ -200,11 +237,16 @@ function updateOrCreateMesh(key, type, pose, visual, opts = {}) {
 
         const geomType = opts.forceType || (visual?.type || 'box');
         const geometry = createGeometry(geomType, size, radius, height);
+        // DoubleSide используется для примитивов редактора сцены: при некоторых
+        // вращениях или конвертации осей (Z-up → Y-up) нормали могут оказаться
+        // перевёрнутыми, из-за чего видны только задние стенки. DoubleSide
+        // устраняет этот эффект без изменения геометрии или матриц трансформации.
         const material = new THREE.MeshStandardMaterial({
             color: hexToColor(visual?.color),
             transparent: opts.wireframe || opts.transparent || false,
             opacity: opts.opacity !== undefined ? opts.opacity : 1.0,
             wireframe: opts.wireframe || false,
+            side: opts.doubleSide ? THREE.DoubleSide : THREE.FrontSide,
         });
 
         mesh = new THREE.Mesh(geometry, material);
@@ -539,12 +581,302 @@ let urdfList = [];                   // кеш списка URDF-файлов
 let activeEditorTab = 'geometry';    // 'geometry' | 'agents'
 let _newAgentFormListener = null;    // ссылка на input-listener формы нового агента
 
+// Edge-snapping — состояние
+let snapEdge1 = null;         // { primId, edgeMid: THREE.Vector3 }
+let snapEdge2 = null;
+let edgeHighlightMesh = null; // подсветка выбранного ребра
+let shiftHeld = false;
+
+// Undo-стек
+const undoStack = [];
+const MAX_UNDO = 50;
+
+// Copy/paste буфер
+let clipboardPrimitives = [];
+
+// Ручной pan (Shift+LMB по пустому месту)
+let manualPanning = false;
+let panStartMouse = new THREE.Vector2();
+let panStartTarget = new THREE.Vector3();
+let panStartCameraPos = new THREE.Vector3();
+
 // Плоскость Y=0 (= Z=0 в симуляторе) для raycast при размещении агента
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 // ============================================================
 // Редактор сцены — вспомогательные функции
 // ============================================================
+
+/**
+ * Найти ближайшее ребро примитива к точке попадания (мировые координаты).
+ * Возвращает { worldMid, worldDir, halfLen, shape } или null.
+ *   shape='segment' — отрезок (рёбра box)
+ *   shape='ring'    — окружность (торцы cylinder)
+ *   shape='point'   — точка (sphere)
+ */
+function findNearestEdge(prim, mesh, hitPointWorld) {
+    const localHit = hitPointWorld.clone()
+        .applyMatrix4(mesh.matrixWorld.clone().invert());
+
+    let bestLocal = null;
+    let bestDir   = new THREE.Vector3(1, 0, 0);
+    let bestHalf  = 0;
+    let bestShape = 'segment';
+
+    if (prim.type === 'box') {
+        const hx = (prim.size?.x || 1) / 2;
+        const hy = (prim.size?.y || 1) / 2;
+        const hz = (prim.size?.z || 1) / 2;
+        // 12 рёбер: 4 параллельных каждой из осей X, Y, Z
+        const candidates = [];
+        for (const sy of [-1, 1]) for (const sz of [-1, 1])
+            candidates.push({ mid: new THREE.Vector3(0, sy*hy, sz*hz), dir: new THREE.Vector3(1,0,0), half: hx });
+        for (const sx of [-1, 1]) for (const sz of [-1, 1])
+            candidates.push({ mid: new THREE.Vector3(sx*hx, 0, sz*hz), dir: new THREE.Vector3(0,1,0), half: hy });
+        for (const sx of [-1, 1]) for (const sy of [-1, 1])
+            candidates.push({ mid: new THREE.Vector3(sx*hx, sy*hy, 0), dir: new THREE.Vector3(0,0,1), half: hz });
+
+        let bestDist = Infinity;
+        for (const c of candidates) {
+            const d = c.mid.distanceTo(localHit);
+            if (d < bestDist) {
+                bestDist  = d;
+                bestLocal = c.mid.clone();
+                bestDir   = c.dir.clone();
+                bestHalf  = c.half;
+            }
+        }
+        bestShape = 'segment';
+    } else if (prim.type === 'cylinder') {
+        // CylinderGeometry: вертикальная ось — локальная Y
+        const h = (prim.height || 1.0) / 2;
+        const r = prim.radius || 0.5;
+        const topMid = new THREE.Vector3(0,  h, 0);
+        const botMid = new THREE.Vector3(0, -h, 0);
+        bestLocal = topMid.distanceTo(localHit) <= botMid.distanceTo(localHit)
+            ? topMid.clone() : botMid.clone();
+        bestDir   = new THREE.Vector3(0, 1, 0); // ось цилиндра
+        bestHalf  = r;
+        bestShape = 'ring';
+    } else if (prim.type === 'sphere') {
+        const r = prim.radius || 0.5;
+        bestLocal = localHit.clone().normalize().multiplyScalar(r);
+        bestDir   = new THREE.Vector3(0, 1, 0);
+        bestHalf  = 0;
+        bestShape = 'point';
+    }
+
+    if (!bestLocal) return null;
+
+    const worldMid = bestLocal.clone().applyMatrix4(mesh.matrixWorld);
+    const worldDir = bestDir.clone().transformDirection(mesh.matrixWorld).normalize();
+    return { worldMid, worldDir, halfLen: bestHalf, shape: bestShape };
+}
+
+/**
+ * Показать жёлтую подсветку выбранного ребра.
+ *   shape='segment': тонкий цилиндр вдоль ребра (box).
+ *   shape='ring':    тор (торцевое ребро cylinder).
+ *   shape='point':   маленькая сфера (sphere).
+ */
+function showEdgeHighlight(edgeInfo) {
+    if (edgeHighlightMesh) {
+        scene.remove(edgeHighlightMesh);
+        edgeHighlightMesh.geometry?.dispose();
+        edgeHighlightMesh.material?.dispose();
+        edgeHighlightMesh = null;
+    }
+    const mat = new THREE.MeshBasicMaterial({ color: 0xFFFF00, depthTest: false });
+    const { worldMid, worldDir, halfLen, shape } = edgeInfo;
+
+    if (shape === 'segment') {
+        // CylinderGeometry ориентирован по локальной Y; выровнять по worldDir
+        const geo = new THREE.CylinderGeometry(0.03, 0.03, halfLen * 2, 8);
+        edgeHighlightMesh = new THREE.Mesh(geo, mat);
+        edgeHighlightMesh.position.copy(worldMid);
+        const up = new THREE.Vector3(0, 1, 0);
+        if (Math.abs(worldDir.dot(up)) < 0.9999) {
+            edgeHighlightMesh.quaternion.setFromUnitVectors(up, worldDir);
+        }
+    } else if (shape === 'ring') {
+        // TorusGeometry лежит в плоскости XY (ось тора = Z); повернуть к worldDir
+        const geo = new THREE.TorusGeometry(halfLen, 0.03, 8, 32);
+        edgeHighlightMesh = new THREE.Mesh(geo, mat);
+        edgeHighlightMesh.position.copy(worldMid);
+        const zAxis = new THREE.Vector3(0, 0, 1);
+        if (Math.abs(worldDir.dot(zAxis)) < 0.9999) {
+            edgeHighlightMesh.quaternion.setFromUnitVectors(zAxis, worldDir);
+        }
+    } else {
+        // point — маленькая сфера
+        const geo = new THREE.SphereGeometry(0.08, 8, 8);
+        edgeHighlightMesh = new THREE.Mesh(geo, mat);
+        edgeHighlightMesh.position.copy(worldMid);
+    }
+
+    scene.add(edgeHighlightMesh);
+}
+
+/**
+ * Сбросить состояние edge-snapping и убрать подсветку.
+ */
+function clearEdgeSnap() {
+    snapEdge1 = null;
+    snapEdge2 = null;
+    if (edgeHighlightMesh) {
+        scene.remove(edgeHighlightMesh);
+        edgeHighlightMesh.geometry?.dispose();
+        edgeHighlightMesh.material?.dispose();
+        edgeHighlightMesh = null;
+    }
+}
+
+// ============================================================
+// Pan вручную (Shift+LMB по пустому месту)
+// ============================================================
+
+function startManualPan(e) {
+    manualPanning = true;
+    panStartMouse.set(e.clientX, e.clientY);
+    panStartTarget.copy(controls.target);
+    panStartCameraPos.copy(camera.position);
+}
+
+function updateManualPan(e) {
+    if (!manualPanning) return;
+    const dx = (e.clientX - panStartMouse.x) / window.innerWidth;
+    const dy = (e.clientY - panStartMouse.y) / window.innerHeight;
+    const right = new THREE.Vector3();
+    right.crossVectors(camera.getWorldDirection(new THREE.Vector3()), camera.up).normalize();
+    const up = camera.up.clone();
+    const panScale = camera.position.distanceTo(controls.target) * 1.0;
+    const panDelta = right.multiplyScalar(-dx * panScale)
+                         .add(up.multiplyScalar(dy * panScale));
+    controls.target.copy(panStartTarget).add(panDelta);
+    camera.position.copy(panStartCameraPos).add(panDelta);
+    controls.update();
+}
+
+function stopManualPan() {
+    manualPanning = false;
+}
+
+// ============================================================
+// Undo
+// ============================================================
+
+function pushUndoSnapshot() {
+    const snapshot = JSON.parse(JSON.stringify(editorPrimitives));
+    undoStack.push(snapshot);
+    if (undoStack.length > MAX_UNDO) undoStack.shift();
+}
+
+function undo() {
+    if (undoStack.length === 0) return;
+    const snapshot = undoStack.pop();
+    Object.keys(meshes).filter(k => k.startsWith('static_')).forEach(k => removeMesh(k));
+    editorPrimitives = snapshot;
+    editorPrimitives.forEach(p => createPrimitiveMesh(p));
+    transformControls.detach();
+    selectedPrimitiveId = null;
+    document.getElementById('primitive-props').style.display = 'none';
+    sendGeometryToServer();
+}
+
+// ============================================================
+// Copy / Paste / Delete
+// ============================================================
+
+function copySelected() {
+    if (!selectedPrimitiveId) return;
+    const prim = editorPrimitives.find(p => p.id === selectedPrimitiveId);
+    if (prim) clipboardPrimitives = [JSON.parse(JSON.stringify(prim))];
+}
+
+function pasteSelected() {
+    if (clipboardPrimitives.length === 0) return;
+    pushUndoSnapshot();
+    selectedPrimitiveId = null;
+    transformControls.detach();
+    const PASTE_OFFSET = 0.5;
+    clipboardPrimitives.forEach(orig => {
+        const copy = JSON.parse(JSON.stringify(orig));
+        copy.id = `prim_${nextPrimitiveId++}`;
+        copy.pose.x += PASTE_OFFSET;
+        copy.pose.y += PASTE_OFFSET;
+        editorPrimitives.push(copy);
+        createPrimitiveMesh(copy);
+    });
+    const last = editorPrimitives[editorPrimitives.length - 1];
+    if (last) selectPrimitive(last.id);
+    sendGeometryToServer();
+}
+
+function deleteSelected() {
+    if (!selectedPrimitiveId) return;
+    pushUndoSnapshot();
+    editorPrimitives = editorPrimitives.filter(p => p.id !== selectedPrimitiveId);
+    removeMesh(`static_${selectedPrimitiveId}`);
+    selectedPrimitiveId = null;
+    transformControls.detach();
+    document.getElementById('primitive-props').style.display = 'none';
+    sendGeometryToServer();
+}
+
+/**
+ * Обработчик Shift+ЛКМ для edge-snapping.
+ * Первый клик — запомнить ребро 1 и подсветить.
+ * Второй клик — выполнить snap (переместить примитив 2 так, чтобы рёбра совпали).
+ * @param {MouseEvent} event
+ */
+function handleEdgeSnapClick(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+
+    const staticMeshList = Object.entries(meshes)
+        .filter(([k]) => k.startsWith('static_'))
+        .map(([, m]) => m);
+    const hits = raycaster.intersectObjects(staticMeshList);
+    if (hits.length === 0) {
+        clearEdgeSnap();
+        return;
+    }
+
+    const hit = hits[0];
+    const primId = hit.object.userData.key.replace('static_', '');
+    const mesh = hit.object;
+    const prim = editorPrimitives.find(p => p.id === primId);
+    if (!prim) return;
+
+    const edgeInfo = findNearestEdge(prim, mesh, hit.point);
+    if (!edgeInfo) return;
+
+    if (!snapEdge1) {
+        // Первый клик — запомнить ребро и показать подсветку
+        snapEdge1 = { primId, edgeMid: edgeInfo.worldMid };
+        showEdgeHighlight(edgeInfo);
+    } else {
+        // Второй клик
+        if (snapEdge1.primId === primId) {
+            // Повторный клик на тот же примитив — сбросить
+            clearEdgeSnap();
+            return;
+        }
+
+        const mesh2 = meshes[`static_${primId}`];
+        if (!mesh2) { clearEdgeSnap(); return; }
+
+        // Переместить примитив 2 так, чтобы edgeMid2 совпал с edgeMid1
+        const delta = snapEdge1.edgeMid.clone().sub(edgeInfo.worldMid);
+        mesh2.position.add(delta);
+
+        // Синхронизировать pose и отправить на сервер
+        clearEdgeSnap();
+        syncPrimitiveFromMesh(primId);
+        sendGeometryToServer();
+    }
+}
 
 /** Создать или обновить меш для примитива редактора */
 function createPrimitiveMesh(prim) {
@@ -558,7 +890,9 @@ function createPrimitiveMesh(prim) {
     };
     // Удаляем старый меш если есть (при recreate)
     removeMesh(`static_${prim.id}`);
-    updateOrCreateMesh(`static_${prim.id}`, prim.type, pose, visual);
+    // doubleSide: true — чтобы примитивы были видны с обеих сторон независимо
+    // от ориентации нормалей (возникает при конвертации координат Z-up → Y-up)
+    updateOrCreateMesh(`static_${prim.id}`, prim.type, pose, visual, { doubleSide: true });
 }
 
 /** Пересоздать меш с обновлёнными размерами (после scale) */
@@ -658,6 +992,7 @@ function selectPrimitive(id) {
 
 /** Добавить новый примитив в центр сцены */
 function addPrimitive(type) {
+    pushUndoSnapshot();
     const id = `prim_${nextPrimitiveId++}`;
     const prim = {
         id,
@@ -677,6 +1012,7 @@ function addPrimitive(type) {
 /** Удалить примитив по ID */
 function deletePrimitive(id) {
     if (!id) return;
+    pushUndoSnapshot();
     editorPrimitives = editorPrimitives.filter(p => p.id !== id);
     removeMesh(`static_${id}`);
     transformControls.detach();
@@ -688,6 +1024,7 @@ function deletePrimitive(id) {
 /** Обновить цвет выбранного примитива немедленно */
 window.onPrimColorChange = function(value) {
     if (!selectedPrimitiveId) return;
+    pushUndoSnapshot();
     const prim = editorPrimitives.find(p => p.id === selectedPrimitiveId);
     if (!prim) return;
     prim.color = value;
@@ -699,6 +1036,7 @@ window.onPrimColorChange = function(value) {
 /** Обновить размеры выбранного примитива из полей ввода */
 window.onPrimSizeChange = function() {
     if (!selectedPrimitiveId) return;
+    pushUndoSnapshot();
     const prim = editorPrimitives.find(p => p.id === selectedPrimitiveId);
     if (!prim) return;
 
@@ -800,6 +1138,8 @@ function enterEditorMode() {
         color:  geom.color  || '#808080',
     }));
     nextPrimitiveId = editorPrimitives.length;
+    undoStack.length = 0;
+    clipboardPrimitives = [];
 
     // Удаляем static_N меши и создаём static_prim_N
     Object.keys(meshes).forEach(k => { if (k.startsWith('static_')) removeMesh(k); });
@@ -840,7 +1180,7 @@ function exitEditorMode() {
             radius: prim.radius || 0.5,
             height: prim.height || 1.0,
         };
-        updateOrCreateMesh(`static_${i}`, prim.type, prim.pose, visual);
+        updateOrCreateMesh(`static_${i}`, prim.type, prim.pose, visual, { doubleSide: true });
     });
     editorPrimitives = [];
 
@@ -868,7 +1208,7 @@ window.toggleEditorMode = function() {
 window.addPrimitiveBox      = () => addPrimitive('box');
 window.addPrimitiveCylinder = () => addPrimitive('cylinder');
 window.addPrimitiveSphere   = () => addPrimitive('sphere');
-window.deleteSelectedPrimitive = () => deletePrimitive(selectedPrimitiveId);
+window.deleteSelectedPrimitive = () => deleteSelected();
 
 // ============================================================
 // Обновление сцены из JSON
@@ -988,7 +1328,7 @@ function updateScene(data) {
                     radius: geom.radius || 0.5,
                     height: geom.height || 1.0,
                 };
-                updateOrCreateMesh(`static_${i}`, geom.type, pose, visual);
+                updateOrCreateMesh(`static_${i}`, geom.type, pose, visual, { doubleSide: true });
             });
         }
     }
@@ -1256,6 +1596,12 @@ renderer.domElement.addEventListener('click', (event) => {
         return;
     }
 
+    // Shift+ЛКМ в режиме редактора — edge-snapping
+    if (editorMode && shiftHeld) {
+        handleEdgeSnapClick(event);
+        return;
+    }
+
     // В режиме редактора — кликаем по примитивам
     if (editorMode) {
         const staticMeshList = Object.entries(meshes)
@@ -1295,8 +1641,42 @@ renderer.domElement.addEventListener('click', (event) => {
     }
 });
 
+// Отслеживание Shift для edge-snapping + горячие клавиши редактора
+window.addEventListener('keydown', e => {
+    if (e.key === 'Shift') shiftHeld = true;
+
+    if (!editorMode) return;
+
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        switch (e.key.toLowerCase()) {
+            case 'z': e.preventDefault(); undo(); break;
+            case 'c': e.preventDefault(); copySelected(); break;
+            case 'v': e.preventDefault(); pasteSelected(); break;
+        }
+    }
+
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (document.activeElement === document.body ||
+            document.activeElement === renderer.domElement) {
+            e.preventDefault();
+            deleteSelected();
+        }
+    }
+});
+window.addEventListener('keyup', e => {
+    if (e.key === 'Shift') {
+        shiftHeld = false;
+        // Сбросить незавершённый snap при отпускании Shift
+        if (snapEdge1 && !snapEdge2) clearEdgeSnap();
+    }
+});
+
 // Превью агента при размещении: полупрозрачный бокс следует за курсором
 renderer.domElement.addEventListener('mousemove', (event) => {
+    if (manualPanning) {
+        updateManualPan(event);
+        return;
+    }
     if (!placingAgentMode) return;
     const pos = raycastOnGroundPlane(event);
     if (!pos) return;

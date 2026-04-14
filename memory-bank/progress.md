@@ -219,11 +219,29 @@ axes.rotation.set(pose.roll || 0, pose.yaw || 0, -(pose.pitch || 0), 'YZX');
 - **Фронтенд (index.html + app.js)**: вкладки в editor panel, форма с preview-мешами, raycast в плоскость земли для размещения агентов
 - **Тесты**: `SceneWriterAgents` (3 теста), все проходят
 
-## Следующие задачи (запланирован 2026-04-14)
+### Фича 17 — Edge-snapping примитивов ✅ ЗАВЕРШЕНА
+
+- **`app.js`**: 4 новые функции — `findNearestEdge`, `showEdgeHighlight`, `clearEdgeSnap`, `handleEdgeSnapClick`
+- Состояние: `snapEdge1`, `snapEdge2`, `edgeHighlightMesh`, `shiftHeld`
+- `findNearestEdge`: для box — 12 рёбер, выбирается ближайший midpoint; для cylinder — top/bottom ring; для sphere — точка на поверхности
+- Подсветка: `segment` → жёлтый CylinderGeometry; `ring` → TorusGeometry; `point` → SphereGeometry; всё с `depthTest: false`
+- Shift+ЛКМ на ребро → подсветка; второй клик → `delta = edgeMid1 - edgeMid2`, `mesh2.position.add(delta)`
+- После snap: `clearEdgeSnap` → `syncPrimitiveFromMesh` → `sendGeometryToServer`
+- Бэкенд не изменён — всё на фронтенде
+
+### Фича 18 — Навигация, Undo, Copy/Paste в редакторе ✅ ЗАВЕРШЕНА
+
+- **Shift+LMB pan**: mousedown capture phase; проверяет примитив под курсором; пустое место → ручной pan; примитив → edge-snap (задача 17) без изменений
+- **MMB отключён**: `controls.mouseButtons.MIDDLE = null`
+- **Undo-стек**: `pushUndoSnapshot` / `undo`, MAX_UNDO=50; точки вызова — `addPrimitive`, `deletePrimitive`, `transformControls.mouseDown`, color/size input
+- **Copy/Paste**: `copySelected` (один примитив), `pasteSelected` (смещение +0.5 x/y), `deleteSelected`
+- **Клавиши**: Ctrl+Z, Ctrl+C, Ctrl+V, Delete/Backspace — только в editorMode
+- Мультиселект (Shift+клик) не реализован — конфликт с edge-snap
+- Файл: `workspace/s2_visualizer/web/js/app.js`
+
+## Следующие задачи
 
 ### Блок A: Визуал и редактор сцены
-- Задача 17 — Face-snapping примитивов
-- Задача 18 — Shift+LMB pan, Ctrl+Z undo, Ctrl+C/V
 - Задача 19 — Браузер сцен, runtime load (перезапуск симуляции)
 
 ### Блок B: Физика

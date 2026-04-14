@@ -2,13 +2,40 @@
 
 ## Текущая работа
 
-Задача 16 завершена. После завершения — мелкие доработки UX редактора агентов:
-- Полупрозрачный бокс следует за курсором при размещении агента (`agent_place_preview`) — работает.
-- Превью нового агента после клика на сцену (`agent_edit_pending`) — **не работает**, см. known bugs.
+Задача 18 (Shift+LMB pan, Ctrl+Z undo, Ctrl+C/V) завершена.
 
-Следующая — задача 17 (face-snapping) или 18 (undo/copy-paste).
+Следующая — задача 19 (браузер сцен, runtime load).
 
-### Что сделано в последней сессии (задача 16)
+### Что сделано в последней сессии (задача 18)
+
+- **`app.js`**: Shift+LMB по пустому месту → ручной pan (capture phase, с проверкой примитивов под курсором)
+- **`app.js`**: MMB отключён (`controls.mouseButtons.MIDDLE = null`)
+- **`app.js`**: Undo-стек — `pushUndoSnapshot()` / `undo()`, MAX_UNDO=50; вызывается в `addPrimitive`, `deletePrimitive`, `transformControls.mouseDown`, `onPrimColorChange`, `onPrimSizeChange`
+- **`app.js`**: `copySelected()` / `pasteSelected()` (paste offset +0.5 x/y) / `deleteSelected()`
+- **`app.js`**: keydown handler расширен — Ctrl+Z, Ctrl+C, Ctrl+V, Delete/Backspace (только в editorMode)
+- Мультиселект через Shift+клик НЕ реализован — Shift+клик на примитив остаётся edge-snap (задача 17)
+- Единственный файл изменён: `workspace/s2_visualizer/web/js/app.js`
+
+### Что сделано в предпоследней сессии (задача 17)
+
+Изначально была реализована face-snapping (привязка граней), затем переработана
+в edge-snapping (привязка рёбер) по уточнению требований.
+
+- `app.js`: 4 функции edge-snapping:
+  - `findNearestEdge` — ближайший midpoint ребра к точке клика (box: 12 рёбер; cylinder: top/bottom ring; sphere: точка поверхности)
+  - `showEdgeHighlight` — жёлтая подсветка: segment → CylinderGeometry; ring → TorusGeometry; point → SphereGeometry
+  - `clearEdgeSnap` — сброс состояния и dispose подсветки
+  - `handleEdgeSnapClick` — основной обработчик Shift+ЛКМ
+- Глобальные переменные: `snapEdge1`, `snapEdge2`, `edgeHighlightMesh`, `shiftHeld`
+- Обработчики `keydown/keyup` для Shift
+- Guard `if (editorMode && shiftHeld)` в click-обработчике
+- Бэкенд не изменён
+
+**Важное замечание для задачи 18**: В задаче 18 Shift+LMB планируется для pan.
+Конфликт с edge-snapping нужно разрешить: Shift+ЛКМ по пустому месту → pan,
+Shift+ЛКМ по примитиву → edge-snap.
+
+### Что сделано в предпоследней сессии (задача 16)
 - **IAgentPlugin**: `display_label()` и `config_schema()` — виртуальные методы с дефолтами
 - **Все плагины**: реализован `config_schema()` (diff_drive, gnss, imu, trajectory_recorder, path_display, topic_display, joint_vel, color)
 - **`list_plugin_schemas()`** в реестре плагинов — создаёт временные экземпляры и собирает схемы
@@ -29,7 +56,7 @@
 | 14 | `docs/14-static-geometry-viz.md` | ✅ Патч: корректный рендер примитивов (rotation, cylinder, reconnect) |
 | 15 | `docs/15-scene-editor-primitives.md` | ✅ Editor mode, CRUD примитивов, сохранение YAML |
 | 16 | `docs/16-scene-editor-agents.md` | Редактор агентов в UI |
-| 17 | `docs/17-scene-editor-facesnap.md` | Face-snapping примитивов (Shift+LMB) |
+| 17 | `docs/17-scene-editor-facesnap.md` | ✅ Edge-snapping примитивов (Shift+LMB) |
 | 18 | `docs/18-scene-editor-nav-undo-copy.md` | Shift+LMB pan, Ctrl+Z undo, Ctrl+C/V copy-paste |
 | 19 | `docs/19-scene-editor-runtime-load.md` | Браузер сцен, загрузка в рантайме |
 

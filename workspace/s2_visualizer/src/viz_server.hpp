@@ -1,6 +1,7 @@
 #pragma once
 
 #include <s2/world_snapshot.hpp>
+#include <s2/world.hpp>
 #include <string>
 #include <thread>
 #include <atomic>
@@ -24,6 +25,18 @@ struct VizCommandHandler {
     virtual void on_reset() = 0;
     virtual void on_move_agent(AgentId id, double x, double y, double yaw) = 0;
     virtual void on_plugin_input(AgentId agent_id, const std::string& plugin_type, const std::string& json_input) = 0;
+
+    /** Обновить статическую геометрию мира (заменяет текущий список примитивов). */
+    virtual void on_update_geometry(const std::vector<WorldPrimitive>& prims) = 0;
+
+    /** Результат сохранения сцены в YAML. */
+    struct SaveSceneResult {
+        bool ok = false;
+        std::string path_or_error; ///< Путь к файлу при успехе, сообщение об ошибке при неудаче
+    };
+
+    /** Сохранить текущую сцену (геометрию) в YAML-файл на диске. */
+    virtual SaveSceneResult on_save_scene() = 0;
 };
 
 /**
@@ -62,6 +75,9 @@ public:
 
     /** Отправить последний снапшот всем SSE-клиентам */
     void force_broadcast_latest();
+
+    /** Отправить последний снапшот с геометрией всем SSE-клиентам (после обновления геометрии) */
+    void force_broadcast_with_geometry();
 
     /** Установить обработчик команд */
     void set_command_handler(VizCommandHandler* handler) { command_handler_ = handler; }

@@ -5,33 +5,81 @@ s2:
     port: 1937
   transport:
     type: stub
-
   world:
     geometry:
       - type: box
-        pose: { x: 3.0, y: 0.0, z: 0.5 }
-        size: [2.0, 1.0, 1.0]
+        pose:
+          x: 3
+          y: 0
+          z: 0.5
+          yaw: 0
+          pitch: 0
+          roll: 0
+        size:
+          x: 2
+          y: 1
+          z: 1
         color: "#4444FF"
-
       - type: cylinder
-        pose: { x: -2.0, y: 2.0, z: 1.0 }
+        pose:
+          x: -2
+          y: 2
+          z: 1
+          yaw: 0
+          pitch: 0
+          roll: 0
         radius: 0.5
-        height: 2.0
+        height: 2
         color: "#44FF44"
-
       - type: sphere
-        pose: { x: 0.0, y: -3.0, z: 0.5 }
+        pose:
+          x: 0
+          y: -3
+          z: 0.5
+          yaw: 0
+          pitch: 0
+          roll: 0
         radius: 0.5
         color: "#FF4444"
-
       - type: box
-        pose: { x: 1.0, y: 1.0, z: 0.25, pitch: 0.3 }
-        size: [3.0, 0.5, 0.5]
+        pose:
+          x: 1
+          y: 1
+          z: 0.25
+          yaw: 0
+          pitch: 0.29999999999999999
+          roll: 0
+        size:
+          x: 3
+          y: 0.5
+          z: 0.5
         color: "#FF8800"
-
+      - type: box
+        pose:
+          x: -0.35594742666967427
+          y: -7.0580654493490353
+          z: 2.2816247841654054
+          yaw: -0.032051536713995986
+          pitch: -0.056742560354701675
+          roll: -0.73162861331013385
+        size:
+          x: 4.9500000000000002
+          y: 4.2999999999999998
+          z: 4.9900000000000002
+        color: "#a60c0c"
+      - type: sphere
+        pose:
+          x: -1.0933592774169929
+          y: 7.0379861058431192
+          z: 0.87480965468674587
+          yaw: 0
+          pitch: 0
+          roll: 0
+        radius: -2.6919614062942467
+        color: "#040cfb"
   agents:
     - name: robot_0
-      pose: { x: 0.0, y: 0.0 }
+      pose: {x: 0.0, y: 0.0}
       visual:
         type: box
         size: [0.6, 0.4, 0.3]

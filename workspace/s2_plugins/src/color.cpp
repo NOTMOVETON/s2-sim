@@ -52,6 +52,9 @@ std::string ColorPlugin::handle_service(const std::string& /*service_name*/,
 void ColorPlugin::update(double dt, Agent& agent)
 {
     if (timer_ > 0.0)
+        timer_ -= dt;
+
+    if (timer_ > 0.0)
     {
         if (is_urdf_ && agent.kinematic_tree)
         {
@@ -64,7 +67,6 @@ void ColorPlugin::update(double dt, Agent& agent)
         {
             agent.visual.color = configured_color_;
         }
-        timer_ -= dt;
     }
     else
     {

@@ -63,7 +63,11 @@ transformControls.addEventListener('dragging-changed', function (event) {
 const DRAG_GRACE_MS = 800;
 
 transformControls.addEventListener('mouseUp', function () {
-    if (selectedAgentId !== null && selectedAgentMesh) {
+    if (editorMode && selectedPrimitiveId !== null) {
+        // Синхронизируем позу и размеры из меша в editorPrimitives, затем отправляем на сервер
+        syncPrimitiveFromMesh(selectedPrimitiveId);
+        sendGeometryToServer();
+    } else if (selectedAgentId !== null && selectedAgentMesh) {
         const m = selectedAgentMesh;
         const x = m.position.x;
         const y = -m.position.z;
@@ -502,9 +506,341 @@ document.getElementById('tf-frames-toggle').addEventListener('change', function(
 });
 
 // ============================================================
+// Toast уведомления
+// ============================================================
+function showToast(message, duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 500);
+    }, duration);
+}
+
+// ============================================================
+// Редактор сцены — состояние
+// ============================================================
+let editorMode = false;
+let editorPrimitives = [];           // { id, type, pose, size, radius, height, color }
+let selectedPrimitiveId = null;
+let nextPrimitiveId = 0;
+let editorTransformMode = 'translate';
+let staticGeometryData = [];         // кеш последних данных geometry от сервера
+
+// ============================================================
+// Редактор сцены — вспомогательные функции
+// ============================================================
+
+/** Создать или обновить меш для примитива редактора */
+function createPrimitiveMesh(prim) {
+    const pose = prim.pose;
+    const visual = {
+        type:   prim.type,
+        size:   [prim.size?.x || 1, prim.size?.y || 1, prim.size?.z || 1],
+        color:  prim.color  || '#808080',
+        radius: prim.radius || 0.5,
+        height: prim.height || 1.0,
+    };
+    // Удаляем старый меш если есть (при recreate)
+    removeMesh(`static_${prim.id}`);
+    updateOrCreateMesh(`static_${prim.id}`, prim.type, pose, visual);
+}
+
+/** Пересоздать меш с обновлёнными размерами (после scale) */
+function recreatePrimitiveMesh(prim) {
+    createPrimitiveMesh(prim);
+    // Если примитив был выбран — переприкрепляем TransformControls
+    if (selectedPrimitiveId === prim.id) {
+        const mesh = meshes[`static_${prim.id}`];
+        if (mesh) {
+            transformControls.attach(mesh);
+        }
+    }
+}
+
+/** Синхронизировать pozу и размеры из меша в editorPrimitives */
+function syncPrimitiveFromMesh(id) {
+    const prim = editorPrimitives.find(p => p.id === id);
+    const mesh = meshes[`static_${id}`];
+    if (!prim || !mesh) return;
+
+    // Позиция (Three.js Y-up → sim Z-up)
+    prim.pose.x = mesh.position.x;
+    prim.pose.y = -mesh.position.z;
+    prim.pose.z = mesh.position.y;
+    prim.pose.yaw   =  mesh.rotation.y;
+    prim.pose.pitch = -mesh.rotation.z;
+    prim.pose.roll  =  mesh.rotation.x;
+
+    // Размеры (с учётом накопленного scale)
+    if (prim.type === 'box') {
+        prim.size.x = (prim.size.x || 1) * mesh.scale.x;
+        prim.size.y = (prim.size.y || 1) * mesh.scale.y;
+        prim.size.z = (prim.size.z || 1) * mesh.scale.z;
+        mesh.scale.set(1, 1, 1);
+        recreatePrimitiveMesh(prim);
+    } else if (prim.type === 'cylinder') {
+        prim.radius = (prim.radius || 0.5) * Math.max(mesh.scale.x, mesh.scale.z);
+        prim.height = (prim.height || 1.0) * mesh.scale.y;
+        mesh.scale.set(1, 1, 1);
+        recreatePrimitiveMesh(prim);
+    } else if (prim.type === 'sphere') {
+        prim.radius = (prim.radius || 0.5) * Math.max(mesh.scale.x, mesh.scale.y, mesh.scale.z);
+        mesh.scale.set(1, 1, 1);
+        recreatePrimitiveMesh(prim);
+    }
+
+    updatePrimitivePropsPanel(id);
+}
+
+/** Обновить панель свойств примитива */
+function updatePrimitivePropsPanel(id) {
+    const prim = editorPrimitives.find(p => p.id === id);
+    if (!prim) {
+        document.getElementById('primitive-props').style.display = 'none';
+        return;
+    }
+    document.getElementById('primitive-props').style.display = 'block';
+    document.getElementById('primitive-type-label').textContent =
+        prim.type.charAt(0).toUpperCase() + prim.type.slice(1);
+
+    document.getElementById('prop-color').value = prim.color || '#808080';
+
+    // Показываем нужные поля
+    document.getElementById('props-box').style.display      = prim.type === 'box'      ? '' : 'none';
+    document.getElementById('props-cylinder').style.display = prim.type === 'cylinder' ? '' : 'none';
+    document.getElementById('props-sphere').style.display   = prim.type === 'sphere'   ? '' : 'none';
+
+    if (prim.type === 'box') {
+        document.getElementById('prop-sx').value = (prim.size?.x || 1).toFixed(2);
+        document.getElementById('prop-sy').value = (prim.size?.y || 1).toFixed(2);
+        document.getElementById('prop-sz').value = (prim.size?.z || 1).toFixed(2);
+    } else if (prim.type === 'cylinder') {
+        document.getElementById('prop-radius').value = (prim.radius || 0.5).toFixed(2);
+        document.getElementById('prop-height').value = (prim.height || 1.0).toFixed(2);
+    } else if (prim.type === 'sphere') {
+        document.getElementById('prop-radius-sphere').value = (prim.radius || 0.5).toFixed(2);
+    }
+}
+
+/** Выбрать примитив по ID */
+function selectPrimitive(id) {
+    selectedPrimitiveId = id;
+    // Снять выбор агента если был выбран
+    selectedAgentId = null;
+    selectedAgentMesh = null;
+
+    const mesh = meshes[`static_${id}`];
+    if (mesh) {
+        transformControls.attach(mesh);
+        transformControls.setMode(editorTransformMode);
+        transformControls.showX = true;
+        transformControls.showY = true;
+        transformControls.showZ = true;
+    }
+    updatePrimitivePropsPanel(id);
+}
+
+/** Добавить новый примитив в центр сцены */
+function addPrimitive(type) {
+    const id = `prim_${nextPrimitiveId++}`;
+    const prim = {
+        id,
+        type,
+        pose: { x: 0, y: 0, z: 0.5, yaw: 0, pitch: 0, roll: 0 },
+        size: { x: 1, y: 1, z: 1 },
+        radius: 0.5,
+        height: 1.0,
+        color: '#808080',
+    };
+    editorPrimitives.push(prim);
+    createPrimitiveMesh(prim);
+    selectPrimitive(id);
+    sendGeometryToServer();
+}
+
+/** Удалить примитив по ID */
+function deletePrimitive(id) {
+    if (!id) return;
+    editorPrimitives = editorPrimitives.filter(p => p.id !== id);
+    removeMesh(`static_${id}`);
+    transformControls.detach();
+    selectedPrimitiveId = null;
+    document.getElementById('primitive-props').style.display = 'none';
+    sendGeometryToServer();
+}
+
+/** Обновить цвет выбранного примитива немедленно */
+window.onPrimColorChange = function(value) {
+    if (!selectedPrimitiveId) return;
+    const prim = editorPrimitives.find(p => p.id === selectedPrimitiveId);
+    if (!prim) return;
+    prim.color = value;
+    const mesh = meshes[`static_${selectedPrimitiveId}`];
+    if (mesh) mesh.material.color.setStyle(value);
+    // Не отправляем на сервер сразу — ждём явного «Применить» или следующего mouseUp
+};
+
+/** Обновить размеры выбранного примитива из полей ввода */
+window.onPrimSizeChange = function() {
+    if (!selectedPrimitiveId) return;
+    const prim = editorPrimitives.find(p => p.id === selectedPrimitiveId);
+    if (!prim) return;
+
+    if (prim.type === 'box') {
+        prim.size.x = parseFloat(document.getElementById('prop-sx').value) || 1;
+        prim.size.y = parseFloat(document.getElementById('prop-sy').value) || 1;
+        prim.size.z = parseFloat(document.getElementById('prop-sz').value) || 1;
+    } else if (prim.type === 'cylinder') {
+        prim.radius = parseFloat(document.getElementById('prop-radius').value) || 0.5;
+        prim.height = parseFloat(document.getElementById('prop-height').value) || 1.0;
+    } else if (prim.type === 'sphere') {
+        prim.radius = parseFloat(document.getElementById('prop-radius-sphere').value) || 0.5;
+    }
+    recreatePrimitiveMesh(prim);
+};
+
+/** Переключить режим трансформации редактора */
+window.setEditorTransformMode = function(mode) {
+    editorTransformMode = mode;
+    transformControls.setMode(mode);
+    document.getElementById('btn-mode-translate').classList.toggle('active', mode === 'translate');
+    document.getElementById('btn-mode-rotate').classList.toggle('active', mode === 'rotate');
+    document.getElementById('btn-mode-scale').classList.toggle('active', mode === 'scale');
+};
+
+/** Отправить текущую геометрию на сервер (применить) */
+window.sendGeometryToServer = function sendGeometryToServer() {
+    const host = window.location.hostname || 'localhost';
+    const port = window.location.port || '1937';
+    const payload = {
+        geometry: editorPrimitives.map(p => ({
+            type:   p.type,
+            x:      p.pose.x, y: p.pose.y, z: p.pose.z,
+            yaw:    p.pose.yaw, pitch: p.pose.pitch, roll: p.pose.roll,
+            sx:     p.size?.x || 1, sy: p.size?.y || 1, sz: p.size?.z || 1,
+            radius: p.radius || 0.5,
+            height: p.height || 1.0,
+            color:  p.color || '#808080',
+        }))
+    };
+    fetch(`http://${host}:${port}/api/scene/geometry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    }).catch(err => console.error('[Geometry update error]', err));
+};
+
+/** Кнопка «Применить» — синхронизировать выбранный примитив и отправить */
+window.applyGeometry = function() {
+    if (selectedPrimitiveId) {
+        syncPrimitiveFromMesh(selectedPrimitiveId);
+    }
+    sendGeometryToServer();
+    showToast('Геометрия применена');
+};
+
+/** Сохранить сцену в YAML */
+window.saveScene = function() {
+    const host = window.location.hostname || 'localhost';
+    const port = window.location.port || '1937';
+    fetch(`http://${host}:${port}/api/scene/save`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => {
+            if (d.ok) showToast(`Сцена сохранена: ${d.path}`);
+            else showToast(`Ошибка сохранения: ${d.error}`);
+        })
+        .catch(err => showToast(`Ошибка: ${err.message}`));
+};
+
+/** Войти в режим редактора сцены */
+function enterEditorMode() {
+    editorMode = true;
+
+    // Скрыть боковую панель агента
+    closeSidePanel();
+
+    // Показать редактор
+    document.getElementById('editor-panel').style.display = 'block';
+    document.getElementById('btn-edit-scene').classList.add('active');
+
+    // Ярче сетка
+    gridHelper.material.opacity = 1.0;
+    gridHelper.material.transparent = false;
+
+    // Инициализируем editorPrimitives из кеша геометрии сервера
+    editorPrimitives = staticGeometryData.map((geom, i) => ({
+        id: `prim_${i}`,
+        type:   geom.type   || 'box',
+        pose:   { x: geom.x || 0, y: geom.y || 0, z: geom.z || 0,
+                  yaw: geom.yaw || 0, pitch: geom.pitch || 0, roll: geom.roll || 0 },
+        size:   { x: geom.sx || 1, y: geom.sy || 1, z: geom.sz || 1 },
+        radius: geom.radius || 0.5,
+        height: geom.height || 1.0,
+        color:  geom.color  || '#808080',
+    }));
+    nextPrimitiveId = editorPrimitives.length;
+
+    // Удаляем static_N меши и создаём static_prim_N
+    Object.keys(meshes).forEach(k => { if (k.startsWith('static_')) removeMesh(k); });
+    editorPrimitives.forEach(prim => createPrimitiveMesh(prim));
+
+    // Устанавливаем режим трансформации
+    transformControls.setMode(editorTransformMode);
+}
+
+/** Выйти из режима редактора сцены */
+function exitEditorMode() {
+    // Отправить финальное состояние на сервер
+    if (selectedPrimitiveId) syncPrimitiveFromMesh(selectedPrimitiveId);
+    sendGeometryToServer();
+
+    editorMode = false;
+    transformControls.detach();
+    selectedPrimitiveId = null;
+    document.getElementById('editor-panel').style.display = 'none';
+    document.getElementById('primitive-props').style.display = 'none';
+    document.getElementById('btn-edit-scene').classList.remove('active');
+
+    // Затемнить сетку
+    gridHelper.material.opacity = 0.6;
+    gridHelper.material.transparent = true;
+
+    // Пересоздать static_N меши из editorPrimitives (индексированные)
+    Object.keys(meshes).forEach(k => { if (k.startsWith('static_')) removeMesh(k); });
+    editorPrimitives.forEach((prim, i) => {
+        const visual = {
+            type:   prim.type,
+            size:   [prim.size?.x || 1, prim.size?.y || 1, prim.size?.z || 1],
+            color:  prim.color  || '#808080',
+            radius: prim.radius || 0.5,
+            height: prim.height || 1.0,
+        };
+        updateOrCreateMesh(`static_${i}`, prim.type, prim.pose, visual);
+    });
+    editorPrimitives = [];
+
+    // Восстановить режим агентов
+    transformControls.setMode(transformMode);
+}
+
+/** Переключить режим редактора */
+window.toggleEditorMode = function() {
+    if (editorMode) exitEditorMode();
+    else            enterEditorMode();
+};
+
+// Обёртки для вызова из HTML (module scope не виден в onclick)
+window.addPrimitiveBox      = () => addPrimitive('box');
+window.addPrimitiveCylinder = () => addPrimitive('cylinder');
+window.addPrimitiveSphere   = () => addPrimitive('sphere');
+window.deleteSelectedPrimitive = () => deletePrimitive(selectedPrimitiveId);
+
+// ============================================================
 // Обновление сцены из JSON
 // ============================================================
-let geometrySent = false;
 
 function updateScene(data) {
     // SimTime — обнаруживаем reset (время идёт назад) и очищаем overlay-линии
@@ -597,29 +933,32 @@ function updateScene(data) {
         }
     }
 
-    // Геометрия (только при первом подключении)
-    if (data.geometry && !geometrySent) {
-        geometrySent = true;
-        Object.keys(meshes).forEach(k => { if (k.startsWith('static_')) removeMesh(k); });
-
-        data.geometry.forEach((geom, i) => {
-            const pose = {
-                x:     geom.x     || 0,
-                y:     geom.y     || 0,
-                z:     geom.z     || 0,
-                yaw:   geom.yaw   || 0,
-                pitch: geom.pitch || 0,
-                roll:  geom.roll  || 0,
-            };
-            const visual = {
-                type:   geom.type   || 'box',
-                size:   [geom.sx || 1, geom.sy || 1, geom.sz || 1],
-                color:  geom.color  || '#808080',
-                radius: geom.radius || 0.5,
-                height: geom.height || 1.0,
-            };
-            updateOrCreateMesh(`static_${i}`, geom.type, pose, visual);
-        });
+    // Статическая геометрия — обновляем всякий раз, когда сервер присылает geometry.
+    // Сервер присылает geometry при первом подключении и после POST /api/scene/geometry.
+    // В режиме редактора не трогаем меши (редактор управляет ими сам).
+    if (data.geometry) {
+        staticGeometryData = data.geometry;  // кешируем для входа в editor mode
+        if (!editorMode) {
+            Object.keys(meshes).forEach(k => { if (k.startsWith('static_')) removeMesh(k); });
+            data.geometry.forEach((geom, i) => {
+                const pose = {
+                    x:     geom.x     || 0,
+                    y:     geom.y     || 0,
+                    z:     geom.z     || 0,
+                    yaw:   geom.yaw   || 0,
+                    pitch: geom.pitch || 0,
+                    roll:  geom.roll  || 0,
+                };
+                const visual = {
+                    type:   geom.type   || 'box',
+                    size:   [geom.sx || 1, geom.sy || 1, geom.sz || 1],
+                    color:  geom.color  || '#808080',
+                    radius: geom.radius || 0.5,
+                    height: geom.height || 1.0,
+                };
+                updateOrCreateMesh(`static_${i}`, geom.type, pose, visual);
+            });
+        }
     }
 
     // Агенты
@@ -871,6 +1210,25 @@ renderer.domElement.addEventListener('click', (event) => {
 
     raycaster.setFromCamera(mouse, camera);
 
+    // В режиме редактора — кликаем по примитивам
+    if (editorMode) {
+        const staticMeshList = Object.entries(meshes)
+            .filter(([k]) => k.startsWith('static_'))
+            .map(([, m]) => m);
+        const staticHits = raycaster.intersectObjects(staticMeshList);
+        if (staticHits.length > 0) {
+            const key = staticHits[0].object.userData.key;   // "static_prim_N"
+            const id = key.replace('static_', '');
+            selectPrimitive(id);
+        } else {
+            // Клик в пустоту — снять выбор
+            transformControls.detach();
+            selectedPrimitiveId = null;
+            document.getElementById('primitive-props').style.display = 'none';
+        }
+        return;
+    }
+
     const agentMeshList = Object.values(meshes).filter(m => m.userData.key && m.userData.key.startsWith('agent_') && m.visible);
     const linkMeshList = Object.values(linkMeshes);
     const intersects = raycaster.intersectObjects([...agentMeshList, ...linkMeshList]);
@@ -928,8 +1286,10 @@ function connectSSE() {
         console.log('SSE connected');
         document.getElementById('conn-status').textContent = 'Connected';
         document.getElementById('conn-status').className = 'connected';
-        geometrySent = false;
-        Object.keys(meshes).forEach(k => { if (k.startsWith('static_')) removeMesh(k); });
+        // При реконнекте очищаем старые static меши — придут свежие с geometry в первом снапшоте
+        if (!editorMode) {
+            Object.keys(meshes).forEach(k => { if (k.startsWith('static_')) removeMesh(k); });
+        }
     };
 
     evtSource.onmessage = (event) => {

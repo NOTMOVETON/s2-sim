@@ -16,13 +16,14 @@ find_package(OpenSSL REQUIRED)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "/usr/share/cmake/geographiclib")
 find_package(GeographicLib REQUIRED)
 
-# FindGeographicLib.cmake не создаёт imported target, создаём вручную
-# В Ubuntu Noble библиотека называется libGeographicLib.so, а не libGeographic.so
+# FindGeographicLib.cmake не создаёт imported target, создаём вручную.
+# Имя библиотеки зависит от дистрибутива: Geographic (Ubuntu 22.04) или GeographicLib (Ubuntu 24.04).
 if(NOT TARGET GeographicLib::GeographicLib)
+    find_library(GEOGRAPHIC_LIB_FILE NAMES GeographicLib Geographic REQUIRED)
     add_library(GeographicLib::GeographicLib INTERFACE IMPORTED)
     set_target_properties(GeographicLib::GeographicLib PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${GeographicLib_INCLUDE_DIRS}"
-        INTERFACE_LINK_LIBRARIES "GeographicLib"
+        INTERFACE_LINK_LIBRARIES "${GEOGRAPHIC_LIB_FILE}"
     )
 endif()
 

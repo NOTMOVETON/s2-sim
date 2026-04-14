@@ -1,4 +1,5 @@
 #include "viz_server.hpp"
+#include <s2/types.hpp>
 #include <nlohmann/json.hpp>
 
 #include <sys/socket.h>
@@ -266,6 +267,29 @@ void VizServer::force_broadcast_latest() {
     }
 }
 
+void VizServer::force_broadcast_with_geometry() {
+    // То же что force_broadcast_latest, но include_geometry=true — для отправки после обновления геометрии
+    WorldSnapshot snap_copy;
+    {
+        std::lock_guard<std::mutex> lk(snapshot_mutex_);
+        const WorldSnapshot* snap = nullptr;
+        if (has_pending_.load()) snap = &pending_snapshot_;
+        else if (current_snapshot_) snap = &*current_snapshot_;
+        if (!snap) return;
+        snap_copy = *snap;
+    }
+    std::string msg = "data: " + snapshot_to_json(snap_copy, true, true).dump() + "\n\n";
+
+    std::vector<int> clients_copy;
+    {
+        std::lock_guard<std::mutex> cl(clients_mutex_);
+        clients_copy = std::vector<int>(ws_clients_.begin(), ws_clients_.end());
+    }
+    for (int fd : clients_copy) {
+        send(fd, msg.c_str(), msg.size(), MSG_NOSIGNAL | MSG_DONTWAIT);
+    }
+}
+
 // URL decode helper
 static std::string url_decode(const std::string& str) {
     std::string result;
@@ -290,6 +314,63 @@ static std::string url_decode(const std::string& str) {
         i++;
     }
     return result;
+}
+
+// Извлечь тело HTTP-запроса из буфера.
+// Если тело неполное — читает оставшиеся байты из сокета (временно блокирующий режим).
+static std::string extract_http_body(int client_fd, const std::string& request) {
+    auto sep_pos = request.find("\r\n\r\n");
+    if (sep_pos == std::string::npos) return "";
+
+    std::string body = request.substr(sep_pos + 4);
+
+    // Ищем Content-Length
+    int content_length = -1;
+    for (const char* hdr : {"Content-Length:", "content-length:"}) {
+        auto cl_pos = request.find(hdr);
+        if (cl_pos != std::string::npos) {
+            size_t val_start = request.find_first_not_of(" \t", cl_pos + std::strlen(hdr));
+            size_t val_end   = request.find("\r\n", val_start);
+            if (val_start != std::string::npos && val_end != std::string::npos) {
+                try {
+                    content_length = std::stoi(request.substr(val_start, val_end - val_start));
+                } catch (...) {}
+            }
+            break;
+        }
+    }
+
+    if (content_length <= 0) return body;
+
+    // Если тело ещё неполное — читаем остаток (временно блокирующий режим)
+    if ((int)body.size() < content_length) {
+        int flags = fcntl(client_fd, F_GETFL, 0);
+        fcntl(client_fd, F_SETFL, flags & ~O_NONBLOCK);
+        while ((int)body.size() < content_length) {
+            char tmp[4096];
+            int to_read = std::min(4096, content_length - (int)body.size());
+            ssize_t n = recv(client_fd, tmp, to_read, 0);
+            if (n <= 0) break;
+            body.append(tmp, n);
+        }
+        fcntl(client_fd, F_SETFL, flags);
+    }
+
+    return body;
+}
+
+// Отправить JSON-ответ через HTTP и закрыть соединение
+static void send_json_response(int client_fd, const nlohmann::json& body_json, int code = 200) {
+    std::string body = body_json.dump();
+    std::string status = (code == 200) ? "200 OK" : "400 Bad Request";
+    std::string response =
+        "HTTP/1.1 " + status + "\r\n"
+        "Content-Type: application/json\r\n"
+        "Content-Length: " + std::to_string(body.size()) + "\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "Connection: close\r\n\r\n" + body;
+    send(client_fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+    close(client_fd);
 }
 
 // Обработать POST/GET команду из визуализатора
@@ -366,13 +447,85 @@ static void handle_command(int client_fd, VizCommandHandler* handler, const std:
 }
 
 void VizServer::serve_http(int client_fd, const std::string& request) {
+    // Извлекаем метод и URL из первой строки запроса
+    std::string method = "GET";
     std::string url = "/";
-    size_t sp = request.find(' ');
-    if (sp != std::string::npos) {
-        size_t sp2 = request.find(' ', sp + 1);
-        if (sp2 != std::string::npos) {
-            url = request.substr(sp + 1, sp2 - sp - 1);
+    {
+        size_t sp1 = request.find(' ');
+        if (sp1 != std::string::npos) {
+            method = request.substr(0, sp1);
+            size_t sp2 = request.find(' ', sp1 + 1);
+            if (sp2 != std::string::npos) {
+                url = request.substr(sp1 + 1, sp2 - sp1 - 1);
+            }
         }
+    }
+
+    // Обработка CORS preflight
+    if (method == "OPTIONS") {
+        std::string resp =
+            "HTTP/1.1 204 No Content\r\n"
+            "Access-Control-Allow-Origin: *\r\n"
+            "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
+            "Access-Control-Allow-Headers: Content-Type\r\n"
+            "Connection: close\r\n\r\n";
+        send(client_fd, resp.c_str(), resp.size(), MSG_NOSIGNAL);
+        close(client_fd);
+        return;
+    }
+
+    // POST /api/scene/geometry — обновить статическую геометрию
+    if (method == "POST" && url.find("/api/scene/geometry") != std::string::npos) {
+        if (!command_handler_) {
+            send_json_response(client_fd, {{"ok", false}, {"error", "no command handler"}}, 400);
+            return;
+        }
+        std::string body = extract_http_body(client_fd, request);
+        try {
+            auto j = nlohmann::json::parse(body);
+            std::vector<WorldPrimitive> prims;
+            if (j.contains("geometry") && j["geometry"].is_array()) {
+                for (const auto& geom : j["geometry"]) {
+                    WorldPrimitive prim;
+                    prim.type       = geom.value("type",   "box");
+                    prim.pose.x     = geom.value("x",      0.0);
+                    prim.pose.y     = geom.value("y",      0.0);
+                    prim.pose.z     = geom.value("z",      0.0);
+                    prim.pose.yaw   = geom.value("yaw",    0.0);
+                    prim.pose.pitch = geom.value("pitch",  0.0);
+                    prim.pose.roll  = geom.value("roll",   0.0);
+                    prim.size       = Vec3(geom.value("sx", 1.0),
+                                          geom.value("sy", 1.0),
+                                          geom.value("sz", 1.0));
+                    prim.radius     = geom.value("radius", 0.5);
+                    prim.height     = geom.value("height", 1.0);
+                    prim.color      = geom.value("color",  std::string("#808080"));
+                    prims.push_back(std::move(prim));
+                }
+            }
+            command_handler_->on_update_geometry(prims);
+            send_json_response(client_fd, {{"ok", true}});
+        } catch (const std::exception& e) {
+            send_json_response(client_fd,
+                {{"ok", false}, {"error", std::string("parse error: ") + e.what()}}, 400);
+        }
+        return;
+    }
+
+    // POST /api/scene/save — сохранить сцену в YAML
+    if (method == "POST" && url.find("/api/scene/save") != std::string::npos) {
+        if (!command_handler_) {
+            send_json_response(client_fd, {{"ok", false}, {"error", "no command handler"}}, 400);
+            return;
+        }
+        auto result = command_handler_->on_save_scene();
+        if (result.ok) {
+            send_json_response(client_fd, {{"ok", true}, {"path", result.path_or_error}});
+        } else {
+            send_json_response(client_fd,
+                {{"ok", false}, {"error", result.path_or_error}}, 400);
+        }
+        return;
     }
 
     if (url.find("/command") != std::string::npos) {
@@ -495,7 +648,7 @@ void VizServer::run_server() {
         int cflags = fcntl(client_fd, F_GETFL, 0);
         fcntl(client_fd, F_SETFL, cflags | O_NONBLOCK);
         
-        char buf[8192];
+        char buf[65536];
         ssize_t n = recv(client_fd, buf, sizeof(buf) - 1, 0);
         if (n <= 0) {
             close(client_fd);

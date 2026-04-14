@@ -1,4 +1,20 @@
-find_package(tinyxml2 REQUIRED)
+find_package(tinyxml2 QUIET)
+if(NOT tinyxml2_FOUND)
+    # Ubuntu 22.04 — libtinyxml2-dev не предоставляет CMake-конфиг, ищем вручную
+    find_library(TINYXML2_LIB NAMES tinyxml2 REQUIRED)
+    find_path(TINYXML2_INCLUDE_DIR NAMES tinyxml2.h PATH_SUFFIXES tinyxml2)
+    if(NOT TINYXML2_LIB)
+        message(FATAL_ERROR "tinyxml2 library not found")
+    endif()
+    add_library(tinyxml2::tinyxml2 INTERFACE IMPORTED)
+    set_target_properties(tinyxml2::tinyxml2 PROPERTIES
+        INTERFACE_LINK_LIBRARIES "${TINYXML2_LIB}"
+    )
+    if(TINYXML2_INCLUDE_DIR)
+        set_property(TARGET tinyxml2::tinyxml2 PROPERTY
+            INTERFACE_INCLUDE_DIRECTORIES "${TINYXML2_INCLUDE_DIR}")
+    endif()
+endif()
 
 add_library(s2_core STATIC
     src/placeholder.cpp
@@ -53,3 +69,10 @@ target_compile_definitions(s2_core_tests PRIVATE
 # Ensure ROS2 symbols are available when building the transport tests
 target_compile_definitions(s2_core_tests PRIVATE S2_WITH_ROS2)
 add_test(NAME s2_core_tests COMMAND s2_core_tests)
+
+# ── Тесты редактора сцены (без ROS2, только s2_core + s2_plugins) ──
+add_executable(s2_editor_tests
+    tests/test_scene_writer.cpp
+)
+target_link_libraries(s2_editor_tests PRIVATE s2_core s2_plugins GTest::gtest_main)
+add_test(NAME s2_editor_tests COMMAND s2_editor_tests)

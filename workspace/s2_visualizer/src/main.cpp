@@ -1,4 +1,5 @@
 #include <s2/scene_loader.hpp>
+#include <s2/scene_writer.hpp>
 #include <s2/sim_engine.hpp>
 #include <s2/plugins/plugin_base.hpp>
 #include <s2/plugins/diff_drive.hpp>
@@ -46,8 +47,9 @@ void signal_handler(int signum) {
  */
 class SimEngineCommandAdapter : public s2::VizCommandHandler {
 public:
-    explicit SimEngineCommandAdapter(s2::SimEngine* engine, s2::VizServer* viz)
-        : engine_(engine), viz_(viz) {}
+    explicit SimEngineCommandAdapter(s2::SimEngine* engine, s2::VizServer* viz,
+                                     std::string scene_path = "")
+        : engine_(engine), viz_(viz), scene_path_(std::move(scene_path)) {}
 
     void on_pause() override {
         if (engine_) engine_->pause();
@@ -83,9 +85,38 @@ public:
         }
     }
 
+    void on_update_geometry(const std::vector<s2::WorldPrimitive>& prims) override {
+        if (!engine_) return;
+        // Заменяем статическую геометрию в SimWorld
+        engine_->world().static_geometry().clear();
+        for (const auto& p : prims)
+            engine_->world().add_static_primitive(p);
+        // Публикуем снапшот и рассылаем с geometry=true, чтобы клиент перерисовал меши
+        if (viz_) {
+            viz_->publish(engine_->build_snapshot());
+            viz_->force_broadcast_with_geometry();
+        }
+    }
+
+    SaveSceneResult on_save_scene() override {
+        if (scene_path_.empty()) {
+            return {false, "путь к файлу сцены не задан"};
+        }
+        if (!engine_) {
+            return {false, "движок не инициализирован"};
+        }
+        try {
+            s2::SceneWriter::save_geometry(scene_path_, engine_->world().static_geometry());
+            return {true, scene_path_};
+        } catch (const std::exception& e) {
+            return {false, e.what()};
+        }
+    }
+
 private:
     s2::SimEngine* engine_;
     s2::VizServer* viz_;
+    std::string    scene_path_;
 };
 
 } // anonymous namespace
@@ -151,8 +182,8 @@ int main(int argc, char* argv[]) {
     engine.set_viz_server(g_viz);
     g_engine = &engine;
 
-    // Подключаем обработчик команд от визуализатора
-    SimEngineCommandAdapter cmd_adapter(&engine, g_viz);
+    // Подключаем обработчик команд от визуализатора (передаём путь к YAML для сохранения)
+    SimEngineCommandAdapter cmd_adapter(&engine, g_viz, scene_path);
     if (g_viz) g_viz->set_command_handler(&cmd_adapter);
 
     // Настраиваем GNSS плагины: устанавливаем geo_origin

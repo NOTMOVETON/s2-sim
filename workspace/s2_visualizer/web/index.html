@@ -286,6 +286,116 @@
             background: #e74c3c;
         }
 
+        /* Toast уведомления */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 10px 18px;
+            border-radius: 6px;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            max-width: 400px;
+        }
+        .toast.fade-out { opacity: 0; }
+
+        /* Панель редактора сцены */
+        #editor-panel {
+            position: fixed;
+            top: calc(100px + 16px);
+            left: 12px;
+            width: 260px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            border-radius: 6px;
+            z-index: 101;
+            padding: 14px;
+            display: none;
+            border: 1px solid #4caf50;
+        }
+        #editor-panel h4 {
+            color: #4caf50;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            border-bottom: 1px solid #4caf50;
+            padding-bottom: 6px;
+        }
+        #editor-panel .editor-section {
+            margin-bottom: 10px;
+        }
+        #editor-panel .editor-section-title {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .editor-add-buttons, .editor-transform-mode, .editor-save-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        #editor-panel button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            transition: background 0.15s;
+        }
+        #editor-panel button:hover { background: #555; }
+        #editor-panel button.active { background: #2980b9; border-color: #2980b9; }
+        #editor-panel button.danger { background: #c0392b; border-color: #c0392b; }
+        #editor-panel button.save { background: #27ae60; border-color: #27ae60; }
+        #primitive-props {
+            border-top: 1px solid #444;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+        #primitive-props h4 {
+            color: #fff;
+            border-color: #444;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        #primitive-props label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #bbb;
+        }
+        #primitive-props input[type="number"],
+        #primitive-props input[type="color"] {
+            background: #2a2a3e;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        #primitive-props input[type="number"] {
+            width: 80px;
+            padding: 3px 6px;
+            font-size: 12px;
+        }
+        #primitive-props input[type="color"] {
+            width: 50px;
+            height: 24px;
+            padding: 1px;
+            cursor: pointer;
+        }
+
         /* TF Frames checkbox */
         .tf-toggle {
             display: flex;
@@ -316,11 +426,66 @@
 
     <!-- Панель управления -->
     <div id="control-panel">
-        <button id="btn-play" onclick="sendCommand('resume')">▶ Play</button>
-        <button id="btn-pause" onclick="sendCommand('pause')">⏸ Pause</button>
-        <button id="btn-reset" onclick="sendCommand('reset')">🔄 Reset</button>
+        <button id="btn-play" onclick="sendCommand('resume')">&#9654; Play</button>
+        <button id="btn-pause" onclick="sendCommand('pause')">&#9646;&#9646; Pause</button>
+        <button id="btn-reset" onclick="sendCommand('reset')">&#8635; Reset</button>
         <button id="btn-transform" onclick="toggleTransformMode()" style="margin-left: 8px;">Mode: Translate</button>
         <button id="btn-gizmo" onclick="toggleTransformControls()" style="margin-left: 8px;">Axes: ON</button>
+        <button id="btn-edit-scene" onclick="toggleEditorMode()" style="margin-left: 8px;">Edit Scene</button>
+    </div>
+
+    <!-- Панель редактора сцены (скрыта по умолчанию) -->
+    <div id="editor-panel">
+        <h4>&#9998; Редактор сцены</h4>
+
+        <div class="editor-section">
+            <div class="editor-section-title">Добавить примитив</div>
+            <div class="editor-add-buttons">
+                <button id="btn-add-box" onclick="addPrimitiveBox()">+ Box</button>
+                <button id="btn-add-cylinder" onclick="addPrimitiveCylinder()">+ Cyl</button>
+                <button id="btn-add-sphere" onclick="addPrimitiveSphere()">+ Sphere</button>
+            </div>
+        </div>
+
+        <div class="editor-section">
+            <div class="editor-section-title">Режим трансформации</div>
+            <div class="editor-transform-mode">
+                <button id="btn-mode-translate" class="active" onclick="setEditorTransformMode('translate')">Move</button>
+                <button id="btn-mode-rotate" onclick="setEditorTransformMode('rotate')">Rotate</button>
+                <button id="btn-mode-scale" onclick="setEditorTransformMode('scale')">Scale</button>
+            </div>
+        </div>
+
+        <!-- Свойства выбранного примитива -->
+        <div id="primitive-props" style="display:none">
+            <h4 id="primitive-type-label">Box</h4>
+
+            <label>Цвет: <input type="color" id="prop-color" value="#808080" oninput="onPrimColorChange(this.value)"></label>
+
+            <div id="props-box">
+                <label>W (x): <input type="number" id="prop-sx" step="0.1" value="1" min="0.05" oninput="onPrimSizeChange()"></label>
+                <label>D (y): <input type="number" id="prop-sy" step="0.1" value="1" min="0.05" oninput="onPrimSizeChange()"></label>
+                <label>H (z): <input type="number" id="prop-sz" step="0.1" value="1" min="0.05" oninput="onPrimSizeChange()"></label>
+            </div>
+
+            <div id="props-cylinder" style="display:none">
+                <label>Radius: <input type="number" id="prop-radius" step="0.1" value="0.5" min="0.05" oninput="onPrimSizeChange()"></label>
+                <label>Height: <input type="number" id="prop-height" step="0.1" value="1.0" min="0.05" oninput="onPrimSizeChange()"></label>
+            </div>
+
+            <div id="props-sphere" style="display:none">
+                <label>Radius: <input type="number" id="prop-radius-sphere" step="0.1" value="0.5" min="0.05" oninput="onPrimSizeChange()"></label>
+            </div>
+
+            <button class="danger" onclick="deleteSelectedPrimitive()" style="margin-top: 6px; width: 100%;">Удалить</button>
+        </div>
+
+        <div class="editor-section" style="margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">
+            <div class="editor-save-buttons">
+                <button class="save" onclick="applyGeometry()" style="flex:1;">Применить</button>
+                <button class="save" onclick="saveScene()" style="flex:1;">Сохранить</button>
+            </div>
+        </div>
     </div>
 
     <!-- Боковая панель робота -->

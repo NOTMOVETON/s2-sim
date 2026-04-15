@@ -255,7 +255,7 @@ TEST(CollisionSystemTest, FindSupportSurface_BoxBelow)
     // Агент на z=1.0 (центр), radius=0.35 → нижняя точка на z=0.65
     auto result = cs.find_support_surface(Vec3{0, 0, 1.0}, 0.35);
     ASSERT_TRUE(result.has_value());
-    EXPECT_NEAR(*result, 0.0, 0.05);  // поверхность примерно на z=0
+    EXPECT_NEAR(result->ground_z, 0.0, 0.05);  // поверхность примерно на z=0
 }
 
 TEST(CollisionSystemTest, FindSupportSurface_NoSurface)
@@ -277,6 +277,42 @@ TEST(CollisionSystemTest, FindSupportSurface_OutsideBounds)
 
     // Агент далеко в стороне — поверхности нет под ним
     auto result = cs.find_support_surface(Vec3{10, 10, 1.0}, 0.35);
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST(CollisionSystemTest, FindSupport_HorizontalFloor_NormalUp)
+{
+    CollisionSystem cs;
+    cs.set_static_geometry({make_box(0, 0, -0.025, 40, 40, 0.05)});
+
+    auto result = cs.find_support_surface(Vec3{0, 0, 1.0}, 0.35);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_NEAR(result->normal.x(), 0.0, 0.01);
+    EXPECT_NEAR(result->normal.y(), 0.0, 0.01);
+    EXPECT_NEAR(result->normal.z(), 1.0, 0.01);
+}
+
+TEST(CollisionSystemTest, FindSupport_TiltedRamp_NormalCorrect)
+{
+    CollisionSystem cs;
+    // Рампа: pitch=-18.43 deg = -atan(1/3)
+    // Нормаль верхней грани: повёрнута от (0,0,1) на 18.43 deg вокруг Y
+    // → normal ≈ (-sin(18.43), 0, cos(18.43)) ≈ (-0.316, 0, 0.949)
+    double pitch_deg = -18.43;
+    cs.set_static_geometry({make_box_pitched(1.5, 0, 0.5, 3.162, 3.0, 0.1, pitch_deg)});
+
+    auto result = cs.find_support_surface(Vec3{1.5, 0, 2.0}, 0.35);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_NEAR(result->normal.z(), std::cos(18.43 * M_PI / 180.0), 0.05);
+    EXPECT_GT(std::abs(result->normal.x()), 0.1)
+        << "Нормаль наклонной рампы должна иметь ненулевую X-компоненту";
+}
+
+TEST(CollisionSystemTest, FindSupport_NoHit_ReturnsNullopt)
+{
+    CollisionSystem cs;
+    cs.set_static_geometry({});  // пустая геометрия
+    auto result = cs.find_support_surface(Vec3{0, 0, 1.0}, 0.35);
     EXPECT_FALSE(result.has_value());
 }
 

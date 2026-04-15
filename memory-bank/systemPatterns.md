@@ -91,10 +91,26 @@ External input (от ROS2 или UI) сохраняется до получен�
 - Пол = явный box-примитив (нет неявного глобального пола)
 - `find_support_surface()` используется GravityPlugin
 
-### GravityPlugin (задача 21)
-- Тип Resource, инжекция CollisionSystem через `dynamic_cast` в SimEngine
-- Управляет только Z-координатой и Z-скоростью
-- Горизонтальное движение остаётся за DiffDrive
+### GravityPlugin (задачи 21 + 20.2)
+- Тип Resource, инжекция CollisionSystem через `set_collision_system` в SimEngine
+- Управляет Z-координатой (позиционный snap) и скольжением по склону
+- `find_support_surface` → `SupportInfo{ground_z, normal}` — Z и нормаль поверхности
+- Линейная модель трения: `slide_accel = g_tangential * (1 - friction_coef) * dt`
+- Двухрежимный кап: при движении `slide <= drive_speed * (1-friction)`, стоя `slide <= max_fall_speed`
+- `slide_velocity_` в мировых координатах — всегда вдоль склона, независимо от yaw
+- Slide добавляется к body velocity: `vel += R^T * slide_world` (поверх DiffDrive)
+- `friction_coef = 0`: полное скольжение (лёд); `= 1`: нет скольжения (полное сцепление)
+- На плоском полу: `g_tangential = 0` → slide=0 → привод работает нормально
+- `max_slope_rad` = проходимость (collision), `friction_coef` = скольжение (gravity) — разные концепции
+
+### CollisionSystem: walkable vs non-walkable (задача 20 + баг-фиксы)
+- Walkable: `contact.normal.z >= cos(max_slope_rad)` → только Z push-out (`agent.world_pose.z += normal.z * penetration`), XY push-out пропускается. Z-позицией управляет GravityPlugin, но Z push-out нужен как страховка при переходе между поверхностями (рампа → этаж). Без Z push-out робот проваливается через платформу.
+- Non-walkable: стены, крутые склоны → горизонтальный slide + push-out. `max_step_height` позволяет переезжать малые препятствия
+
+### Выравнивание по поверхности (задача 20.1)
+- Фаза 3h: roll/pitch из нормали первого walkable-контакта (`atan2(-ny, nz)`, `atan2(nx, nz)`)
+- Фаза 3f: полная ZYX-ротация body→world (через `CollisionSystem::rotation_from_pose`)
+- DiffDrive двигает робота вдоль поверхности, а не горизонтально
 
 ### LidarPlugin (задача 22)
 - Использует `RaycastEngine` (уже реализован в `raycast_engine.hpp`)

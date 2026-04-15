@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <s2/sim_engine.hpp>
 #include <thread>
+#include <cmath>
 
 using namespace s2;
 
@@ -426,4 +427,79 @@ TEST(SimEngineTest, ResetRestoresMultipleAgents)
   EXPECT_DOUBLE_EQ(engine.world().get_agent(2)->world_pose.x, 10.0);
   EXPECT_DOUBLE_EQ(engine.sim_time(), 0.0);
   EXPECT_TRUE(engine.is_paused());
+}
+
+// ─── Тесты выравнивания ориентации по наклонной поверхности (задача 20.1) ───
+
+/// Рампа наклонена вдоль X (pitch_примитива = -0.3217 рад ≈ -18.43°).
+/// Нормаль верхней грани в мировых координатах: n ≈ (-0.316, 0, 0.949).
+/// При yaw=0: наклон воспринимается как pitch ≈ -18.43°, roll = 0.
+TEST(SimEngineTest, SurfaceAlignment_Yaw0_PitchOnly)
+{
+  const double ramp_pitch = -0.3217;  // рад
+
+  WorldPrimitive ramp;
+  ramp.type = "box";
+  ramp.pose = Pose3D{1.5, 0.0, 0.5, 0.0, ramp_pitch, 0.0};
+  ramp.size = Vec3{3.162, 3.0, 0.1};
+
+  Agent agent;
+  agent.id             = 1;
+  agent.name           = "robot";
+  agent.world_pose     = Pose3D{1.5, 0.0, 0.75, 0.0, 0.0, 0.0};  // yaw=0
+  agent.bounding.type  = ShapeType::SPHERE;
+  agent.bounding.radius = 0.3;
+  agent.has_collision  = true;
+  agent.max_slope_rad  = 1.0;  // допускаем уклон до ~57°
+
+  SimWorld world;
+  world.add_static_primitive(ramp);
+  world.add_agent(std::move(agent));
+
+  SimEngine engine{{.update_rate = 50.0}};
+  engine.load_world(std::move(world));
+  engine.step(1);
+
+  const Agent* a = engine.world().get_agent(1);
+  ASSERT_NE(a, nullptr);
+
+  // pitch ≈ atan2(-0.316, 0.949) ≈ -0.3217 рад, roll ≈ 0
+  EXPECT_NEAR(a->world_pose.pitch, ramp_pitch, 0.01);
+  EXPECT_NEAR(a->world_pose.roll,  0.0,        0.01);
+}
+
+/// Та же рампа, но робот повёрнут на 90° (yaw=π/2).
+/// При yaw=π/2: наклон воспринимается как roll ≈ -18.43°, pitch = 0.
+TEST(SimEngineTest, SurfaceAlignment_Yaw90_RollOnly)
+{
+  const double ramp_pitch = -0.3217;  // рад
+
+  WorldPrimitive ramp;
+  ramp.type = "box";
+  ramp.pose = Pose3D{1.5, 0.0, 0.5, 0.0, ramp_pitch, 0.0};
+  ramp.size = Vec3{3.162, 3.0, 0.1};
+
+  Agent agent;
+  agent.id             = 1;
+  agent.name           = "robot";
+  agent.world_pose     = Pose3D{1.5, 0.0, 0.75, 0.0, 0.0, M_PI / 2.0};  // yaw=90°
+  agent.bounding.type  = ShapeType::SPHERE;
+  agent.bounding.radius = 0.3;
+  agent.has_collision  = true;
+  agent.max_slope_rad  = 1.0;
+
+  SimWorld world;
+  world.add_static_primitive(ramp);
+  world.add_agent(std::move(agent));
+
+  SimEngine engine{{.update_rate = 50.0}};
+  engine.load_world(std::move(world));
+  engine.step(1);
+
+  const Agent* a = engine.world().get_agent(1);
+  ASSERT_NE(a, nullptr);
+
+  // pitch ≈ 0, roll ≈ atan2(-0.316, 0.949) ≈ -0.3217 рад
+  EXPECT_NEAR(a->world_pose.pitch, 0.0,        0.01);
+  EXPECT_NEAR(a->world_pose.roll,  ramp_pitch,  0.01);
 }

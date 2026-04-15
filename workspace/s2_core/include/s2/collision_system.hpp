@@ -42,6 +42,25 @@ struct CollisionContact
 };
 
 /**
+ * @brief Результат raycast: Z точки пересечения + нормаль поверхности.
+ */
+struct RayHit
+{
+    double z;
+    Vec3   normal;
+};
+
+/**
+ * @brief Информация об опорной поверхности: Z поверхности + нормаль.
+ * ground_z — это Z самой поверхности (не центра агента).
+ */
+struct SupportInfo
+{
+    double ground_z;
+    Vec3   normal;
+};
+
+/**
  * @brief Система коллизий агентов со статической геометрией сцены.
  *
  * Используется SimEngine в фазе 3h.
@@ -90,8 +109,12 @@ public:
      * @param bounding_radius Радиус сферы
      * @return               Z поверхности или nullopt если опоры нет
      */
-    std::optional<double> find_support_surface(
+    std::optional<SupportInfo> find_support_surface(
         const Vec3& position, double bounding_radius) const;
+
+    // Построить полную матрицу вращения ZYX из Pose3D.
+    // Public: используется SimEngine для преобразования body -> world.
+    static Eigen::Matrix3d rotation_from_pose(const Pose3D& pose);
 
 private:
     std::vector<WorldPrimitive> static_prims_;
@@ -109,19 +132,16 @@ private:
 
     // ─── Raycast вниз для find_support_surface ───────────────────────────────
 
-    std::optional<double> ray_down_vs_box(
+    std::optional<RayHit> ray_down_vs_box(
         const Vec3& origin, const WorldPrimitive& box) const;
 
-    std::optional<double> ray_down_vs_cylinder(
+    std::optional<RayHit> ray_down_vs_cylinder(
         const Vec3& origin, const WorldPrimitive& cyl) const;
 
-    std::optional<double> ray_down_vs_sphere(
+    std::optional<RayHit> ray_down_vs_sphere(
         const Vec3& origin, const WorldPrimitive& sph) const;
 
     // ─── Вспомогательные функции ────────────────────────────────────────────
-
-    // Построить полную матрицу вращения ZYX из Pose3D (для box/cylinder).
-    static Eigen::Matrix3d rotation_from_pose(const Pose3D& pose);
 
     // Верхняя точка примитива по Z в мировых координатах (для obstacle_top_z).
     static double primitive_top_z(const WorldPrimitive& prim);
@@ -375,7 +395,7 @@ inline Velocity CollisionSystem::apply_slide(
 
 // ─── find_support_surface ───────────────────────────────────────────────────
 
-inline std::optional<double> CollisionSystem::find_support_surface(
+inline std::optional<SupportInfo> CollisionSystem::find_support_surface(
     const Vec3& position, double bounding_radius) const
 {
     // Луч из нижней точки сферы, с небольшим смещением вверх, чтобы не
@@ -384,10 +404,10 @@ inline std::optional<double> CollisionSystem::find_support_surface(
                 position.z() - bounding_radius + 0.01};
 
     constexpr double max_dist = 2.0;  // смотрим не дальше 2 метра вниз
-    std::optional<double> result;
+    std::optional<RayHit> best;
 
     for (const auto& prim : static_prims_) {
-        std::optional<double> hit;
+        std::optional<RayHit> hit;
         if (prim.type == "box") {
             hit = ray_down_vs_box(origin, prim);
         } else if (prim.type == "cylinder") {
@@ -396,20 +416,20 @@ inline std::optional<double> CollisionSystem::find_support_surface(
             hit = ray_down_vs_sphere(origin, prim);
         }
 
-        if (hit && (origin.z() - *hit) <= max_dist) {
-            // Берём наивысшую поверхность (максимальный Z)
-            if (!result || *hit > *result) {
-                result = hit;
+        if (hit && (origin.z() - hit->z) <= max_dist) {
+            if (!best || hit->z > best->z) {
+                best = hit;
             }
         }
     }
 
-    return result;
+    if (!best) return std::nullopt;
+    return SupportInfo{best->z, best->normal};
 }
 
 // ─── ray_down_vs_box ────────────────────────────────────────────────────────
 
-inline std::optional<double> CollisionSystem::ray_down_vs_box(
+inline std::optional<RayHit> CollisionSystem::ray_down_vs_box(
     const Vec3& origin, const WorldPrimitive& box) const
 {
     // Луч: p(t) = origin + t * (0,0,-1), t >= 0
@@ -421,8 +441,10 @@ inline std::optional<double> CollisionSystem::ray_down_vs_box(
 
     Vec3 half{box.size.x() / 2.0, box.size.y() / 2.0, box.size.z() / 2.0};
 
-    // Slab method
+    // Slab method с отслеживанием оси, давшей tmin (для нормали)
     double tmin = -1e18, tmax = 1e18;
+    int    tmin_axis = -1;
+    double tmin_sign = 1.0;
 
     for (int i = 0; i < 3; ++i) {
         double d = local_dir[i];
@@ -430,31 +452,44 @@ inline std::optional<double> CollisionSystem::ray_down_vs_box(
         double h = half[i];
 
         if (std::abs(d) < 1e-12) {
-            // Луч параллелен грани — проверить нахождение внутри плиты
             if (o < -h || o > h) return std::nullopt;
         } else {
             double t1 = (-h - o) / d;
             double t2 = ( h - o) / d;
-            if (t1 > t2) std::swap(t1, t2);
-            tmin = std::max(tmin, t1);
+            bool swapped = t1 > t2;
+            if (swapped) std::swap(t1, t2);
+            if (t1 > tmin) {
+                tmin = t1;
+                tmin_axis = i;
+                // Нормаль смотрит от поверхности к источнику луча
+                tmin_sign = (local_orig[i] >= 0.0) ? 1.0 : -1.0;
+            }
             tmax = std::min(tmax, t2);
             if (tmin > tmax) return std::nullopt;
         }
     }
 
-    if (tmin < 0.0 && tmax < 0.0) return std::nullopt;  // box позади луча
+    if (tmin < 0.0 && tmax < 0.0) return std::nullopt;
     double t = (tmin >= 0.0) ? tmin : tmax;
     if (t < 0.0) return std::nullopt;
 
-    // Точка пересечения в мировых координатах
     Vec3 hit_local = local_orig + local_dir * t;
     Vec3 hit_world = R * hit_local + box_pos;
-    return hit_world.z();
+
+    // Нормаль хитовой грани в локальных координатах box
+    Vec3 local_normal = Vec3::Zero();
+    if (tmin_axis >= 0)
+        local_normal[tmin_axis] = tmin_sign;
+    else
+        local_normal = Vec3{0, 0, 1};  // fallback: верхняя грань
+
+    Vec3 world_normal = (R * local_normal).normalized();
+    return RayHit{hit_world.z(), world_normal};
 }
 
 // ─── ray_down_vs_cylinder ───────────────────────────────────────────────────
 
-inline std::optional<double> CollisionSystem::ray_down_vs_cylinder(
+inline std::optional<RayHit> CollisionSystem::ray_down_vs_cylinder(
     const Vec3& origin, const WorldPrimitive& cyl) const
 {
     Eigen::Matrix3d R = rotation_from_pose(cyl.pose);
@@ -465,16 +500,20 @@ inline std::optional<double> CollisionSystem::ray_down_vs_cylinder(
     double half_h = cyl.height / 2.0;
     double r      = cyl.radius;
 
-    // Пересечение луча с торцевыми крышками (Z = ±half_h)
     std::optional<double> best_t;
+    Vec3 best_local_normal{0, 0, 1};
 
+    // Пересечение луча с торцевыми крышками (Z = ±half_h)
     if (std::abs(ld.z()) > 1e-12) {
         for (double cap_z : {half_h, -half_h}) {
             double t = (cap_z - lo.z()) / ld.z();
             if (t < 0.0) continue;
             Vec3 p = lo + ld * t;
             if (p.x() * p.x() + p.y() * p.y() <= r * r) {
-                if (!best_t || t < *best_t) best_t = t;
+                if (!best_t || t < *best_t) {
+                    best_t = t;
+                    best_local_normal = Vec3{0, 0, (cap_z > 0) ? 1.0 : -1.0};
+                }
             }
         }
     }
@@ -493,7 +532,14 @@ inline std::optional<double> CollisionSystem::ray_down_vs_cylinder(
                 if (t < 0.0) continue;
                 Vec3 p = lo + ld * t;
                 if (std::abs(p.z()) <= half_h) {
-                    if (!best_t || t < *best_t) best_t = t;
+                    if (!best_t || t < *best_t) {
+                        best_t = t;
+                        double rd = std::sqrt(p.x() * p.x() + p.y() * p.y());
+                        if (rd > 1e-9)
+                            best_local_normal = Vec3{p.x() / rd, p.y() / rd, 0.0};
+                        else
+                            best_local_normal = Vec3{0, 0, 1};
+                    }
                 }
             }
         }
@@ -503,12 +549,13 @@ inline std::optional<double> CollisionSystem::ray_down_vs_cylinder(
 
     Vec3 hit_local = lo + ld * *best_t;
     Vec3 hit_world = R * hit_local + cyl_pos;
-    return hit_world.z();
+    Vec3 world_normal = (R * best_local_normal).normalized();
+    return RayHit{hit_world.z(), world_normal};
 }
 
 // ─── ray_down_vs_sphere ─────────────────────────────────────────────────────
 
-inline std::optional<double> CollisionSystem::ray_down_vs_sphere(
+inline std::optional<RayHit> CollisionSystem::ray_down_vs_sphere(
     const Vec3& origin, const WorldPrimitive& sph) const
 {
     Vec3 sph_pos{sph.pose.x, sph.pose.y, sph.pose.z};
@@ -530,7 +577,8 @@ inline std::optional<double> CollisionSystem::ray_down_vs_sphere(
     if (t < 0.0) return std::nullopt;
 
     Vec3 hit = origin + dir * t;
-    return hit.z();
+    Vec3 normal = (hit - sph_pos).normalized();
+    return RayHit{hit.z(), normal};
 }
 
 }  // namespace s2

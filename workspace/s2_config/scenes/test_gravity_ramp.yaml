@@ -92,5 +92,6 @@ s2:
           max_angular_vel: 2.0
         - type: gravity
           gravity_accel: 9.81
-          max_fall_speed: 15.0
+          max_fall_speed: 1.0
           grounded_epsilon: 0.02
+          friction_coef: 0.99

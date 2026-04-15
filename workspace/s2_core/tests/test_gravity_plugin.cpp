@@ -38,17 +38,31 @@ static Agent make_agent(double x, double y, double z, double radius = 0.3)
     return agent;
 }
 
+/// Создать наклонный box-примитив (рампу) с заданным pitch.
+static WorldPrimitive make_ramp(double cx, double cy, double cz,
+                                 double sx, double sy, double sz,
+                                 double pitch_rad)
+{
+    WorldPrimitive p;
+    p.type = "box";
+    p.pose = Pose3D{cx, cy, cz, 0, pitch_rad, 0};
+    p.size = Vec3{sx, sy, sz};
+    return p;
+}
+
 /// Создать GravityPlugin с заданными параметрами и привязать к CollisionSystem.
 static GravityPlugin make_gravity(const CollisionSystem& cs,
                                    double g = 9.81,
                                    double max_speed = 20.0,
-                                   double eps = 0.02)
+                                   double eps = 0.02,
+                                   double friction = 0.0)
 {
     GravityPlugin plugin;
     YAML::Node cfg;
     cfg["gravity_accel"]    = g;
     cfg["max_fall_speed"]   = max_speed;
     cfg["grounded_epsilon"] = eps;
+    cfg["friction_coef"]    = friction;
     plugin.from_config(cfg);
     plugin.set_collision_system(&cs);
     return plugin;
@@ -204,4 +218,250 @@ TEST(GravityPlugin, AgentWithoutGravityUnchanged)
 
     // Никаких плагинов, никакого update — z неизменен
     EXPECT_DOUBLE_EQ(agent.world_pose.z, z_before);
+}
+
+// ─── Тесты slope physics (задача 20.2) ─────────────────────────────────────
+
+/// На горизонтальном полу гравитация не меняет горизонтальную скорость.
+TEST(GravityPlugin, FlatFloor_NoHorizontalEffect)
+{
+    CollisionSystem cs;
+    cs.set_static_geometry({make_floor(0, 0, -0.05, 10, 10, 0.1)});
+
+    const double radius = 0.3;
+    auto agent  = make_agent(0.0, 0.0, radius, radius);
+    agent.world_velocity.linear.x() = 1.0;
+    auto plugin = make_gravity(cs);
+
+    const double dt = 0.02;
+    plugin.update(dt, agent);
+
+    EXPECT_NEAR(agent.world_velocity.linear.x(), 1.0, 0.01)
+        << "На плоском полу горизонтальная скорость не должна меняться от гравитации";
+    EXPECT_NEAR(agent.world_velocity.linear.y(), 0.0, 0.01);
+}
+
+/// На рампе с friction=1 робот не скользит.
+TEST(GravityPlugin, NoSliding_OnRamp)
+{
+    const double pitch = -0.3217;  // 18.4 deg
+    CollisionSystem cs;
+    cs.set_static_geometry({make_ramp(1.5, 0, 0.5, 3.162, 3.0, 0.1, pitch)});
+
+    const double radius = 0.3;
+    auto agent  = make_agent(1.5, 0.0, 2.0, radius);
+    auto plugin = make_gravity(cs, 9.81, 20.0, 0.02, 1.0);
+
+    const double dt = 0.02;
+    for (int i = 0; i < 200; ++i)
+        plugin.update(dt, agent);
+
+    // После приземления скорость не должна расти от гравитации
+    EXPECT_NEAR(agent.world_velocity.linear.x(), 0.0, 1e-9)
+        << "На рампе робот не должен скользить — привод держит";
+    EXPECT_NEAR(agent.world_velocity.linear.y(), 0.0, 1e-9);
+}
+
+/// На рампе с friction=1 привод (DiffDrive) сохраняет заданную скорость.
+TEST(GravityPlugin, DriveVelocity_PreservedOnRamp)
+{
+    const double pitch = -0.3217;  // 18.4 deg
+    CollisionSystem cs;
+    cs.set_static_geometry({make_ramp(1.5, 0, 0.5, 3.162, 3.0, 0.1, pitch)});
+
+    const double radius = 0.3;
+    auto agent  = make_agent(1.5, 0.0, 2.0, radius);
+    auto plugin = make_gravity(cs, 9.81, 20.0, 0.02, 1.0);
+
+    const double dt = 0.02;
+    // Приземляем
+    for (int i = 0; i < 200; ++i)
+        plugin.update(dt, agent);
+
+    // Устанавливаем скорость от привода
+    agent.world_velocity.linear.x() = 1.5;
+    plugin.update(dt, agent);
+
+    // Гравитация не должна менять горизонтальную скорость
+    EXPECT_NEAR(agent.world_velocity.linear.x(), 1.5, 0.01)
+        << "Гравитация не должна замедлять привод на рампе";
+}
+
+/// При friction=0 робот скользит по рампе (slide_velocity растёт).
+TEST(GravityPlugin, SlidingOnRamp_ZeroFriction)
+{
+    const double pitch = -0.3217;  // 18.4 deg
+    CollisionSystem cs;
+    cs.set_static_geometry({make_ramp(1.5, 0, 0.5, 3.162, 3.0, 0.1, pitch)});
+
+    const double radius = 0.3;
+    auto agent  = make_agent(1.5, 0.0, 2.0, radius);
+    auto plugin = make_gravity(cs, 9.81, 20.0, 0.02, 0.0);  // friction=0
+
+    const double dt = 0.02;
+    // Приземляем (сброс velocity каждый тик = нет привода)
+    for (int i = 0; i < 200; ++i)
+    {
+        agent.world_velocity.linear.x() = 0.0;
+        agent.world_velocity.linear.y() = 0.0;
+        plugin.update(dt, agent);
+    }
+
+    // Проверяем slide через to_json
+    auto j = nlohmann::json::parse(plugin.to_json());
+    double slide_speed = j["slide_speed"].get<double>();
+    EXPECT_GT(slide_speed, 0.1)
+        << "При friction=0 на рампе slide_speed должен быть значительным";
+}
+
+/// При friction=1 робот не скользит по рампе.
+TEST(GravityPlugin, SlidingOnRamp_FullFriction)
+{
+    const double pitch = -0.3217;  // 18.4 deg
+    CollisionSystem cs;
+    cs.set_static_geometry({make_ramp(1.5, 0, 0.5, 3.162, 3.0, 0.1, pitch)});
+
+    const double radius = 0.3;
+    auto agent  = make_agent(1.5, 0.0, 2.0, radius);
+    auto plugin = make_gravity(cs, 9.81, 20.0, 0.02, 1.0);  // friction=1
+
+    const double dt = 0.02;
+    for (int i = 0; i < 200; ++i)
+    {
+        agent.world_velocity.linear.x() = 0.0;
+        agent.world_velocity.linear.y() = 0.0;
+        plugin.update(dt, agent);
+    }
+
+    auto j = nlohmann::json::parse(plugin.to_json());
+    double slide_speed = j["slide_speed"].get<double>();
+    EXPECT_NEAR(slide_speed, 0.0, 1e-9)
+        << "При friction=1 slide_speed должен быть 0";
+}
+
+/// При friction=0.5 робот скользит медленнее чем при friction=0.
+TEST(GravityPlugin, SlidingOnRamp_PartialFriction)
+{
+    const double pitch = -0.3217;  // 18.4 deg
+    CollisionSystem cs;
+    cs.set_static_geometry({make_ramp(1.5, 0, 0.5, 3.162, 3.0, 0.1, pitch)});
+
+    const double radius = 0.3;
+
+    // friction=0
+    auto agent0  = make_agent(1.5, 0.0, 2.0, radius);
+    auto plugin0 = make_gravity(cs, 9.81, 20.0, 0.02, 0.0);
+
+    // friction=0.5
+    auto agent5  = make_agent(1.5, 0.0, 2.0, radius);
+    auto plugin5 = make_gravity(cs, 9.81, 20.0, 0.02, 0.5);
+
+    const double dt = 0.02;
+    for (int i = 0; i < 200; ++i)
+    {
+        agent0.world_velocity.linear.x() = 0.0;
+        agent0.world_velocity.linear.y() = 0.0;
+        agent5.world_velocity.linear.x() = 0.0;
+        agent5.world_velocity.linear.y() = 0.0;
+        plugin0.update(dt, agent0);
+        plugin5.update(dt, agent5);
+    }
+
+    auto j0 = nlohmann::json::parse(plugin0.to_json());
+    auto j5 = nlohmann::json::parse(plugin5.to_json());
+    double slide0 = j0["slide_speed"].get<double>();
+    double slide5 = j5["slide_speed"].get<double>();
+
+    EXPECT_GT(slide0, slide5)
+        << "При friction=0 скольжение должно быть быстрее чем при friction=0.5";
+    EXPECT_GT(slide5, 0.01)
+        << "При friction=0.5 скольжение всё ещё ненулевое";
+}
+
+/// При движении по рампе с friction > 0 робот всегда поднимается (net velocity > 0).
+TEST(GravityPlugin, DrivingUphill_AlwaysClimbs_WithFriction)
+{
+    const double pitch = -0.3217;  // 18.4 deg
+    CollisionSystem cs;
+    cs.set_static_geometry({make_ramp(1.5, 0, 0.5, 3.162, 3.0, 0.1, pitch)});
+
+    const double radius = 0.3;
+    auto agent  = make_agent(1.5, 0.0, 2.0, radius);
+    auto plugin = make_gravity(cs, 9.81, 20.0, 0.02, 0.5);  // friction=0.5
+
+    const double dt = 0.02;
+    // Приземляем
+    for (int i = 0; i < 200; ++i)
+    {
+        agent.world_velocity.linear.x() = 0.0;
+        plugin.update(dt, agent);
+    }
+
+    // Задаём маленькую скорость привода (как DiffDrive) и проверяем много тиков
+    for (int i = 0; i < 200; ++i)
+    {
+        agent.world_velocity.linear.x() = 0.1;  // DiffDrive перезаписывает каждый тик
+        agent.world_velocity.linear.y() = 0.0;
+        plugin.update(dt, agent);
+
+        // Итоговая скорость в направлении движения должна быть > 0
+        EXPECT_GT(agent.world_velocity.linear.x(), 0.0)
+            << "При friction > 0 робот должен ВСЕГДА подниматься, тик " << i;
+    }
+}
+
+/// При friction=0 скольжение поглощает скорость привода (робот не поднимается).
+TEST(GravityPlugin, DrivingUphill_NoClimb_ZeroFriction)
+{
+    const double pitch = -0.3217;  // 18.4 deg
+    CollisionSystem cs;
+    cs.set_static_geometry({make_ramp(1.5, 0, 0.5, 3.162, 3.0, 0.1, pitch)});
+
+    const double radius = 0.3;
+    auto agent  = make_agent(1.5, 0.0, 2.0, radius);
+    auto plugin = make_gravity(cs, 9.81, 20.0, 0.02, 0.0);  // friction=0
+
+    const double dt = 0.02;
+    // Приземляем
+    for (int i = 0; i < 200; ++i)
+    {
+        agent.world_velocity.linear.x() = 0.0;
+        plugin.update(dt, agent);
+    }
+
+    // При friction=0 максимальное скольжение = drive_speed * 1.0 = drive_speed.
+    // Slide body.x компенсирует drive.x, net ~0.
+    double sum_net_speed = 0.0;
+    for (int i = 0; i < 100; ++i)
+    {
+        agent.world_velocity.linear.x() = 1.0;
+        agent.world_velocity.linear.y() = 0.0;
+        plugin.update(dt, agent);
+        sum_net_speed += agent.world_velocity.linear.x();
+    }
+
+    // Средняя скорость должна быть близка к нулю (slide компенсирует drive)
+    double avg_speed = sum_net_speed / 100.0;
+    EXPECT_LT(std::abs(avg_speed), 0.3)
+        << "При friction=0 робот не должен эффективно подниматься";
+}
+
+/// На плоском полу при любом friction нет скольжения.
+TEST(GravityPlugin, FlatFloor_NoSliding_AnyFriction)
+{
+    CollisionSystem cs;
+    cs.set_static_geometry({make_floor(0, 0, -0.05, 10, 10, 0.1)});
+
+    const double radius = 0.3;
+    auto agent  = make_agent(0.0, 0.0, radius, radius);
+    auto plugin = make_gravity(cs, 9.81, 20.0, 0.02, 0.5);  // friction=0.5
+
+    const double dt = 0.02;
+    for (int i = 0; i < 100; ++i)
+        plugin.update(dt, agent);
+
+    auto j = nlohmann::json::parse(plugin.to_json());
+    double slide_speed = j["slide_speed"].get<double>();
+    EXPECT_NEAR(slide_speed, 0.0, 1e-9)
+        << "На плоском полу slide_speed должен быть 0";
 }

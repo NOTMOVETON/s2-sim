@@ -288,9 +288,11 @@ axes.rotation.set(pose.roll || 0, pose.yaw || 0, -(pose.pitch || 0), 'YZX');
 ### Фича 20.1 — Выравнивание ориентации агента по поверхности ✅ ЗАВЕРШЕНА
 
 - **`sim_engine.hpp`**: фаза 3h — после обработки коллизий вычисляет `roll` и `pitch` агента из нормали первого walkable-контакта
-- Математика: `roll = atan2(-n.y, n.z)`, `pitch = atan2(n.x, n.z)` (ZYX-конвенция)
+- Математика: нормаль сначала приводится в тело робота (поворот на -yaw), затем `pitch = atan2(nx_body, nz)`, `roll = atan2(-ny_body, nz)`
+- Учёт yaw при вычислении pitch/roll: при вращении на наклонной плоскости pitch и roll корректно меняются местами
 - При отсутствии walkable-контакта (воздух, только стены): `roll = pitch = 0`
 - Фронтенд уже применял все три угла (`rotation.set(pose.roll, pose.yaw, -pose.pitch, 'YZX')`) — без изменений
+- **Тесты**: `SurfaceAlignment_Yaw0_PitchOnly` и `SurfaceAlignment_Yaw90_RollOnly` в `test_sim_engine.cpp`
 
 ### Фича 21 — GravityPlugin ✅ ЗАВЕРШЕНА
 
@@ -312,7 +314,58 @@ axes.rotation.set(pose.roll || 0, pose.yaw || 0, -(pose.pitch || 0), 'YZX');
 
 - GravityPlugin работает в фазе **3e** (до коллизий 3h) — это позиционный контроллер, не симулятор сил
 - Кратковременные мигания `fall_velocity != 0` на переходах геометрий (рампа→пол) — штатный артефакт: raycast в 3e видит геометрию, коллизия в 3h корректирует позу на том же тике
-- Тангенциальная составляющая гравитации (ускорение/торможение на склоне) **не реализована** — запланирована в задаче 20.2
+- Тангенциальная составляющая гравитации (ускорение/торможение на склоне) реализована в задаче 20.2
+
+### Фича 20.1 + 20.2 — Выравнивание по поверхности + физика на склоне ✅ ЗАВЕРШЕНА
+
+- **`collision_system.hpp`**: новые структуры `RayHit{z, normal}` и `SupportInfo{ground_z, normal}`
+  - `ray_down_vs_box`: slab-метод расширен — отслеживание оси tmin для нормали хитовой грани
+  - `ray_down_vs_cylinder`: нормаль крышки или боковой поверхности
+  - `ray_down_vs_sphere`: нормаль = `(hit - center).normalized()`
+  - `find_support_surface` → `std::optional<SupportInfo>`
+  - `rotation_from_pose` перенесён в public (используется SimEngine)
+- **`sim_engine.hpp`**: фаза 3f — полная ZYX-ротация body→world вместо yaw-only; DiffDrive двигает вдоль поверхности
+- **`sim_engine.hpp`**: фаза 3h — выравнивание roll/pitch из нормали первого walkable-контакта
+- **`sim_engine.hpp`**: фаза 3h — walkable контакты: только Z push-out (предотвращает проваливание через платформу), XY push-out пропускается (мешал заезду на рампу на малой скорости)
+- **`gravity.hpp`**: линейная модель трения/скольжения с двухрежимным капом
+  - `friction_coef_` (0..1, default 0.0): 0=лёд, 1=полное сцепление
+  - `slide_velocity_` (Vec3, мировые координаты): накапливается как `g_tangential * (1 - friction) * dt`
+  - Скольжение всегда в направлении склона (независимо от yaw робота)
+  - Slide добавляется к body velocity через `R^T * slide_world` (поверх DiffDrive)
+  - **Два режима капа**: при движении — `drive_speed * (1-friction)`, стоя — `max_fall_speed`
+  - Гарантия: при friction > 0 робот ВСЕГДА поднимается (net >= drive * friction)
+  - Сброс на плоском полу и в воздухе
+  - `to_json()`: `slide_speed`, `friction_coef`
+  - `config_schema()`: поле `friction_coef`
+- **`test_collision_system.cpp`**: 3 теста (нормали: горизонт, рампа, пустая геометрия)
+- **`test_gravity_plugin.cpp`**: 4 новых теста (скольжение с разными friction, плоский пол)
+- **`test_gravity_ramp.yaml`**: `friction_coef: 0.5`
+- Все тесты проходят (2/2 test suites)
+
+#### Баг-фикс: робот не мог заехать на рампу на малой скорости
+
+**Проблема**: Walkable-контакт с наклонной поверхностью генерировал push-out по нормали (3D). Горизонтальная компонента нормали отталкивала робота назад. При малой скорости (0.1 м/с) откат push-out (0.01м) превышал перемещение за тик (0.002м).
+
+**Первоначальное исправление**: Для walkable-контактов collision response пропускался полностью (`continue`).
+
+#### Баг-фикс: робот проваливался через второй этаж при переходе с рампы
+
+**Проблема**: Полный `continue` для walkable-контактов пропускал в том числе Z push-out. При переходе рампа->платформа сфера проникала в платформу, `find_support_surface` находил первый этаж вместо платформы, GravityPlugin snap'ил робота вниз.
+
+**Исправление**: Для walkable-контактов применяется **только Z push-out**, XY push-out пропускается:
+```cpp
+agent.world_pose.z += contact.contact_normal.z() * contact.penetration;
+continue;
+```
+Z push-out предотвращает проваливание, XY push-out не мешает заезду на рампу.
+
+#### Эволюция модели трения
+
+**Было (статическое трение Кулона)**: `tan(theta) > friction_coef` → скользит, иначе обнуляет XY-velocity. Баг: на плоском полу `friction > 0` обнуляло velocity DiffDrive (else-блок).
+
+**v2 (линейная модель)**: `slide_accel = g_tangential * (1 - friction)`. Slide накапливается отдельно от DiffDrive velocity, добавляется через `R^T * slide_world`. На плоском полу `g_tangential=0` → slide=0 → привод не затронут.
+
+**v3 (двухрежимный кап)**: При движении slide ограничен `drive_speed * (1-friction)` — робот всегда поднимается если friction > 0. Стоя — кап `max_fall_speed`. Решает проблему накопления slide при длительном подъёме.
 
 ### Фича 19 — Браузер сцен и runtime reload ✅ ЗАВЕРШЕНА
 
@@ -326,5 +379,4 @@ axes.rotation.set(pose.roll || 0, pose.yaw || 0, -(pose.pitch || 0), 'YZX');
 ## Следующие задачи
 
 ### Блок B: Физика
-- Задача 20.2 — Физика на склоне: тангенциальная гравитация, статическое трение (`docs/20.2-slope-physics.md`)
 - Задача 22 — LidarPlugin: 2D raycast, LaserScan ROS2, визуализация

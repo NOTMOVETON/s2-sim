@@ -437,20 +437,20 @@ private:
       // 3f. Kinematics — обновляем позу на основе скорости
       // world_velocity хранится в локальных координатах корпуса.
       // Для дифф драйва: linear.x = скорость вперёд, linear.y = боковая
-      // Преобразуем в мировые координаты с учётом ориентации (yaw)
-      double yaw = agent.world_pose.yaw;
+      // Преобразуем body velocity в мировые координаты с учётом полной
+      // ориентации (yaw + pitch + roll). На плоском полу (pitch=roll=0)
+      // результат идентичен прежней yaw-only ротации.
       double local_vx = agent.world_velocity.linear.x();
       double local_vy = agent.world_velocity.linear.y();
-      double wx = agent.world_velocity.angular.x();
-      double wy = agent.world_velocity.angular.y();
       double wz = agent.world_velocity.angular.z();
-      // Вращение вокруг Z: 2D-матрица поворота
-      double cos_yaw = std::cos(yaw);
-      double sin_yaw = std::sin(yaw);
-      double vx_world = local_vx * cos_yaw - local_vy * sin_yaw;
-      double vy_world = local_vx * sin_yaw + local_vy * cos_yaw;
-      agent.world_pose.x += vx_world * dt_;
-      agent.world_pose.y += vy_world * dt_;
+
+      Eigen::Matrix3d R = CollisionSystem::rotation_from_pose(agent.world_pose);
+      Vec3 body_vel{local_vx, local_vy, 0.0};
+      Vec3 world_vel = R * body_vel;
+
+      agent.world_pose.x += world_vel.x() * dt_;
+      agent.world_pose.y += world_vel.y() * dt_;
+      // Z управляется GravityPlugin (позиционный контроль), не кинематикой
       agent.world_pose.z += agent.world_velocity.linear.z() * dt_;
       agent.world_pose.yaw += wz * dt_;
 
@@ -491,15 +491,13 @@ private:
 
           if (walkable)
           {
-            // Пол / пандус: 3D slide + push-out по нормали
-            agent.world_velocity = CollisionSystem::apply_slide(
-                agent.world_velocity, contact.contact_normal);
-            agent.world_pose.x +=
-                contact.contact_normal.x() * contact.penetration;
-            agent.world_pose.y +=
-                contact.contact_normal.y() * contact.penetration;
-            agent.world_pose.z +=
-                contact.contact_normal.z() * contact.penetration;
+            // Walkable поверхность (пандус/пол): только Z push-out.
+            // Z push-out предотвращает проваливание через платформу при
+            // переходе между поверхностями (рампа → этаж).
+            // XY push-out пропускаем: он мешает заезду на рампу на
+            // малой скорости (отталкивает робота назад вдоль склона).
+            agent.world_pose.z += contact.contact_normal.z() * contact.penetration;
+            continue;
           }
           else
           {
@@ -528,6 +526,31 @@ private:
 
           // Обновляем agent_bottom после push-out для следующего контакта
           agent_bottom = agent.world_pose.z - agent.bounding.radius;
+        }
+
+        // Выравнивание ориентации агента по опорной поверхности (задача 20.1).
+        // Берём нормаль первого walkable-контакта (наибольшая penetration,
+        // т.к. contacts отсортированы). При отсутствии опоры — roll=pitch=0.
+        bool surface_found = false;
+        for (const auto& contact : contacts) {
+            bool is_walkable = contact.contact_normal.z() >=
+                               std::cos(agent.max_slope_rad);
+            if (is_walkable) {
+                const Vec3& n = contact.contact_normal;
+                // Приводим нормаль из мировой СК в тело робота (поворот на -yaw),
+                // чтобы pitch и roll корректно менялись при вращении на склоне.
+                const double yaw = agent.world_pose.yaw;
+                const double nx_body =  std::cos(yaw) * n.x() + std::sin(yaw) * n.y();
+                const double ny_body = -std::sin(yaw) * n.x() + std::cos(yaw) * n.y();
+                agent.world_pose.pitch = std::atan2( nx_body, n.z());
+                agent.world_pose.roll  = std::atan2(-ny_body, n.z());
+                surface_found = true;
+                break;
+            }
+        }
+        if (!surface_found) {
+            agent.world_pose.roll  = 0.0;
+            agent.world_pose.pitch = 0.0;
         }
       }
 

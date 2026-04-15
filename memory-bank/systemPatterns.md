@@ -112,8 +112,11 @@ External input (от ROS2 или UI) сохраняется до получен�
   - Без правильной формулы: остаточное проникновение каждый тик → осцилляция с GravityPlugin snap → шок/дрожание на рампе.
 - Non-walkable: стены, крутые склоны → горизонтальный slide + push-out. `max_step_height` позволяет переезжать малые препятствия
 
-### Выравнивание по поверхности (задача 20.1)
-- Фаза 3h: roll/pitch из нормали первого walkable-контакта (`atan2(-ny, nz)`, `atan2(nx, nz)`)
+### Выравнивание по поверхности (задача 20.1 + bugfix)
+- Фаза 3h: roll/pitch из нормали `find_support_surface()` — НЕ из collision contacts.
+- **Почему не contacts:** GravityPlugin снапит z точно на поверхность (penetration≈0) → check_sphere_all() возвращает пустой список → alignment видит нет walkable-контактов → pitch=roll=0. Это вызывало фликер (рампа <-> горизонт) каждый тик.
+- `find_support_surface` использует down-raycast, надёжен при penetration=0.
+- Проверка: `z <= surface_z + 0.05` (допуск) — чтобы не выравниваться в полёте.
 - Фаза 3f: полная ZYX-ротация body→world (через `CollisionSystem::rotation_from_pose`)
 - DiffDrive двигает робота вдоль поверхности, а не горизонтально
 

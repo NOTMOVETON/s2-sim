@@ -579,29 +579,37 @@ private:
           agent_bottom = agent.world_pose.z - agent.bounding.radius;
         }
 
-        // Выравнивание ориентации агента по опорной поверхности (задача 20.1).
-        // Берём нормаль первого walkable-контакта (наибольшая penetration,
-        // т.к. contacts отсортированы). При отсутствии опоры — roll=pitch=0.
-        bool surface_found = false;
-        for (const auto& contact : contacts) {
-            bool is_walkable = contact.contact_normal.z() >=
-                               std::cos(agent.max_slope_rad);
-            if (is_walkable) {
-                const Vec3& n = contact.contact_normal;
-                // Приводим нормаль из мировой СК в тело робота (поворот на -yaw),
-                // чтобы pitch и roll корректно менялись при вращении на склоне.
-                const double yaw = agent.world_pose.yaw;
-                const double nx_body =  std::cos(yaw) * n.x() + std::sin(yaw) * n.y();
-                const double ny_body = -std::sin(yaw) * n.x() + std::cos(yaw) * n.y();
-                agent.world_pose.pitch = std::atan2( nx_body, n.z());
-                agent.world_pose.roll  = std::atan2(-ny_body, n.z());
-                surface_found = true;
-                break;
+        // Выравнивание ориентации агента по нормали опорной поверхности (задача 20.1).
+        //
+        // ВАЖНО: нельзя полагаться на collision contacts для получения нормали.
+        // GravityPlugin снапит z точно на поверхность (penetration ≈ 0), поэтому
+        // check_sphere_all() часто возвращает пустой список — и нормаль не попадает
+        // в контакты. Это вызывало фликер pitch/roll между нормалью рампы и (0,0).
+        //
+        // Решение: использовать find_support_surface(), который надёжно находит
+        // нормаль через down-raycast без зависимости от проникновения.
+        {
+            auto support = collision_system_.find_support_surface(
+                agent.world_pose.position(), agent.bounding.radius);
+            bool surface_found = false;
+            if (support) {
+                // Считаем агента «стоящим», если он в пределах небольшого допуска
+                // над поверхностью (0.05 м — чуть больше grounded_epsilon гравитации).
+                const double surface_z = support->ground_z + agent.bounding.radius;
+                if (agent.world_pose.z <= surface_z + 0.05) {
+                    const Vec3& n = support->normal;
+                    const double yaw = agent.world_pose.yaw;
+                    const double nx_body =  std::cos(yaw) * n.x() + std::sin(yaw) * n.y();
+                    const double ny_body = -std::sin(yaw) * n.x() + std::cos(yaw) * n.y();
+                    agent.world_pose.pitch = std::atan2( nx_body, n.z());
+                    agent.world_pose.roll  = std::atan2(-ny_body, n.z());
+                    surface_found = true;
+                }
             }
-        }
-        if (!surface_found) {
-            agent.world_pose.roll  = 0.0;
-            agent.world_pose.pitch = 0.0;
+            if (!surface_found) {
+                agent.world_pose.roll  = 0.0;
+                agent.world_pose.pitch = 0.0;
+            }
         }
       }
 

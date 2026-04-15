@@ -10,6 +10,8 @@
  */
 
 #include <s2/kinematic_tree.hpp>
+#include <s2/types.hpp>
+#include <optional>
 #include <string>
 
 namespace s2
@@ -37,5 +39,25 @@ namespace s2
  */
 KinematicTree load_urdf(const std::string& path,
                         const std::string& root_frame = "base_link");
+
+/**
+ * @brief Извлечь коллизионный шейп из URDF для базового звена.
+ *
+ * Читает первый элемент <link name="root_frame"><collision><geometry>.
+ * Поддерживает sphere, box, cylinder.
+ * Возвращает nullopt если <collision> не найден или формат не поддерживается.
+ *
+ * Используется SceneLoader для иерархии collision:
+ *  1. URDF <collision> (этот метод)
+ *  2. YAML collision: (fallback)
+ *  3. Нет коллизии
+ *
+ * @param path        Путь к URDF-файлу
+ * @param root_frame  Имя базового звена (по умолчанию "base_link")
+ * @return CollisionShape или nullopt
+ */
+std::optional<CollisionShape> load_urdf_collision(
+    const std::string& path,
+    const std::string& root_frame = "base_link");
 
 } // namespace s2

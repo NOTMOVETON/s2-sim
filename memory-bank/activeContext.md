@@ -2,11 +2,50 @@
 
 ## Текущая работа
 
-Задача 18 (Shift+LMB pan, Ctrl+Z undo, Ctrl+C/V) завершена.
+Задача 20 (CollisionSystem) завершена. Визуальные баги исправлены. Все тесты проходят (254/254).
 
-Следующая — задача 19 (браузер сцен, runtime load).
+Следующая — задача 19 (браузер сцен, runtime load) или задача 21 (GravityPlugin).
 
-### Что сделано в последней сессии (задача 18)
+### Что сделано в текущей сессии (визуальные баги после задачи 20)
+
+- **`app.js`**: исправлен `createGeometry` для box — `BoxGeometry(size.x, size.z, size.y)` вместо `(size.x, size.y, size.z)`.
+  Sim Z (высота) → Three.js Y (height), sim Y (глубина) → Three.js Z (depth).
+  Баг приводил к тому, что пол (x=40, y=40, z=0.05) стоял вертикально.
+- **`app.js`**: исправлен `syncPrimitiveFromMesh` для box — `scale.y → size.z`, `scale.z → size.y`.
+- **`test_collision.yaml`**: перестроена сцена с нуля:
+  - Пол исправлен: y=0 (вместо y=8.3), размер 20×20
+  - Стены исправлены: убраны ошибочные pitch (pitch=-1.38 у левой стены)
+  - Пандусы переделаны: `roll` вместо `pitch` (roll наклоняет в плоскости YZ, робот едет вдоль Y)
+  - Нижний конец пандусов вровень с полом (z≈0), робот при движении от y=0 касается верхней грани
+  - max_slope_deg=20 (вместо 60), max_step_height=0.02
+
+**Архитектурное замечание по пандусам:**
+- Для пандусов, на которые робот ВЪЕЗЖАЕТ с уровня пола, нужен `roll` (вокруг X), а не `pitch` (вокруг Y).
+- `roll` наклоняет поверхность в YZ-плоскости → робот едет по Y и поднимается по Z.
+- `pitch` наклоняет в XZ-плоскости → для въезда вдоль X.
+- Нижний торец пандуса должен быть вровень с полом (z≈0) чтобы сфера первой касалась верхней грани, а не торца.
+
+### Что сделано в предпоследней сессии (задача 20)
+
+- **`collision_system.hpp`**: новый inline-заголовок, полная реализация:
+  - `check_sphere_all()` — все контакты (sphere vs box/sphere/cylinder), сортировка по penetration
+  - `apply_slide()` — static, убирает нормальную компоненту velocity
+  - `find_support_surface()` — луч вниз, для GravityPlugin (задача 21)
+  - Полная ZYX-ротация для box: поддерживает pitch/roll (наклонные плоскости)
+- **`agent.hpp`**: добавлены `has_collision`, `max_slope_rad`, `max_step_height`
+- **`scene_loader.hpp`**: парсинг `collision:`, `max_slope_deg:`, `max_step_height:`; URDF collision extraction
+- **`urdf_loader.hpp/cpp`**: новая функция `load_urdf_collision()` — из `<link><collision><geometry>`
+- **`sim_engine.hpp`**: фаза 3h реализована; `CollisionSystem collision_system_` как член; `set_static_geometry` в `load_world()`
+- **`test_collision.yaml`**: тестовая сцена с полом, стенами, цилиндром, пандусами, robot_1 без коллизии
+- **`test_collision_system.cpp`**: 22 теста — unit + интеграционные, все проходят
+- **Архитектурные решения задачи:**
+  - Нет типа "пол" — walkability по нормали грани (`contact_normal.z >= cos(max_slope_rad)`)
+  - `max_step_height` — порог ступеньки/стыка поверхностей (по умолчанию 0.0)
+  - Стыки одного уровня: obstacle_top == agent_bottom → 0.0 ≤ 0.0 → проезжаем автоматически
+  - Провалы без гравитации: агент летит, для падения нужен GravityPlugin (задача 21)
+  - Multi-contact: все контакты, сортировка, применение slide последовательно
+
+### Что сделано в предпоследней сессии (задача 18)
 
 - **`app.js`**: Shift+LMB по пустому месту → ручной pan (capture phase, с проверкой примитивов под курсором)
 - **`app.js`**: MMB отключён (`controls.mouseButtons.MIDDLE = null`)

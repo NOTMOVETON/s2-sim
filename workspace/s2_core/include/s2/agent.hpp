@@ -41,6 +41,9 @@ struct Agent
   ///< Плагины агента (дифференциальный привод, GNSS, IMU, Lidar и т.д.)
   std::vector<std::unique_ptr<plugins::IAgentPlugin>> plugins;
 
+  bool has_collision{false};             ///< Участвует в системе коллизий
+  double max_slope_rad{0.0};             ///< Максимальный угол подъёма (рад), 0 = только горизонталь
+  double max_step_height{0.0};           ///< Максимальная высота ступеньки, которую агент переезжает (м)
   CollisionShape bounding;               ///< Коллизионный bounding volume
   VisualDesc visual;                     ///< Визуальное описание
 

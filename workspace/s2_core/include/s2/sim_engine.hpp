@@ -13,6 +13,7 @@
  * Пока большинство фаз пустые — будут заполняться в следующих задачах.
  */
 
+#include <s2/collision_system.hpp>
 #include <s2/sim_bus.hpp>
 #include <s2/world.hpp>
 #include <s2/world_snapshot.hpp>
@@ -74,6 +75,8 @@ public:
   {
     world_ = std::move(world);
     save_initial_states();
+    // Передаём статическую геометрию в систему коллизий
+    collision_system_.set_static_geometry(world_.static_geometry());
   }
 
   /**
@@ -440,7 +443,76 @@ private:
       }
 
       // 3g. Surface snap — пока пусто
-      // 3h. Collision detection — пока пусто
+
+      // 3h. Collision detection
+      if (agent.has_collision && agent.bounding.type == ShapeType::SPHERE)
+      {
+        Vec3 pos = agent.world_pose.position();
+        double agent_bottom = pos.z() - agent.bounding.radius;
+
+        // Собираем все контакты, сортированные по убыванию penetration
+        auto contacts = collision_system_.check_sphere_all(
+            pos, agent.bounding.radius);
+
+        for (const auto& contact : contacts)
+        {
+          bool walkable = contact.contact_normal.z() >=
+                          std::cos(agent.max_slope_rad);
+
+          if (!walkable)
+          {
+            // Проверяем порог ступеньки: если верхняя грань примитива
+            // не выше нижней точки агента более чем на max_step_height,
+            // агент просто переезжает (игнорируем коллизию).
+            if (contact.obstacle_top_z - agent_bottom <=
+                agent.max_step_height)
+            {
+              continue;
+            }
+          }
+
+          if (walkable)
+          {
+            // Пол / пандус: 3D slide + push-out по нормали
+            agent.world_velocity = CollisionSystem::apply_slide(
+                agent.world_velocity, contact.contact_normal);
+            agent.world_pose.x +=
+                contact.contact_normal.x() * contact.penetration;
+            agent.world_pose.y +=
+                contact.contact_normal.y() * contact.penetration;
+            agent.world_pose.z +=
+                contact.contact_normal.z() * contact.penetration;
+          }
+          else
+          {
+            // Стена / крутой склон: только горизонтальный slide и push-out
+            Vec3 normal_h{contact.contact_normal.x(),
+                          contact.contact_normal.y(), 0.0};
+            double nlen = normal_h.norm();
+            if (nlen > 1e-6)
+            {
+              normal_h /= nlen;
+              double proj =
+                  agent.world_velocity.linear.x() * normal_h.x() +
+                  agent.world_velocity.linear.y() * normal_h.y();
+              if (proj < 0.0)
+              {
+                agent.world_velocity.linear.x() -= normal_h.x() * proj;
+                agent.world_velocity.linear.y() -= normal_h.y() * proj;
+              }
+              agent.world_pose.x +=
+                  contact.contact_normal.x() * contact.penetration;
+              agent.world_pose.y +=
+                  contact.contact_normal.y() * contact.penetration;
+              // Z не изменяем
+            }
+          }
+
+          // Обновляем agent_bottom после push-out для следующего контакта
+          agent_bottom = agent.world_pose.z - agent.bounding.radius;
+        }
+      }
+
       // 3i. Joints — пока пусто
       // 3j. Kinematic tree update — пока пусто
       // 3k. Sensors — пока пусто
@@ -493,6 +565,8 @@ private:
     Velocity velocity;
   };
   std::map<AgentId, AgentInitialState> initial_states_;
+
+  CollisionSystem collision_system_;  ///< Система коллизий (инициализируется при load_world)
 
   VizServer* viz_server_ = nullptr;
   double viz_timer_{0.0};

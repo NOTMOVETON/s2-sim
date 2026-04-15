@@ -137,6 +137,17 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
 
             if (agent_node["collision"]) {
                 agent.bounding = parse_collision(agent_node["collision"]);
+                agent.has_collision = true;
+            }
+
+            if (agent_node["max_slope_deg"]) {
+                agent.max_slope_rad =
+                    agent_node["max_slope_deg"].as<double>(0.0) * M_PI / 180.0;
+            }
+
+            if (agent_node["max_step_height"]) {
+                agent.max_step_height =
+                    agent_node["max_step_height"].as<double>(0.0);
             }
 
             if (agent_node["visual"]) {
@@ -202,6 +213,14 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
                     throw std::runtime_error(
                         std::string("SceneLoader: ошибка загрузки URDF '")
                         + urdf_path + "': " + e.what());
+                }
+
+                // Коллизионный шейп из URDF (приоритет выше YAML collision:)
+                // Читаем <link name="base_link"><collision><geometry>
+                auto urdf_col = load_urdf_collision(urdf_path);
+                if (urdf_col.has_value()) {
+                    agent.bounding = urdf_col.value();
+                    agent.has_collision = true;
                 }
             }
 

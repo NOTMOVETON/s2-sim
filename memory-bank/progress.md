@@ -239,12 +239,21 @@ axes.rotation.set(pose.roll || 0, pose.yaw || 0, -(pose.pitch || 0), 'YZX');
 - Мультиселект (Shift+клик) не реализован — конфликт с edge-snap
 - Файл: `workspace/s2_visualizer/web/js/app.js`
 
+### Фича 20 — CollisionSystem ✅ ЗАВЕРШЕНА
+
+- **`collision_system.hpp`**: sphere vs box/sphere/cylinder, ZYX-ротация, `apply_slide`, `find_support_surface`
+- **`agent.hpp`**: `has_collision`, `max_slope_rad`, `max_step_height`
+- **`scene_loader.hpp`**: парсинг `collision:`, `max_slope_deg:`, `max_step_height:`; URDF collision hierarchy
+- **`urdf_loader.hpp/cpp`**: `load_urdf_collision()` — из `<link><collision><geometry>`
+- **`sim_engine.hpp`**: фаза 3h — multi-contact, walkable/wall/step_height логика
+- **`test_collision.yaml`**: тестовая сцена с пандусами и двумя агентами (с коллизией / без)
+- **22 теста**, 254/254 всего
+
 ## Следующие задачи
 
 ### Блок A: Визуал и редактор сцены
 - Задача 19 — Браузер сцен, runtime load (перезапуск симуляции)
 
 ### Блок B: Физика
-- Задача 20 — CollisionSystem: slide-реакция, наклонные плоскости, floor как box
-- Задача 21 — GravityPlugin: свободное падение
+- Задача 21 — GravityPlugin: свободное падение (использует `find_support_surface()`)
 - Задача 22 — LidarPlugin: 2D raycast, LaserScan ROS2, визуализация

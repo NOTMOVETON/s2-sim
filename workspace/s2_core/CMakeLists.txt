@@ -54,6 +54,7 @@ add_executable(s2_core_tests
     tests/test_urdf_loader.cpp
     tests/test_joint_vel_plugin.cpp
     tests/test_color_plugin.cpp
+    tests/test_collision_system.cpp
 )
 target_link_libraries(s2_core_tests PRIVATE s2_core s2_plugins s2_transport GTest::gtest_main)
 

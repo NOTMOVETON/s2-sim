@@ -1,0 +1,115 @@
+s2:
+  update_rate: 50
+  viz_rate: 30
+  visualizer:
+    enabled: true
+    port: 1937
+  transport:
+    type: stub
+  world:
+    geometry:
+      - type: box
+        pose:
+          x: 0
+          y: 0
+          z: -0.025000000000000001
+          yaw: 0
+          pitch: 0
+          roll: 0
+        size:
+          x: 20
+          y: 20
+          z: 0.050000000000000003
+        color: "#333333"
+      - type: box
+        pose:
+          x: -5
+          y: 0
+          z: 0.5
+          yaw: 0
+          pitch: 0
+          roll: 0
+        size:
+          x: 0.20000000000000001
+          y: 10
+          z: 1
+        color: "#4444AA"
+      - type: box
+        pose:
+          x: 5
+          y: 0
+          z: 0.5
+          yaw: 0
+          pitch: 0
+          roll: 0
+        size:
+          x: 0.20000000000000001
+          y: 10
+          z: 1
+        color: "#4444AA"
+      - type: cylinder
+        pose:
+          x: 2
+          y: -0.16871593950348274
+          z: 0.5
+          yaw: 0
+          pitch: 0
+          roll: 0
+        radius: 0.40000000000000002
+        height: 1
+        color: "#AA4444"
+      - type: box
+        pose:
+          x: 0.77304446118865178
+          y: -5.3258180217157367
+          z: 0.34000000000000002
+          yaw: 0
+          pitch: 0
+          roll: -0.26179999999999998
+        size:
+          x: 1.5
+          y: 3
+          z: 0.10000000000000001
+        color: "#44AA44"
+      - type: box
+        pose:
+          x: 3
+          y: -0.11148963280602509
+          z: 0.40387260183282192
+          yaw: 0.96098885696055569
+          pitch: -0.032155241240651521
+          roll: -0.37831357289656459
+        size:
+          x: 1.5
+          y: 2
+          z: 0.10000000000000001
+        color: "#AA8844"
+  agents:
+    - name: robot_0
+      pose: {x: 0.0, y: 0.0, z: 0.35}
+      max_slope_deg: 20.0
+      max_step_height: 0.02
+      collision:
+        bounding:
+          type: sphere
+          radius: 0.35
+      visual:
+        type: box
+        size: [0.6, 0.4, 0.3]
+        color: "#FF6B35"
+      plugins:
+        - type: diff_drive
+          wheel_base: 0.4
+          max_linear_vel: 1.5
+          max_angular_vel: 2.0
+    - name: robot_1
+      pose: {x: -2.0, y: 0.0, z: 0.35}
+      visual:
+        type: box
+        size: [0.6, 0.4, 0.3]
+        color: "#3399FF"
+      plugins:
+        - type: diff_drive
+          wheel_base: 0.4
+          max_linear_vel: 1.5
+          max_angular_vel: 2.0

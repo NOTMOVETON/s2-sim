@@ -6,6 +6,7 @@
 #include <s2/urdf_loader.hpp>
 #include <tinyxml2.h>
 
+#include <optional>
 #include <queue>
 #include <stdexcept>
 #include <string>
@@ -282,6 +283,64 @@ KinematicTree load_urdf(const std::string& path, const std::string& root_frame)
     }
 
     return tree;
+}
+
+// ─── load_urdf_collision ──────────────────────────────────────────────────
+
+std::optional<CollisionShape> load_urdf_collision(
+    const std::string& path, const std::string& root_frame)
+{
+    tinyxml2::XMLDocument doc;
+    tinyxml2::XMLError err = doc.LoadFile(path.c_str());
+    if (err != tinyxml2::XML_SUCCESS) return std::nullopt;
+
+    tinyxml2::XMLElement* robot = doc.FirstChildElement("robot");
+    if (!robot) return std::nullopt;
+
+    // Найти <link name="root_frame">
+    for (tinyxml2::XMLElement* lel = robot->FirstChildElement("link");
+         lel != nullptr;
+         lel = lel->NextSiblingElement("link"))
+    {
+        const char* name_attr = lel->Attribute("name");
+        if (!name_attr || std::string(name_attr) != root_frame) continue;
+
+        tinyxml2::XMLElement* col_el = lel->FirstChildElement("collision");
+        if (!col_el) return std::nullopt;
+
+        tinyxml2::XMLElement* geom_el = col_el->FirstChildElement("geometry");
+        if (!geom_el) return std::nullopt;
+
+        CollisionShape shape;
+
+        if (tinyxml2::XMLElement* sph = geom_el->FirstChildElement("sphere")) {
+            shape.type = ShapeType::SPHERE;
+            const char* r = sph->Attribute("radius");
+            if (r) shape.radius = std::atof(r);
+            return shape;
+        }
+
+        if (tinyxml2::XMLElement* box = geom_el->FirstChildElement("box")) {
+            shape.type = ShapeType::BOX;
+            double bx = 1, by = 1, bz = 1;
+            parse_xyz(box->Attribute("size"), bx, by, bz);
+            shape.size = Vec3{bx / 2.0, by / 2.0, bz / 2.0};  // half-extents
+            return shape;
+        }
+
+        if (tinyxml2::XMLElement* cyl = geom_el->FirstChildElement("cylinder")) {
+            shape.type = ShapeType::CYLINDER;
+            const char* r = cyl->Attribute("radius");
+            const char* l = cyl->Attribute("length");
+            if (r) shape.radius = std::atof(r);
+            if (l) shape.height = std::atof(l);
+            return shape;
+        }
+
+        return std::nullopt;
+    }
+
+    return std::nullopt;
 }
 
 } // namespace s2

@@ -215,10 +215,12 @@ function createGeometry(type, size, radius, height) {
             return new THREE.CapsuleGeometry(radius || 0.5, height || 1, 4, 8);
         case 'box':
         default:
+            // Sim: X=ширина, Y=глубина, Z=высота
+            // Three.js BoxGeometry(width, height, depth): height — вдоль Y (= sim Z), depth — вдоль Z (= sim Y)
             return new THREE.BoxGeometry(
                 size.x !== undefined ? size.x : 1,
-                size.y !== undefined ? size.y : 1,
-                size.z !== undefined ? size.z : 1
+                size.z !== undefined ? size.z : 1,  // sim Z → Three.js Y (высота)
+                size.y !== undefined ? size.y : 1   // sim Y → Three.js Z (глубина)
             );
     }
 }
@@ -922,10 +924,14 @@ function syncPrimitiveFromMesh(id) {
     prim.pose.roll  =  mesh.rotation.x;
 
     // Размеры (с учётом накопленного scale)
+    // BoxGeometry создаётся как (size.x, size.z, size.y), поэтому:
+    //   mesh.scale.x → sim size.x
+    //   mesh.scale.y → sim size.z  (Three.js Y = sim Z)
+    //   mesh.scale.z → sim size.y  (Three.js Z = sim Y)
     if (prim.type === 'box') {
         prim.size.x = (prim.size.x || 1) * mesh.scale.x;
-        prim.size.y = (prim.size.y || 1) * mesh.scale.y;
-        prim.size.z = (prim.size.z || 1) * mesh.scale.z;
+        prim.size.z = (prim.size.z || 1) * mesh.scale.y;  // Three.js Y scale → sim Z
+        prim.size.y = (prim.size.y || 1) * mesh.scale.z;  // Three.js Z scale → sim Y
         mesh.scale.set(1, 1, 1);
         recreatePrimitiveMesh(prim);
     } else if (prim.type === 'cylinder') {

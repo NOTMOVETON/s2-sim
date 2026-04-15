@@ -202,6 +202,24 @@ void Ros2TransportAdapter::register_sensor(SensorRegistration reg)
                       << " (domain " << reg.domain_id << ")" << std::endl;
         }
     }
+    else if (stype == "lidar")
+    {
+        // Топик задаётся через topic_override: /<sensor_name>
+        std::string topic = reg.topic_override.empty()
+            ? ("/" + (sname.empty() ? "lidar" : sname))
+            : reg.topic_override;
+        if (info.lidar_pubs.find(sname) == info.lidar_pubs.end())
+        {
+            info.lidar_pubs[sname] =
+                info.node->create_publisher<sensor_msgs::msg::LaserScan>(
+                    topic, rclcpp::QoS(10));
+            // Сохраняем frame_id: из reg.frame_id, иначе fallback "base_link"
+            info.lidar_frames[sname] = reg.frame_id.empty() ? "base_link" : reg.frame_id;
+            std::cout << "[Ros2TransportAdapter] LaserScan publisher: " << topic
+                      << " frame=" << info.lidar_frames[sname]
+                      << " (domain " << reg.domain_id << ")" << std::endl;
+        }
+    }
     else
     {
         std::cerr << "[Ros2TransportAdapter] register_sensor: unknown sensor type '"
@@ -641,6 +659,39 @@ void Ros2TransportAdapter::publish_agent_frame(const AgentSensorFrame& frame)
             odom.twist.twist.angular.z = frame.world_velocity.angular.z();
 
             pub_it->second->publish(odom);
+        }
+
+        // ── Lidar (LaserScan) ─────────────────────────────────────────────
+        else if (sensor.sensor_type == "lidar" && sensor.lidar_scan.has_value())
+        {
+            auto pub_it = info.lidar_pubs.find(sname);
+            if (pub_it == info.lidar_pubs.end())
+            {
+                std::cerr << "[Ros2TransportAdapter] No LaserScan publisher for name='"
+                          << sname << "'" << std::endl;
+                continue;
+            }
+
+            const auto& ld = sensor.lidar_scan.value();
+            sensor_msgs::msg::LaserScan scan;
+            scan.header.stamp    = now;
+            {
+                auto fit = info.lidar_frames.find(sname);
+                scan.header.frame_id = (fit != info.lidar_frames.end())
+                    ? fit->second
+                    : "base_link";
+            }
+
+            scan.angle_min       = ld.angle_min;
+            scan.angle_max       = ld.angle_max;
+            scan.angle_increment = ld.angle_increment;
+            scan.time_increment  = ld.time_increment;
+            scan.scan_time       = ld.scan_time;
+            scan.range_min       = ld.range_min;
+            scan.range_max       = ld.range_max;
+            scan.ranges          = ld.ranges;
+
+            pub_it->second->publish(scan);
         }
     }
 }

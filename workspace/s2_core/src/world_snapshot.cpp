@@ -80,6 +80,21 @@ nlohmann::json agent_snapshot_to_json(const AgentSnapshot& agent) {
     j["motion_locked"] = agent.motion_locked;
     j["held_objects"] = agent.held_objects;
 
+    // Коллизионный шейп для визуализации
+    j["has_collision"] = agent.has_collision;
+    if (agent.has_collision) {
+        nlohmann::json bounding;
+        bounding["type"] = agent.bounding_type;
+        if (agent.bounding_type == "sphere") {
+            bounding["radius"] = agent.bounding_radius;
+        } else {
+            bounding["sx"] = agent.bounding_size.x();
+            bounding["sy"] = agent.bounding_size.y();
+            bounding["sz"] = agent.bounding_size.z();
+        }
+        j["bounding"] = bounding;
+    }
+
     if (!agent.kinematic_frames.empty()) {
         nlohmann::json frames = nlohmann::json::array();
         for (const auto& f : agent.kinematic_frames) {

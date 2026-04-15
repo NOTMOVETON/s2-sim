@@ -19,7 +19,8 @@ bool SimTransportBridge::is_sensor_plugin(const std::string& plugin_type)
 {
     return plugin_type == "gnss"
         || plugin_type == "imu"
-        || plugin_type == "diff_drive";
+        || plugin_type == "diff_drive"
+        || plugin_type == "lidar";
 }
 
 SimTransportBridge::SimTransportBridge(SimEngine* engine,
@@ -77,6 +78,14 @@ void SimTransportBridge::init(const GeoOrigin& geo_origin)
                 reg.sensor_type   = plugin->type();
                 reg.sensor_name   = plugin->sensor_name();
                 reg.topic_override = plugin->output_topic();
+                reg.frame_id      = plugin->sensor_frame_id();
+
+                // Для лидара: топик формируется по sensor_name (каждый агент в своём домене)
+                if (plugin->type() == "lidar" && reg.topic_override.empty()) {
+                    const std::string& sn = plugin->sensor_name();
+                    reg.topic_override = "/" + (sn.empty() ? "lidar" : sn);
+                }
+
                 adapter_->register_sensor(reg);
 
                 // Инициализируем счётчик seq нулём
@@ -222,6 +231,17 @@ void SimTransportBridge::on_post_tick(const SimWorld& world, double sim_time)
                 if (data && (it == last_published_seq_.end() || data->seq > it->second))
                 {
                     out.diff_drive = *data;
+                    has_new_data = true;
+                    last_published_seq_[key] = data->seq;
+                }
+            }
+            else if (ptype == "lidar")
+            {
+                auto* data = agent.state.get<LidarScanData>();
+                auto it = last_published_seq_.find(key);
+                if (data && (it == last_published_seq_.end() || data->seq > it->second))
+                {
+                    out.lidar_scan = *data;
                     has_new_data = true;
                     last_published_seq_[key] = data->seq;
                 }

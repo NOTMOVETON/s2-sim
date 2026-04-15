@@ -14,6 +14,7 @@
  */
 
 #include <s2/collision_system.hpp>
+#include <s2/raycast_engine.hpp>
 #include <s2/sim_bus.hpp>
 #include <s2/world.hpp>
 #include <s2/world_snapshot.hpp>
@@ -75,8 +76,9 @@ public:
   {
     world_ = std::move(world);
     save_initial_states();
-    // Передаём статическую геометрию в систему коллизий
+    // Передаём статическую геометрию в систему коллизий и raycast
     collision_system_.set_static_geometry(world_.static_geometry());
+    raycast_engine_.set_static_geometry(world_.static_geometry());
   }
 
   /**
@@ -92,6 +94,7 @@ public:
     for (const auto& p : prims)
       world_.add_static_primitive(p);
     collision_system_.set_static_geometry(world_.static_geometry());
+    raycast_engine_.set_static_geometry(world_.static_geometry());
   }
 
   /**
@@ -246,7 +249,8 @@ public:
     for (auto& agent : world_.agents()) {
       if (agent.id == agent_id) {
         for (auto& plugin : agent.plugins) {
-          if (plugin->type() == plugin_type) {
+          // Матчим по типу ("lidar") ИЛИ по полному ключу ("lidar_front_lidar")
+          if (plugin->type() == plugin_type || plugin_key(*plugin) == plugin_type) {
             plugin->handle_input(json_input);
             return true;
           }
@@ -305,6 +309,18 @@ public:
       as.battery_level = 100.0;
       as.effective_speed_scale = 1.0;
       as.motion_locked = false;
+
+      // Коллизионный шейп для визуализации
+      as.has_collision = agent.has_collision;
+      if (agent.has_collision) {
+        if (agent.bounding.type == ShapeType::SPHERE) {
+          as.bounding_type   = "sphere";
+          as.bounding_radius = agent.bounding.radius;
+        } else {
+          as.bounding_type = "box";
+          as.bounding_size = agent.bounding.size * 2.0;  // half-extents → full extents
+        }
+      }
 
       // Позы всех звеньев кинематического дерева (включая корень)
       if (agent.kinematic_tree) {
@@ -426,11 +442,33 @@ private:
 
       // 3e. плагины (DiffDrive, GNSS, IMU, Lidar и т.д.)
       // вызываются до кинематики, чтобы они могли установить velocity.
-      // Перед update() передаём CollisionSystem (GravityPlugin использует её
-      // для find_support_surface; остальные плагины игнорируют вызов).
+      // Перед update() передаём CollisionSystem и RaycastEngine;
+      // плагины, которым они не нужны, игнорируют вызовы.
+
+      // Собрать bounding-примитивы всех других агентов для LidarPlugin
+      {
+        std::vector<WorldPrimitive> agent_bounds;
+        for (const auto& other : world_.agents()) {
+          if (&other == &agent) continue;  // исключить владельца лидара
+          if (!other.has_collision) continue;
+          WorldPrimitive wp;
+          wp.pose = other.world_pose;
+          if (other.bounding.type == ShapeType::SPHERE) {
+            wp.type   = "sphere";
+            wp.radius = other.bounding.radius;
+          } else {
+            wp.type = "box";
+            wp.size = other.bounding.size * 2.0;  // half-extents → full extents
+          }
+          agent_bounds.push_back(wp);
+        }
+        raycast_engine_.set_dynamic_agents(agent_bounds);
+      }
+
       for (auto& plugin : agent.plugins)
       {
           plugin->set_collision_system(&collision_system_);
+          plugin->set_raycast_engine(&raycast_engine_);
           plugin->update(dt_, agent);
       }
 
@@ -491,12 +529,25 @@ private:
 
           if (walkable)
           {
-            // Walkable поверхность (пандус/пол): только Z push-out.
-            // Z push-out предотвращает проваливание через платформу при
-            // переходе между поверхностями (рампа → этаж).
-            // XY push-out пропускаем: он мешает заезду на рампу на
-            // малой скорости (отталкивает робота назад вдоль склона).
-            agent.world_pose.z += contact.contact_normal.z() * contact.penetration;
+            // Walkable поверхность (пандус/пол): только Z push-out, XY — нет.
+            // XY push-out мешает заезду на рампу (отталкивает назад вдоль склона).
+            //
+            // Правильная формула Z-только push-out:
+            //   Чтобы при фиксированных X,Y вывести сферу ровно на поверхность
+            //   нужно дельта_z = penetration / nz, а не nz * penetration.
+            //
+            //   Доказательство: плоскость n·x = D, центр сферы (x, y, z).
+            //   Текущая дистанция = r - p (проникновение p).
+            //   Хотим дистанцию = r при том же X,Y:
+            //     nz * z' = D + r - nx*x - ny*y  =>  delta_z = p / nz
+            //
+            //   При nz = 1 (плоский пол): p / 1 = p  (совпадает с nz*p).
+            //   При nz = 0.95 (рампа 18°): p / 0.95 > p * 0.95 — полное снятие.
+            //
+            // Без этого сфера оставалась внутри рампы на p*sin²(θ) каждый тик,
+            // создавая осцилляцию с GravityPlugin.
+            if (contact.contact_normal.z() > 1e-4)
+              agent.world_pose.z += contact.penetration / contact.contact_normal.z();
             continue;
           }
           else
@@ -608,6 +659,7 @@ private:
   std::map<AgentId, AgentInitialState> initial_states_;
 
   CollisionSystem collision_system_;  ///< Система коллизий (инициализируется при load_world)
+  RaycastEngine   raycast_engine_;    ///< Движок лучей (инициализируется при load_world)
 
   VizServer* viz_server_ = nullptr;
   double viz_timer_{0.0};

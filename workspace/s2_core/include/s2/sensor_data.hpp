@@ -52,4 +52,20 @@ struct DiffDriveData
     std::vector<std::string> warnings;
 };
 
+/**
+ * @brief Данные 2D лидара.
+ */
+struct LidarScanData
+{
+    uint64_t seq{0};              ///< Монотонно растущий счётчик
+    float angle_min{0.0f};       ///< Начальный угол скана [рад]
+    float angle_max{0.0f};       ///< Конечный угол скана [рад]
+    float angle_increment{0.0f}; ///< Угловой шаг между лучами [рад]
+    float time_increment{0.0f};  ///< Время между измерениями [с]
+    float scan_time{0.1f};       ///< Время одного скана [с] = 1 / publish_rate_hz
+    float range_min{0.1f};       ///< Минимальная дальность [м]
+    float range_max{30.0f};      ///< Максимальная дальность [м]
+    std::vector<float> ranges;   ///< N расстояний (один на луч)
+};
+
 } // namespace s2

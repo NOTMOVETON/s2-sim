@@ -35,6 +35,7 @@ struct SensorOutput
     std::optional<GnssData>      gnss;             ///< заполнен для sensor_type == "gnss"
     std::optional<ImuData>       imu;              ///< заполнен для sensor_type == "imu"
     std::optional<DiffDriveData> diff_drive;       ///< заполнен для sensor_type == "diff_drive"
+    std::optional<LidarScanData> lidar_scan;       ///< заполнен для sensor_type == "lidar"
 };
 
 /**
@@ -43,19 +44,21 @@ struct SensorOutput
  * Адаптер создаёт publisher с именем топика, производным от sensor_type и sensor_name.
  *
  * Конвенция топиков:
- *   gnss  "":      /gnss/fix
- *   gnss  "left":  /gnss/left/fix
- *   imu   "":      /imu/data
- *   imu   "front": /imu/front/data
- *   diff_drive "": /odom
+ *   gnss  "":           /gnss/fix
+ *   gnss  "left":       /gnss/left/fix
+ *   imu   "":           /imu/data
+ *   imu   "front":      /imu/front/data
+ *   diff_drive "":      /odom
+ *   lidar "front_lidar": /front_lidar  (каждый агент в своём ROS2 домене)
  */
 struct SensorRegistration
 {
     AgentId     agent_id{0};
     int         domain_id{0};
-    std::string sensor_type;      ///< "gnss", "imu", "diff_drive"
+    std::string sensor_type;      ///< "gnss", "imu", "diff_drive", "lidar"
     std::string sensor_name;      ///< "" = по умолчанию
     std::string topic_override;   ///< Если непустой — адаптер использует это имя топика напрямую
+    std::string frame_id;         ///< TF-фрейм сенсора для заголовка ROS2-сообщений
 };
 
 /**

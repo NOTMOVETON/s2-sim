@@ -1,5 +1,6 @@
 #include <s2/plugins/plugin_base.hpp>
 #include <s2/plugins/color.hpp>
+#include <s2/plugins/lidar.hpp>
 #include <s2/plugins/diff_drive.hpp>
 #include <s2/plugins/gnss.hpp>
 #include <s2/plugins/gravity.hpp>
@@ -45,6 +46,7 @@ static const PluginRegistrar register_joint_vel("joint_vel", []() { return std::
 static const PluginRegistrar register_trajectory_recorder("trajectory_recorder", []() { return std::make_unique<TrajectoryRecorderPlugin>(); });
 static const PluginRegistrar register_path_display("path_display", []() { return std::make_unique<PathDisplayPlugin>(); });
 static const PluginRegistrar register_topic_display("topic_display", []() { return std::make_unique<TopicDisplayPlugin>(); });
+static const PluginRegistrar register_lidar("lidar", []() { return std::make_unique<LidarPlugin>(); });
 
 std::unique_ptr<IAgentPlugin> create_plugin(const std::string& type, const YAML::Node& node)
 {
@@ -68,7 +70,7 @@ std::string list_plugin_schemas()
 
     // Фиксированный порядок для предсказуемого UI
     const std::vector<std::string> order = {
-        "diff_drive", "gnss", "imu",
+        "diff_drive", "gnss", "imu", "lidar",
         "trajectory_recorder", "path_display", "topic_display",
         "joint_vel", "color"
     };

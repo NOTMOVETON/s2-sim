@@ -30,6 +30,12 @@ struct AgentSnapshot {
     /// Позы всех звеньев кинематического дерева (кроме корня) в мировых координатах.
     /// Пустой — если kinematic_tree не задано.
     std::vector<LinkFrameSnapshot> kinematic_frames;
+
+    /// Коллизионный шейп (для визуализации в UI).
+    bool        has_collision{false};
+    std::string bounding_type;        ///< "sphere" или "box"
+    double      bounding_radius{0.5}; ///< для sphere [м]
+    Vec3        bounding_size;        ///< для box: full extents (half-extents * 2) [м]
 };
 
 /** Снимок пропа для визуализатора */

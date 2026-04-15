@@ -104,7 +104,12 @@ External input (от ROS2 или UI) сохраняется до получен�
 - `max_slope_rad` = проходимость (collision), `friction_coef` = скольжение (gravity) — разные концепции
 
 ### CollisionSystem: walkable vs non-walkable (задача 20 + баг-фиксы)
-- Walkable: `contact.normal.z >= cos(max_slope_rad)` → только Z push-out (`agent.world_pose.z += normal.z * penetration`), XY push-out пропускается. Z-позицией управляет GravityPlugin, но Z push-out нужен как страховка при переходе между поверхностями (рампа → этаж). Без Z push-out робот проваливается через платформу.
+- Walkable: `contact.normal.z >= cos(max_slope_rad)` → только Z push-out, XY push-out пропускается. Без XY push-out робот может заезжать на рампу.
+- **Правильная формула Z push-out**: `delta_z = penetration / contact_normal.z` (НЕ `normal.z * penetration`)
+  - `nz * p` — только Z-проекция полного вектора. После применения сфера остаётся в рампе на `p * sin²(θ)`.
+  - `p / nz` — точный Z-сдвиг для полного снятия проникновения при фиксированных XY.
+  - При flat (nz=1): `p / 1 = p * 1` — одинаково. При рампе 18° (nz=0.95): `p/0.95 ≈ 1.05p` vs `0.95p`.
+  - Без правильной формулы: остаточное проникновение каждый тик → осцилляция с GravityPlugin snap → шок/дрожание на рампе.
 - Non-walkable: стены, крутые склоны → горизонтальный slide + push-out. `max_step_height` позволяет переезжать малые препятствия
 
 ### Выравнивание по поверхности (задача 20.1)
@@ -112,9 +117,31 @@ External input (от ROS2 или UI) сохраняется до получен�
 - Фаза 3f: полная ZYX-ротация body→world (через `CollisionSystem::rotation_from_pose`)
 - DiffDrive двигает робота вдоль поверхности, а не горизонтально
 
+### RaycastEngine: OBB intersection (задача 22.3)
+
+- `build_rotation_transpose(Pose3D, rt[3][3])` — строит матрицу R^T из ZYX-вращения (yaw/pitch/roll)
+- `intersect_box`: трансформирует луч в локальное пространство box через R^T → slab-тест по ±half_extent
+- `intersect_cylinder`: то же — луч в локальном пространстве цилиндра, тест боковой поверхности вдоль локальной оси Z
+- Сфера не требует OBB (инвариантна к вращению)
+- Без OBB рампы (pitch≠0) давали AABB z=[center±half], лучи с z за пределами диапазона не попадали
+
 ### LidarPlugin (задача 22)
-- Использует `RaycastEngine` (уже реализован в `raycast_engine.hpp`)
-- Видит: статика (`static_geometry`) + агенты с `has_collision = true`
-- Динамические агенты добавляются через `RaycastEngine::set_dynamic_agents()` каждый тик
-- Визуализация: `THREE.Points` в браузере через `plugins_data["agent_X"]["lidar"]`
-- ROS2: `sensor_msgs/LaserScan` на топик `/<name>/<sensor_name>`
+- Инжекция `RaycastEngine` через `IAgentPlugin::set_raycast_engine()` — вызывается SimEngine перед каждым `update()`
+- Видит: статика (`static_geometry`) + агенты с `has_collision = true` (текущий агент исключён в SimEngine)
+- Динамические агенты: `RaycastEngine::set_dynamic_agents()` каждый тик, заменяет предыдущий набор
+- `sensor_frame_id()` — новый виртуальный метод; LidarPlugin возвращает `mount_link_` если задан, иначе `"base_link"`
+- TF-фрейм прокидывается через `SensorRegistration.frame_id` → `NodeInfo.lidar_frames[sname]` → `LaserScan.header.frame_id`
+- ROS2: `sensor_msgs/LaserScan` на топик `/<sensor_name>` (каждый агент в своём domain_id)
+- Визуализация: `THREE.Points` в браузере, управляется полем `visible` через `has_inputs()`/`inputs_schema()`
+- Кнопка "Collisions": глобальный тоггл, рисует полупрозрачный `MeshBasicMaterial` по данным `agent.bounding` из снапшота
+
+### plugin_key и handle_plugin_input (паттерн)
+- `plugin_key(plugin)` = `type` если sensor_name пустой, иначе `type + "_" + sensor_name`
+  (пример: diff_drive → `"diff_drive"`, lidar с name=front_lidar → `"lidar_front_lidar"`)
+- Ключ используется в `plugins_data` и `plugin_inputs_schemas` снапшота — гарантирует уникальность при нескольких плагинах одного типа
+- `handle_plugin_input(agent_id, plugin_type, json)` матчит по `plugin->type() == plugin_type` **ИЛИ** `plugin_key(*plugin) == plugin_type` — UI отправляет полный ключ, прямые вызовы могут использовать короткий тип
+
+### sensor_frame_id и SensorRegistration.frame_id (паттерн)
+- Путь: `IAgentPlugin::sensor_frame_id()` → `sim_transport_bridge` → `SensorRegistration.frame_id` → адаптер
+- Дефолт в базе: `""` (адаптер сам решает, обычно fallback `"base_link"`)
+- Переопределяется плагинами со специфическим монтажным фреймом

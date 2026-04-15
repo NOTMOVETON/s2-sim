@@ -28,6 +28,7 @@
 #include <geometry_msgs/msg/twist.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -88,9 +89,11 @@ private:
 
         // Publishers — сенсоры (ключ: sensor_name, "" = безымянный)
         // topic: /gnss/<name>/fix  или  /gnss/fix  если name пустой
-        std::map<std::string, rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr> gnss_pubs;
-        std::map<std::string, rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr>       imu_pubs;
-        std::map<std::string, rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr>     odom_pubs;
+        std::map<std::string, rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr>  gnss_pubs;
+        std::map<std::string, rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr>        imu_pubs;
+        std::map<std::string, rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr>      odom_pubs;
+        std::map<std::string, rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr>  lidar_pubs;
+        std::map<std::string, std::string> lidar_frames;   ///< sensor_name -> TF frame_id
 
         // TF
         std::shared_ptr<tf2_ros::TransformBroadcaster>       tf_broadcaster;

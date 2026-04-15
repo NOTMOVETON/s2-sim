@@ -23,6 +23,7 @@ namespace s2
 // Forward-declare
 struct Agent;
 class CollisionSystem;
+class RaycastEngine;
 
 namespace plugins
 {
@@ -110,6 +111,21 @@ public:
      * переопределяют этот метод. Остальные игнорируют вызов.
      */
     virtual void set_collision_system(const CollisionSystem*) {}
+
+    /**
+     * @brief Передать ссылку на RaycastEngine перед вызовом update().
+     * Вызывается SimEngine в фазе 3e для каждого плагина каждый тик.
+     * Плагины, которым нужен RaycastEngine (например, LidarPlugin),
+     * переопределяют этот метод. Остальные игнорируют вызов.
+     */
+    virtual void set_raycast_engine(const RaycastEngine*) {}
+
+    /**
+     * @brief TF-фрейм, в котором установлен сенсор (для заголовка ROS2-сообщений).
+     * Пустая строка означает, что плагин не задаёт фрейм явно.
+     * Переопределяется плагинами с определённым монтажным фреймом (например, LidarPlugin).
+     */
+    virtual std::string sensor_frame_id() const { return ""; }
 
     virtual void update(double dt, Agent& agent) = 0;
     virtual void from_config(const YAML::Node& node) = 0;

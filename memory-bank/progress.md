@@ -376,7 +376,30 @@ Z push-out предотвращает проваливание, XY push-out не
 - **Frontend**: кнопка "Scenes", панель браузера, loading overlay, `loadSceneList()`, `loadScene()`, `saveSceneAs()`, `newScene()`, `resetEditorState()`
 - Тесты: 254/254
 
-## Следующие задачи
+### Фича 22 — LidarPlugin ✅ ЗАВЕРШЕНА (включая баг-фиксы 22.2)
 
-### Блок B: Физика
-- Задача 22 — LidarPlugin: 2D raycast, LaserScan ROS2, визуализация
+- **`LidarScanData`** в `sensor_data.hpp`: seq, angle_min/max, angle_increment, time_increment, scan_time, range_min/max, ranges
+- **`SensorOutput`** в `transport_adapter.hpp`: добавлен `std::optional<LidarScanData> lidar_scan` + поле `frame_id` в `SensorRegistration`
+- **`RaycastEngine`**: `set_dynamic_agents()` + `dynamic_prims_` для видимости агентов с коллизией
+- **`plugin_base.hpp`**: virtual no-op `set_raycast_engine()`, virtual `sensor_frame_id()` (по умолчанию `""`)
+- **`sim_engine.hpp`**: поле `raycast_engine_`, dynamic_agents per-tick (исключая текущего), передача в плагины; `handle_plugin_input` матчит по `plugin_key` ИЛИ по `type`
+- **`world_snapshot.hpp`** + `world_snapshot.cpp`: `has_collision`, `bounding_type/radius/size` в AgentSnapshot + JSON
+- **`lidar.hpp`**: LidarPlugin — raycast 2D, publish timer, mount_link, `sensor_frame_id()` (mount_link или "base_link"), to_json() с lidar_points, has_inputs()/inputs_schema() для управления visible
+- **`plugins_registry.cpp`**: регистрация "lidar"
+- **`sim_transport_bridge.cpp`**: routing LidarScanData, topic = "/<sensor_name>", `reg.frame_id = plugin->sensor_frame_id()`
+- **`ros2_transport_adapter.hpp/cpp`**: `lidar_pubs` + `lidar_frames`, register + publish `sensor_msgs/LaserScan` с корректным frame_id
+- **`app.js`**: `renderLidarPoints()` (PointsMaterial), `updateCollisionMesh()` (полупрозрачный MeshBasic), кнопка "Collisions: ON/OFF"
+- **`index.html`**: кнопка "Collisions: OFF" в toolbar
+- **`test_lidar.yaml`**: тестовая сцена — robot_0 с лидаром, robot_1 с коллизией, 3 стены, цилиндр
+- **`test_lidar_plugin.cpp`**: 12 тестов (RaycastEngine dynamic, LidarPlugin hits/miss/minrange/rate/toJson/mountLink/fields)
+- Все тесты: 2/2 test suites, 0 failures
+
+#### Баги, найденные в интеграционном тестировании (22.2)
+
+**frame_id LaserScan**: адаптер генерировал `front_lidar_link` вместо `base_link`. Причина: нет передачи mount_link из плагина в адаптер. Исправлено через `SensorRegistration.frame_id` + `IAgentPlugin::sensor_frame_id()`.
+
+**Кнопка "Показывать лучи" не работала**: `plugin_key` для именованного плагина = `"lidar_front_lidar"`, а `handle_plugin_input` матчил только по `type() == plugin_type`. Исправлено: добавлен матч по `plugin_key(*plugin) == plugin_type`.
+
+**Самостоятельное движение робота**: не баг — latch-поведение DiffDrive (стандарт cmd_vel). Явный Stop отправляет нули и сбрасывает флаг.
+
+## Следующие задачи

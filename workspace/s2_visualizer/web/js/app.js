@@ -27,6 +27,13 @@ const tfFrames = {};             // agentKey -> AxesHelper
 const linkMeshes = {};           // `lm_${agentId}_${linkName}` -> Mesh (per-URDF-link render)
 const agentHasUrdf = {};         // agentId -> bool
 
+// Лидар: точки попаданий (Points-объекты Three.js, ключ: agentKey)
+const lidarPointObjects = {};
+
+// Коллизии: полупрозрачные шейпы для каждого агента (ключ: agentKey)
+const collisionMeshes = {};
+let collisionsVisible = false;   // управляется кнопкой "Collisions"
+
 // ============================================================
 // Инициализация сцены
 // ============================================================
@@ -1217,6 +1224,81 @@ window.addPrimitiveSphere   = () => addPrimitive('sphere');
 window.deleteSelectedPrimitive = () => deleteSelected();
 
 // ============================================================
+// ============================================================
+// Лидар: точки попаданий
+// ============================================================
+
+function renderLidarPoints(agentKey, data) {
+    // Удаляем старый объект если есть
+    if (lidarPointObjects[agentKey]) {
+        scene.remove(lidarPointObjects[agentKey]);
+        lidarPointObjects[agentKey].geometry.dispose();
+        lidarPointObjects[agentKey].material.dispose();
+        delete lidarPointObjects[agentKey];
+    }
+
+    if (!data.visible || !data.points || data.points.length === 0) return;
+
+    // Координаты: симулятор (x=East, y=North, z=Up) → Three.js (x=East, y=Up, z=-North)
+    const positions = new Float32Array(data.points.length * 3);
+    for (let i = 0; i < data.points.length; i++) {
+        const p = data.points[i];
+        positions[i * 3 + 0] =  p[0];
+        positions[i * 3 + 1] =  p[2];
+        positions[i * 3 + 2] = -p[1];
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const material = new THREE.PointsMaterial({
+        color: data.color || '#00FFFF',
+        size: 0.08,
+    });
+
+    const pts = new THREE.Points(geometry, material);
+    scene.add(pts);
+    lidarPointObjects[agentKey] = pts;
+}
+
+// ============================================================
+// Коллизии: полупрозрачные шейпы агентов
+// ============================================================
+
+function updateCollisionMesh(agentKey, agent) {
+    // Удаляем старый шейп
+    if (collisionMeshes[agentKey]) {
+        scene.remove(collisionMeshes[agentKey]);
+        collisionMeshes[agentKey].geometry.dispose();
+        collisionMeshes[agentKey].material.dispose();
+        delete collisionMeshes[agentKey];
+    }
+
+    if (!collisionsVisible || !agent.has_collision || !agent.bounding) return;
+
+    const b = agent.bounding;
+    let geometry;
+    if (b.type === 'sphere') {
+        geometry = new THREE.SphereGeometry(b.radius || 0.5, 16, 12);
+    } else {
+        // box: sx/sy/sz — полные размеры
+        geometry = new THREE.BoxGeometry(b.sx || 1, b.sz || 1, b.sy || 1);
+    }
+
+    // Координаты: симулятор → Three.js (y↔z swap)
+    const p = agent.pose;
+    const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+        color: 0xff4444,
+        transparent: true,
+        opacity: 0.25,
+        depthWrite: false,
+    }));
+    mesh.position.set(p.x, p.z || 0, -(p.y || 0));
+    scene.add(mesh);
+    collisionMeshes[agentKey] = mesh;
+}
+
+// ============================================================
 // Обновление сцены из JSON
 // ============================================================
 
@@ -1273,6 +1355,15 @@ function updateScene(data) {
                         clearOverlayLine(`path_${agentKey}`);
                     } else {
                         renderOverlayLine(`path_${agentKey}`, d.points, d.color);
+                    }
+                }
+                // Точки лидара: ищем плагин с type == "lidar_points"
+                for (const [pluginType, pluginData] of Object.entries(agentPlugins)) {
+                    const d = typeof pluginData === 'string'
+                        ? JSON.parse(pluginData)
+                        : pluginData;
+                    if (d && d.type === 'lidar_points') {
+                        renderLidarPoints(`lidar_${agentKey}_${pluginType}`, d);
                     }
                 }
             } catch (e) {
@@ -1392,6 +1483,9 @@ function updateScene(data) {
                 agentHasUrdf[agent.id] = false;
                 if (meshes[key]) meshes[key].visible = true;
             }
+
+            // Обновляем полупрозрачный коллизионный шейп (если кнопка включена)
+            updateCollisionMesh(key, agent);
         });
     }
     Object.keys(meshes).forEach(k => {
@@ -1534,6 +1628,24 @@ function toggleTransformControls() {
     if (btn) {
         btn.textContent = gizmoVisible ? 'Axes: ON' : 'Axes: OFF';
     }
+}
+
+// Кнопка "Collisions": показать/скрыть полупрозрачные шейпы коллизий агентов
+function toggleCollisions() {
+    collisionsVisible = !collisionsVisible;
+    const btn = document.getElementById('btn-collisions');
+    if (btn) btn.textContent = collisionsVisible ? 'Collisions: ON' : 'Collisions: OFF';
+
+    if (!collisionsVisible) {
+        // Убираем все шейпы
+        for (const key of Object.keys(collisionMeshes)) {
+            scene.remove(collisionMeshes[key]);
+            collisionMeshes[key].geometry.dispose();
+            collisionMeshes[key].material.dispose();
+            delete collisionMeshes[key];
+        }
+    }
+    // При включении — шейпы появятся на следующем снапшоте через updateCollisionMesh()
 }
 
 // Переключение режима трансформации (translate/rotate)
@@ -2425,6 +2537,7 @@ window.toggleFollow = toggleFollow;
 window.closeSidePanel = closeSidePanel;
 window.toggleTransformMode = toggleTransformMode;
 window.toggleTransformControls = toggleTransformControls;
+window.toggleCollisions = toggleCollisions;
 window.showPluginInputForm = showPluginInputForm;
 window.sendBooleanPluginField = sendBooleanPluginField;
 window.startPluginInput = startPluginInput;

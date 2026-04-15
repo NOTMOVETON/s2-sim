@@ -2,7 +2,23 @@
 
 ## Текущая работа
 
-Задачи 20, 20.1, 20.2 и 21 завершены. Следующая — задача 22 (LidarPlugin).
+Задачи 20–22 завершены. LidarPlugin реализован, пофикшены три бага задачи 22.2. Дополнительно: OBB-фикс для RaycastEngine (лидар видит повёрнутые примитивы).
+
+### OBB-фикс RaycastEngine + наклонные лучи лидара (задача 22.3)
+
+**Проблема 1:** `intersect_box` — AABB, рампы невидимы.
+**Исправление:** `build_rotation_transpose()` + трансформация луча в локальное пространство box через R^T → slab-тест по ±half_extent. Аналогично для cylinder.
+
+**Проблема 2:** Лидар на наклонном роботе бросал горизонтальные лучи (Z=0) — пол не виден при подъёме/спуске.
+**Исправление** (`lidar.hpp`): локальный угол `a = start_angle + i*step` трансформируется в мировое направление через `R = Rz(yaw)*Ry(pitch)*Rx(roll)`:
+```cpp
+ray.direction = Vec3{r00 * lx + r01 * ly,
+                     r10 * lx + r11 * ly,
+                     r20 * lx + r21 * ly};
+```
+При pitch=roll=0 результат совпадает с прежним поведением.
+
+**Ограничение по URDF:** `dynamic_prims` для агентов — единственный bounding shape (не per-link URDF). Отдельная задача.
 
 ### Исправление выравнивания pitch/roll при вращении на склоне (задача 20.1 bugfix)
 
@@ -61,6 +77,44 @@ if (walkable)
 - Фаза 3f использует полную ZYX-ротацию (body->world); при roll=pitch=0 результат идентичен прежнему.
 - Выравнивание roll/pitch использует нормаль из коллизий (фаза 3h).
 - Walkable-контакты: Z push-out (предотвращает проваливание), XY push-out пропущен (заезд на рампу).
+
+## Что сделано в задаче 22 и баг-фиксах
+
+### Задача 22 — LidarPlugin (реализация)
+
+- `LidarScanData` в SharedState, `lidar_scan` в SensorOutput
+- `RaycastEngine::set_dynamic_agents()` — видимость других агентов с коллизией
+- `LidarPlugin`: num_rays, min_range, max_range, start_angle, end_angle, mount_link, viz_color; управляющая кнопка visible через `has_inputs()`
+- ROS2: LaserScan publisher на топике `/<sensor_name>`
+- app.js: `renderLidarPoints()`, `updateCollisionMesh()`, кнопка "Collisions"
+- Тестовая сцена `test_lidar.yaml`, 12 новых тестов
+
+### Задача 22.2 — Баг-фиксы после интеграционного тестирования
+
+**Баг 1: frame_id в LaserScan был `front_lidar_link` вместо `base_link`**
+
+Причина: `ros2_transport_adapter.cpp` не знал о mount_link плагина, формировал `frame_id` из sensor_name.
+
+Исправление:
+- `SensorRegistration.frame_id` — новое поле, прокидывается от плагина до адаптера
+- `IAgentPlugin::sensor_frame_id()` — новый виртуальный метод (по умолчанию `""`)
+- `LidarPlugin::sensor_frame_id()` — возвращает `mount_link_` если задан, иначе `"base_link"`
+- `sim_transport_bridge.cpp`: `reg.frame_id = plugin->sensor_frame_id()`
+- `ros2_transport_adapter`: хранит `lidar_frames[sname]`, использует при публикации
+
+**Баг 2: кнопка "Показывать лучи" не работала**
+
+Причина: `plugin_key("lidar", "front_lidar") = "lidar_front_lidar"`. UI отправлял `plugin=lidar_front_lidar`. `handle_plugin_input` матчил только по `plugin->type() == "lidar"` — не совпадало.
+
+Исправление (`sim_engine.hpp`):
+```cpp
+if (plugin->type() == plugin_type || plugin_key(*plugin) == plugin_type)
+```
+Теперь матчит и по типу, и по полному ключу.
+
+**Поведение 3: робот самостоятельно движется**
+
+Не баг — штатное latch-поведение DiffDrive (стандарт ROS2 cmd_vel). После первого `Send` с ненулевой скоростью команда держится навсегда. Сброс — кнопкой "Stop" (отправляет нули).
 
 ## Следующие задачи (по порядку реализации)
 

@@ -91,4 +91,4 @@ services:
       && cd /workspace && mkdir -p build && cd build
       && cmake .. -DCMAKE_BUILD_TYPE=Debug -DS2_WITH_ROS2=ON
       && make -j$(nproc)
-      && ./s2_visualizer/s2_sim /workspace/s2_config/scenes/test_collision.yaml"
+      && ./s2_visualizer/s2_sim /workspace/s2_config/scenes/test_gravity_ramp.yaml"

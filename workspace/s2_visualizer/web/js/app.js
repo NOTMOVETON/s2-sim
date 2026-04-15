@@ -627,8 +627,8 @@ function findNearestEdge(prim, mesh, hitPointWorld) {
 
     if (prim.type === 'box') {
         const hx = (prim.size?.x || 1) / 2;
-        const hy = (prim.size?.y || 1) / 2;
-        const hz = (prim.size?.z || 1) / 2;
+        const hy = (prim.size?.z || 1) / 2;   // Three.js Y = sim Z
+        const hz = (prim.size?.y || 1) / 2;   // Three.js Z = sim Y
         // 12 рёбер: 4 параллельных каждой из осей X, Y, Z
         const candidates = [];
         for (const sy of [-1, 1]) for (const sz of [-1, 1])
@@ -1221,6 +1221,8 @@ window.deleteSelectedPrimitive = () => deleteSelected();
 // ============================================================
 
 function updateScene(data) {
+    // Скрыть overlay загрузки сцены при получении первого снапшота
+    hideLoadingOverlay();
     // SimTime — обнаруживаем reset (время идёт назад) и очищаем overlay-линии
     if (data.sim_time !== undefined) {
         document.getElementById('sim-time').textContent = data.sim_time.toFixed(2) + 's';
@@ -2440,3 +2442,163 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// ============================================================
+// Браузер сцен (задача 19)
+// ============================================================
+
+let scenesPanelOpen = false;
+
+function showLoadingOverlay() {
+    const el = document.getElementById('loading-overlay');
+    if (el) el.style.display = 'flex';
+}
+
+function hideLoadingOverlay() {
+    const el = document.getElementById('loading-overlay');
+    if (el) el.style.display = 'none';
+}
+
+window.toggleScenesPanel = function() {
+    scenesPanelOpen = !scenesPanelOpen;
+    document.getElementById('scenes-panel').style.display =
+        scenesPanelOpen ? 'block' : 'none';
+    document.getElementById('btn-scenes').classList.toggle('active', scenesPanelOpen);
+    if (scenesPanelOpen) loadSceneList();
+};
+
+function loadSceneList() {
+    const listEl = document.getElementById('scenes-list');
+    listEl.innerHTML = '<div style="color:#666;">Загрузка...</div>';
+    fetch('/api/scenes')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.scenes || data.scenes.length === 0) {
+                listEl.innerHTML = '<div style="color:#666;">Сцены не найдены</div>';
+                return;
+            }
+            listEl.innerHTML = data.scenes.map(name =>
+                `<div style="padding:5px 0; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;">
+                   <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; margin-right:6px;">${name}</span>
+                   <button onclick="loadScene('${name}')"
+                     style="background:#2980b9; color:#fff; border:none; padding:2px 8px;
+                            border-radius:3px; cursor:pointer; font-size:11px; flex-shrink:0;">
+                     Load
+                   </button>
+                 </div>`
+            ).join('');
+        })
+        .catch(e => {
+            listEl.innerHTML = `<div style="color:#f44;">Ошибка: ${e.message}</div>`;
+        });
+}
+
+window.loadScene = function(filename) {
+    if (!confirm(`Загрузить сцену "${filename}"?\nСимуляция будет перезапущена.`)) return;
+    showLoadingOverlay();
+    fetch('/api/scene/load', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename }),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            resetEditorState();
+            showToast(`Сцена "${filename}" загружена`);
+            if (scenesPanelOpen) {
+                scenesPanelOpen = false;
+                document.getElementById('scenes-panel').style.display = 'none';
+                document.getElementById('btn-scenes').classList.remove('active');
+            }
+        } else {
+            hideLoadingOverlay();
+            showToast(`Ошибка загрузки: ${d.error}`);
+        }
+    })
+    .catch(e => {
+        hideLoadingOverlay();
+        showToast(`Ошибка: ${e.message}`);
+    });
+};
+
+window.saveSceneAs = function() {
+    const name = prompt('Имя новой копии сцены (без расширения):');
+    if (!name) return;
+    fetch('/api/scene/save-as', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            showToast(`Сохранено: ${d.path}`);
+            loadSceneList();
+        } else {
+            showToast(`Ошибка: ${d.error}`);
+        }
+    })
+    .catch(e => showToast(`Ошибка: ${e.message}`));
+};
+
+window.newScene = function() {
+    const name = prompt('Имя новой сцены:');
+    if (!name) return;
+    showLoadingOverlay();
+    fetch('/api/scene/new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            resetEditorState();
+            showToast(`Создана и загружена сцена "${d.name}"`);
+            if (scenesPanelOpen) {
+                scenesPanelOpen = false;
+                document.getElementById('scenes-panel').style.display = 'none';
+                document.getElementById('btn-scenes').classList.remove('active');
+            }
+        } else {
+            hideLoadingOverlay();
+            showToast(`Ошибка: ${d.error}`);
+        }
+    })
+    .catch(e => {
+        hideLoadingOverlay();
+        showToast(`Ошибка: ${e.message}`);
+    });
+};
+
+/**
+ * Сбросить состояние редактора и Three.js сцены после загрузки новой сцены.
+ */
+function resetEditorState() {
+    // Выйти из режима редактора если открыт
+    if (editorMode) toggleEditorMode(false);
+    // Снять выделение
+    transformControls.detach();
+    selectedPrimitiveId = null;
+    selectedAgentId = null;
+    selectedAgentMesh = null;
+    // Очистить меши статической геометрии
+    Object.keys(meshes).forEach(k => {
+        if (k.startsWith('static_')) removeMesh(k);
+    });
+    // Очистить меши агентов, пропов, акторов
+    Object.keys(meshes).forEach(k => {
+        if (k.startsWith('agent_') || k.startsWith('prop_') || k.startsWith('actor_'))
+            removeMesh(k);
+    });
+    // Сбросить состояние редактора
+    editorPrimitives = [];
+    editorAgents = [];
+    staticGeometryData = [];
+    lastAgentData = {};
+    followMode = false;
+    followCameraOffset = null;
+    // Скрыть боковую панель
+    document.getElementById('primitive-props').style.display = 'none';
+}

@@ -64,6 +64,47 @@ struct VizCommandHandler {
         (void)agents_json;
         return {false, "not implemented"};
     }
+
+    /**
+     * @brief Получить список .yaml файлов из директории сцен.
+     *
+     * Формат ответа: {"scenes":["test_basic.yaml","test_collision.yaml",...]}
+     */
+    virtual std::string on_get_scene_list() { return "{\"scenes\":[]}"; }
+
+    /**
+     * @brief Перезагрузить симуляцию с новой сценой.
+     *
+     * Паузит движок, загружает новую сцену из файла, перезапускает.
+     * @param filename Имя файла (только basename, без пути), например "test_basic.yaml"
+     */
+    virtual SaveSceneResult on_load_scene(const std::string& filename)
+    {
+        (void)filename;
+        return {false, "not implemented"};
+    }
+
+    /**
+     * @brief Сохранить текущую сцену под новым именем.
+     *
+     * @param new_name Новое имя (без пути, с .yaml или без)
+     */
+    virtual SaveSceneResult on_save_scene_as(const std::string& new_name)
+    {
+        (void)new_name;
+        return {false, "not implemented"};
+    }
+
+    /**
+     * @brief Создать новую пустую сцену и загрузить её.
+     *
+     * @param new_name Имя новой сцены
+     */
+    virtual SaveSceneResult on_new_scene(const std::string& new_name)
+    {
+        (void)new_name;
+        return {false, "not implemented"};
+    }
 };
 
 /**

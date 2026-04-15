@@ -200,7 +200,18 @@ inline CollisionContact CollisionSystem::check_sphere_vs_box(
 
     CollisionContact c;
     c.has_contact = true;
-    c.obstacle_top_z = primitive_top_z(box);
+
+    // obstacle_top_z: Z верхней грани box в проекции центра сферы.
+    // Для горизонтальных box (стены, полы) это совпадает с primitive_top_z().
+    // Для наклонных (рампы) — локальная высота, а не глобальный максимум,
+    // что позволяет агенту корректно заезжать на рампу снизу.
+    Vec3 top_face_local{
+        std::clamp(local.x(), -half.x(), half.x()),
+        std::clamp(local.y(), -half.y(), half.y()),
+        half.z()
+    };
+    Vec3 top_face_world = R * top_face_local + box_pos;
+    c.obstacle_top_z = top_face_world.z();
 
     double dist = std::sqrt(dist2);
     c.penetration = radius - dist;

@@ -598,6 +598,33 @@
         <button id="btn-transform" onclick="toggleTransformMode()" style="margin-left: 8px;">Mode: Translate</button>
         <button id="btn-gizmo" onclick="toggleTransformControls()" style="margin-left: 8px;">Axes: ON</button>
         <button id="btn-edit-scene" onclick="toggleEditorMode()" style="margin-left: 8px;">Edit Scene</button>
+        <button id="btn-scenes" onclick="toggleScenesPanel()" style="margin-left: 8px;">Scenes</button>
+    </div>
+
+    <!-- Панель браузера сцен -->
+    <div id="scenes-panel" style="display:none; position:fixed; top:60px; right:12px; width:280px;
+         background:rgba(20,20,30,0.97); color:#e0e0e0; font-family:'Courier New',monospace;
+         font-size:13px; border-radius:6px; z-index:200; padding:14px;
+         border:1px solid #555; box-shadow:0 4px 16px rgba(0,0,0,0.5);">
+        <h4 style="margin:0 0 10px 0; color:#fff; border-bottom:1px solid #444; padding-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+            Сцены
+            <button onclick="toggleScenesPanel()" style="background:none; border:none; color:#aaa; cursor:pointer; font-size:16px; padding:0;">&#x2715;</button>
+        </h4>
+        <div id="scenes-list" style="max-height:300px; overflow-y:auto; margin-bottom:10px;">
+            <div style="color:#666;">Загрузка...</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; padding-top:6px; border-top:1px solid #444;">
+            <button onclick="saveSceneAs()" style="background:#2980b9; color:#fff; border:none; padding:4px 10px; border-radius:3px; cursor:pointer; font-size:12px;">Save As</button>
+            <button onclick="newScene()" style="background:#27ae60; color:#fff; border:none; padding:4px 10px; border-radius:3px; cursor:pointer; font-size:12px;">New Scene</button>
+        </div>
+    </div>
+
+    <!-- Overlay загрузки сцены (на верхнем уровне body) -->
+    <div id="loading-overlay" style="display:none; position:fixed; top:0; left:0;
+         width:100%; height:100%; background:rgba(0,0,0,0.75); color:#fff;
+         align-items:center; justify-content:center; font-size:1.4em;
+         font-family:'Courier New',monospace; z-index:9999; flex-direction:column; gap:12px;">
+        Загрузка сцены...
     </div>
 
     <!-- Панель редактора сцены (скрыта по умолчанию) -->

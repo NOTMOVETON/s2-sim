@@ -177,6 +177,36 @@ axes.rotation.set(pose.roll || 0, pose.yaw || 0, -(pose.pitch || 0), 'YZX');
 
 ## Известные проблемы
 
+### [BUG] Задача 19: reload не переинициализирует ROS2 транспорт
+
+**Симптом:** После загрузки новой сцены через "Scenes → Load" ROS2 топики и ноды не пересоздаются. Если новая сцена имеет других агентов или другие domain_id — транспортный слой остаётся от предыдущей сцены.
+
+**Когда проявляется:** Только при использовании ROS2 транспорта (не stub). При `transport: type: stub` не заметно.
+
+**Обходной путь:** Полный рестарт Docker-контейнера.
+
+**Где искать:** `workspace/s2_visualizer/src/main.cpp` — `SimEngineCommandAdapter::on_load_scene()`. После `engine_->load_world()` нужно вызвать `transport_bridge_->reinit(engine_->world())`, но `transport_bridge_` недоступен в адаптере.
+
+---
+
+### [BUG] Задача 19: resetEditorState() не очищает TF-frames и overlay-линии
+
+**Симптом:** После загрузки новой сцены могут оставаться видимыми TF-frames и trajectory/path линии от агентов предыдущей сцены — до первого SSE-обновления, которое их перезапишет.
+
+**Когда проявляется:** При переключении между сценами с разными агентами.
+
+**Где искать:** `workspace/s2_visualizer/web/js/app.js` — функция `resetEditorState()`. Нужно добавить очистку `tfFrames` и вызов `clearOverlayLines()`.
+
+---
+
+### [BUG] Задача 19: активная сцена не помечается в списке
+
+**Симптом:** В панели "Scenes" нет визуального индикатора текущей загруженной сцены.
+
+**Где искать:** `workspace/s2_visualizer/web/js/app.js` — функция `loadSceneList()`. Нужен эндпоинт или параметр в `/api/scenes`, возвращающий имя активной сцены.
+
+---
+
 ### [BUG] Превью нового агента не отображается после размещения в редакторе
 
 **Симптом:** Полупрозрачный бокс нового агента появляется только при изменении любого поля в форме, но не сразу после клика на сцену (после шага размещения).
@@ -249,11 +279,52 @@ axes.rotation.set(pose.roll || 0, pose.yaw || 0, -(pose.pitch || 0), 'YZX');
 - **`test_collision.yaml`**: тестовая сцена с пандусами и двумя агентами (с коллизией / без)
 - **22 теста**, 254/254 всего
 
+#### Баг-фикс: `obstacle_top_z` для наклонных поверхностей
+
+**Проблема**: `check_sphere_vs_box()` вычислял `obstacle_top_z = primitive_top_z(box)` — глобальный максимум Z всех восьми углов box. Для рампы 18.4° это всегда ~1.05м, хотя реальная высота поверхности у основания рампы ~0.05м. Агент с `max_step_height=0.2` не мог въехать снизу: `1.05 - 0 > 0.2`.
+
+**Исправление** (`check_sphere_vs_box` в `collision_system.hpp`): `obstacle_top_z` теперь вычисляется как Z верхней грани box в проекции центра сферы — transform `(clamp_x, clamp_y, +half_z)` из локальных в мировые координаты. Для горизонтальных box результат идентичен прежнему, для наклонных — корректная локальная высота.
+
+### Фича 20.1 — Выравнивание ориентации агента по поверхности ✅ ЗАВЕРШЕНА
+
+- **`sim_engine.hpp`**: фаза 3h — после обработки коллизий вычисляет `roll` и `pitch` агента из нормали первого walkable-контакта
+- Математика: `roll = atan2(-n.y, n.z)`, `pitch = atan2(n.x, n.z)` (ZYX-конвенция)
+- При отсутствии walkable-контакта (воздух, только стены): `roll = pitch = 0`
+- Фронтенд уже применял все три угла (`rotation.set(pose.roll, pose.yaw, -pose.pitch, 'YZX')`) — без изменений
+
+### Фича 21 — GravityPlugin ✅ ЗАВЕРШЕНА
+
+- **`workspace/s2_plugins/include/s2/plugins/gravity.hpp`**: новый плагин типа Resource
+  - `find_support_surface()` каждый тик → grounded/falling
+  - Grounded: `pose.z = ground_z`, `fall_velocity = 0`
+  - Falling: `fall_velocity -= g * dt`, clamp к `max_fall_speed`, `pose.z += fall_velocity * dt`
+  - Защита от проваливания при большом dt: snap к `ground_z` если ушли ниже
+  - Всегда: `world_velocity.linear.z() = 0` — запрещает фазе 3f повторно применять Z
+  - `to_json()`: `{"grounded": bool, "fall_velocity": double}`
+  - `config_schema()`: три параметра — `gravity_accel`, `max_fall_speed`, `grounded_epsilon`
+- **`plugin_base.hpp`**: добавлен `set_collision_system(const CollisionSystem*)` — no-op в базе
+- **`sim_engine.hpp`**: фаза 3e — `plugin->set_collision_system(&collision_system_)` перед `plugin->update()`
+- **`plugins_registry.cpp`**: регистрация `GravityPlugin`
+- **`test_gravity_plugin.cpp`**: 5 тестов — FreeFall, LandsOnFloor, StaysOnGround, FallsOffPlatform, MaxFallSpeed
+- **`test_gravity_ramp.yaml`**: тестовая сцена — пол, восходящий пандус, платформа на 1м, нисходящий пандус; агент стартует в воздухе и падает на платформу
+
+#### Особенности реализации
+
+- GravityPlugin работает в фазе **3e** (до коллизий 3h) — это позиционный контроллер, не симулятор сил
+- Кратковременные мигания `fall_velocity != 0` на переходах геометрий (рампа→пол) — штатный артефакт: raycast в 3e видит геометрию, коллизия в 3h корректирует позу на том же тике
+- Тангенциальная составляющая гравитации (ускорение/торможение на склоне) **не реализована** — запланирована в задаче 20.2
+
+### Фича 19 — Браузер сцен и runtime reload ✅ ЗАВЕРШЕНА
+
+- **Bug fix**: `SimEngine::update_static_geometry()` — новый метод, атомарно обновляет `world_` и `collision_system_`. Ранее редактор обновлял только world, коллизии оставались старыми.
+- **Bug fix**: `findNearestEdge()` в app.js для box — исправлен маппинг осей (`hy = size.z/2`, `hz = size.y/2`). Позиция edge-snapping подсветки теперь совпадает с реальными рёбрами.
+- **HTTP-эндпоинты**: `GET /api/scenes`, `POST /api/scene/load`, `POST /api/scene/save-as`, `POST /api/scene/new`
+- **`SimEngineCommandAdapter`**: `on_get_scene_list()`, `on_load_scene()`, `on_save_scene_as()`, `on_new_scene()`; хранит `plugin_factory_` и `scenes_dir_`; reload через `engine_->load_world()` после `SceneLoader::load()`
+- **Frontend**: кнопка "Scenes", панель браузера, loading overlay, `loadSceneList()`, `loadScene()`, `saveSceneAs()`, `newScene()`, `resetEditorState()`
+- Тесты: 254/254
+
 ## Следующие задачи
 
-### Блок A: Визуал и редактор сцены
-- Задача 19 — Браузер сцен, runtime load (перезапуск симуляции)
-
 ### Блок B: Физика
-- Задача 21 — GravityPlugin: свободное падение (использует `find_support_surface()`)
+- Задача 20.2 — Физика на склоне: тангенциальная гравитация, статическое трение (`docs/20.2-slope-physics.md`)
 - Задача 22 — LidarPlugin: 2D raycast, LaserScan ROS2, визуализация

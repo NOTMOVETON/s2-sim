@@ -22,6 +22,7 @@ namespace s2
 
 // Forward-declare
 struct Agent;
+class CollisionSystem;
 
 namespace plugins
 {
@@ -101,6 +102,14 @@ public:
      * Позволяет плагину запомнить начальное состояние агента (например, цвет).
      */
     virtual void initialize(Agent& agent) { (void)agent; }
+
+    /**
+     * @brief Передать ссылку на CollisionSystem перед вызовом update().
+     * Вызывается SimEngine в фазе 3e для каждого плагина каждый тик.
+     * Плагины, которым нужна CollisionSystem (например, GravityPlugin),
+     * переопределяют этот метод. Остальные игнорируют вызов.
+     */
+    virtual void set_collision_system(const CollisionSystem*) {}
 
     virtual void update(double dt, Agent& agent) = 0;
     virtual void from_config(const YAML::Node& node) = 0;

@@ -1,0 +1,96 @@
+s2:
+  update_rate: 50
+  viz_rate: 30
+  visualizer:
+    enabled: true
+    port: 1937
+  transport:
+    type: stub
+
+  world:
+    geometry:
+      # Пол
+      - type: box
+        pose:
+          x: 5.0
+          y: 0.0
+          z: -0.025
+          yaw: 0
+          pitch: 0
+          roll: 0
+        size:
+          x: 25.0
+          y: 6.0
+          z: 0.05
+        color: "#333333"
+
+      # Восходящий пандус: от x=0,z=0 до x=3,z=1
+      # pitch=-atan(1/3)≈-0.3217 рад → правый (+X) конец выше
+      - type: box
+        pose:
+          x: 1.5
+          y: 0.0
+          z: 0.5
+          yaw: 0
+          pitch: -0.3217
+          roll: 0
+        size:
+          x: 3.162
+          y: 3.0
+          z: 0.1
+        color: "#557744"
+
+      # Платформа на высоте 1.0м (x от 3 до 7)
+      - type: box
+        pose:
+          x: 5.0
+          y: 0.0
+          z: 1.025
+          yaw: 0
+          pitch: 0
+          roll: 0
+        size:
+          x: 4.0
+          y: 3.0
+          z: 0.05
+        color: "#555577"
+
+      # Нисходящий пандус: от x=7,z=1 до x=10,z=0
+      # pitch=+atan(1/3)≈+0.3217 рад → левый (-X) конец выше
+      - type: box
+        pose:
+          x: 8.5
+          y: 0.0
+          z: 0.5
+          yaw: 0
+          pitch: 0.3217
+          roll: 0
+        size:
+          x: 3.162
+          y: 3.0
+          z: 0.1
+        color: "#774455"
+
+  agents:
+    - name: robot_0
+      # Стартует в воздухе над платформой — упадёт на неё при старте
+      pose: {x: 5.0, y: 0.0, z: 3.0}
+      max_slope_deg: 25.0
+      max_step_height: 0.2
+      collision:
+        bounding:
+          type: sphere
+          radius: 0.3
+      visual:
+        type: box
+        size: [0.5, 0.4, 0.25]
+        color: "#FF6B35"
+      plugins:
+        - type: diff_drive
+          wheel_base: 0.4
+          max_linear_vel: 1.5
+          max_angular_vel: 2.0
+        - type: gravity
+          gravity_accel: 9.81
+          max_fall_speed: 15.0
+          grounded_epsilon: 0.02

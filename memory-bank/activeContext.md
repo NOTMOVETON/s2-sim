@@ -2,11 +2,36 @@
 
 ## Текущая работа
 
-Задача 20 (CollisionSystem) завершена. Визуальные баги исправлены. Все тесты проходят (254/254).
+Задачи 20 (CollisionSystem + баг-фикс `obstacle_top_z`), 20.1 (выравнивание по поверхности) и 21 (GravityPlugin) завершены. Написана спецификация задачи 20.2 (физика на склоне).
 
-Следующая — задача 19 (браузер сцен, runtime load) или задача 21 (GravityPlugin).
+Следующая — задача 20.2 (тангенциальная гравитация + статическое трение) или задача 22 (LidarPlugin).
 
-### Что сделано в текущей сессии (визуальные баги после задачи 20)
+### Что сделано в текущей сессии (задачи 20–21)
+
+**Баг-фикс `obstacle_top_z` (задача 20)**:
+- `check_sphere_vs_box()` вычислял глобальный максимум Z box. Для рампы 18.4° это ~1.05м, хотя реальная высота у основания ~0.05м. При низкой скорости сфера касалась торца рампы → контакт не walkable → `step_height` check провален → агент заблокирован.
+- Исправлено: `obstacle_top_z` = Z верхней грани в проекции XY центра сферы. `(clamp_x, clamp_y, +half_z)` из локальных → мировые. Горизонтальные box — результат прежний; наклонные — корректная локальная высота.
+
+**Задача 20.1 (выравнивание по поверхности)**:
+- `sim_engine.hpp` фаза 3h: после цикла коллизий — `roll = atan2(-n.y, n.z)`, `pitch = atan2(n.x, n.z)` из нормали первого walkable-контакта. При отсутствии опоры → `roll = pitch = 0`.
+
+**Задача 21 (GravityPlugin)**:
+- `gravity.hpp`: позиционный контроллер по Z. `find_support_surface()` → grounded/falling. Grounded: snap к `ground_z`, `fall_velocity=0`. Falling: `fall_velocity -= g*dt`, clamp, `pose.z += fall_velocity*dt`. Всегда: `world_velocity.linear.z()=0`.
+- `plugin_base.hpp`: виртуальный no-op `set_collision_system()`.
+- `sim_engine.hpp` фаза 3e: инжекция `collision_system_` перед `update()` каждого плагина.
+- `plugins_registry.cpp`: регистрация GravityPlugin. 5 тестов. `test_gravity_ramp.yaml`.
+
+**Задача 20.2 (спецификация написана)**:
+- `docs/20.2-slope-physics.md`: расширить `find_support_surface` → `SupportInfo{ground_z, normal}`; тангенциальная сила `g_tangential` к `world_velocity.xy`; статическое трение (`friction_coef`).
+
+### Архитектурные детали задачи 21
+
+- GravityPlugin — **позиционный контроллер**, не симулятор сил.
+- `world_velocity.linear.z() = 0` в каждом тике — блокирует double-apply в фазе 3f.
+- Мигания `fall_velocity != 0` на переходах геометрий — штатный артефакт: raycast 3e опережает коллизию 3h.
+- Тангенциальная сила (ускорение/торможение на склоне) — **не реализована**, см. задачу 20.2.
+
+### Что сделано в предпоследней сессии (визуальные баги после задачи 20)
 
 - **`app.js`**: исправлен `createGeometry` для box — `BoxGeometry(size.x, size.z, size.y)` вместо `(size.x, size.y, size.z)`.
   Sim Z (высота) → Three.js Y (height), sim Y (глубина) → Three.js Z (depth).
@@ -103,8 +128,10 @@ Shift+ЛКМ по примитиву → edge-snap.
 
 | # | Файл | Описание |
 |---|------|----------|
-| 20 | `docs/20-collision-system.md` | CollisionSystem, slide-реакция, наклонные плоскости |
-| 21 | `docs/21-gravity-plugin.md` | GravityPlugin: свободное падение и опора |
+| 20 | `docs/20-collision-system.md` | ✅ CollisionSystem, slide-реакция, наклонные плоскости |
+| 20.1 | `docs/20.1-surface-alignment.md` | ✅ Выравнивание roll/pitch агента по нормали поверхности |
+| 21 | `docs/21-gravity-plugin.md` | ✅ GravityPlugin: свободное падение и опора |
+| 20.2 | `docs/20.2-slope-physics.md` | Тангенциальная гравитация + статическое трение |
 | 22 | `docs/22-lidar-plugin.md` | LidarPlugin: 2D raycast, LaserScan, визуализация точек |
 
 ### Порядок зависимостей

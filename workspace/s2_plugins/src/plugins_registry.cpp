@@ -2,6 +2,7 @@
 #include <s2/plugins/color.hpp>
 #include <s2/plugins/diff_drive.hpp>
 #include <s2/plugins/gnss.hpp>
+#include <s2/plugins/gravity.hpp>
 #include <s2/plugins/imu.hpp>
 #include <s2/plugins/joint_vel.hpp>
 #include <s2/plugins/trajectory_recorder.hpp>
@@ -37,6 +38,7 @@ struct PluginRegistrar
 
 static const PluginRegistrar register_color("color", []() { return std::make_unique<ColorPlugin>(); });
 static const PluginRegistrar register_diff_drive("diff_drive", []() { return std::make_unique<DiffDrivePlugin>(); });
+static const PluginRegistrar register_gravity("gravity", []() { return std::make_unique<GravityPlugin>(); });
 static const PluginRegistrar register_gnss("gnss", []() { return std::make_unique<GnssPlugin>(); });
 static const PluginRegistrar register_imu("imu", []() { return std::make_unique<ImuPlugin>(); });
 static const PluginRegistrar register_joint_vel("joint_vel", []() { return std::make_unique<JointVelPlugin>(); });

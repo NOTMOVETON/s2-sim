@@ -576,6 +576,92 @@ void VizServer::serve_http(int client_fd, const std::string& request) {
         return;
     }
 
+    // GET /api/scenes — список .yaml файлов в директории сцен
+    if (method == "GET" && url.find("/api/scenes") != std::string::npos) {
+        std::string body = command_handler_
+            ? command_handler_->on_get_scene_list()
+            : "{\"scenes\":[]}";
+        std::string response = "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Access-Control-Allow-Origin: *\r\n"
+            "Content-Length: " + std::to_string(body.size()) + "\r\n"
+            "\r\n" + body;
+        send(client_fd, response.c_str(), response.size(), 0);
+        return;
+    }
+
+    // POST /api/scene/save-as — сохранить копию под новым именем (ДОЛЖЕН БЫТЬ ДО /api/scene/save)
+    if (method == "POST" && url.find("/api/scene/save-as") != std::string::npos) {
+        if (!command_handler_) {
+            send_json_response(client_fd, {{"ok", false}, {"error", "no command handler"}}, 400);
+            return;
+        }
+        std::string body = extract_http_body(client_fd, request);
+        try {
+            auto j = nlohmann::json::parse(body);
+            std::string name = j.value("name", "");
+            auto result = command_handler_->on_save_scene_as(name);
+            if (result.ok) {
+                send_json_response(client_fd, {{"ok", true}, {"path", result.path_or_error}});
+            } else {
+                send_json_response(client_fd,
+                    {{"ok", false}, {"error", result.path_or_error}}, 400);
+            }
+        } catch (const std::exception& e) {
+            send_json_response(client_fd,
+                {{"ok", false}, {"error", std::string("parse error: ") + e.what()}}, 400);
+        }
+        return;
+    }
+
+    // POST /api/scene/load — загрузить новую сцену (ДОЛЖЕН БЫТЬ ДО /api/scene/save)
+    if (method == "POST" && url.find("/api/scene/load") != std::string::npos) {
+        if (!command_handler_) {
+            send_json_response(client_fd, {{"ok", false}, {"error", "no command handler"}}, 400);
+            return;
+        }
+        std::string body = extract_http_body(client_fd, request);
+        try {
+            auto j = nlohmann::json::parse(body);
+            std::string filename = j.value("filename", "");
+            auto result = command_handler_->on_load_scene(filename);
+            if (result.ok) {
+                send_json_response(client_fd, {{"ok", true}, {"path", result.path_or_error}});
+            } else {
+                send_json_response(client_fd,
+                    {{"ok", false}, {"error", result.path_or_error}}, 400);
+            }
+        } catch (const std::exception& e) {
+            send_json_response(client_fd,
+                {{"ok", false}, {"error", std::string("parse error: ") + e.what()}}, 400);
+        }
+        return;
+    }
+
+    // POST /api/scene/new — создать пустую сцену и загрузить её
+    if (method == "POST" && url.find("/api/scene/new") != std::string::npos) {
+        if (!command_handler_) {
+            send_json_response(client_fd, {{"ok", false}, {"error", "no command handler"}}, 400);
+            return;
+        }
+        std::string body = extract_http_body(client_fd, request);
+        try {
+            auto j = nlohmann::json::parse(body);
+            std::string name = j.value("name", "");
+            auto result = command_handler_->on_new_scene(name);
+            if (result.ok) {
+                send_json_response(client_fd, {{"ok", true}, {"name", result.path_or_error}});
+            } else {
+                send_json_response(client_fd,
+                    {{"ok", false}, {"error", result.path_or_error}}, 400);
+            }
+        } catch (const std::exception& e) {
+            send_json_response(client_fd,
+                {{"ok", false}, {"error", std::string("parse error: ") + e.what()}}, 400);
+        }
+        return;
+    }
+
     // POST /api/scene/save — сохранить сцену в YAML
     if (method == "POST" && url.find("/api/scene/save") != std::string::npos) {
         if (!command_handler_) {

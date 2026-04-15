@@ -93,8 +93,16 @@ void signal_handler(int signum) {
 class SimEngineCommandAdapter : public s2::VizCommandHandler {
 public:
     explicit SimEngineCommandAdapter(s2::SimEngine* engine, s2::VizServer* viz,
-                                     std::string scene_path = "")
-        : engine_(engine), viz_(viz), scene_path_(std::move(scene_path)) {}
+                                     std::string scene_path = "",
+                                     s2::SceneLoader::PluginFactory plugin_factory = {})
+        : engine_(engine), viz_(viz),
+          scene_path_(std::move(scene_path)),
+          plugin_factory_(std::move(plugin_factory))
+    {
+        if (!scene_path_.empty()) {
+            scenes_dir_ = std::filesystem::path(scene_path_).parent_path().string();
+        }
+    }
 
     void on_pause() override {
         if (engine_) engine_->pause();
@@ -132,11 +140,8 @@ public:
 
     void on_update_geometry(const std::vector<s2::WorldPrimitive>& prims) override {
         if (!engine_) return;
-        // Заменяем статическую геометрию в SimWorld
-        engine_->world().static_geometry().clear();
-        for (const auto& p : prims)
-            engine_->world().add_static_primitive(p);
-        // Публикуем снапшот и рассылаем с geometry=true, чтобы клиент перерисовал меши
+        // Обновляем геометрию в SimWorld И синхронизируем систему коллизий
+        engine_->update_static_geometry(prims);
         if (viz_) {
             viz_->publish(engine_->build_snapshot());
             viz_->force_broadcast_with_geometry();
@@ -230,10 +235,145 @@ public:
         }
     }
 
+    std::string on_get_scene_list() override {
+        nlohmann::json j;
+        j["scenes"] = nlohmann::json::array();
+        if (scenes_dir_.empty()) return j.dump();
+        try {
+            std::vector<std::string> names;
+            for (const auto& entry :
+                 std::filesystem::directory_iterator(scenes_dir_))
+            {
+                if (entry.path().extension() == ".yaml") {
+                    names.push_back(entry.path().filename().string());
+                }
+            }
+            std::sort(names.begin(), names.end());
+            for (const auto& n : names) j["scenes"].push_back(n);
+        } catch (...) {}
+        return j.dump();
+    }
+
+    SaveSceneResult on_load_scene(const std::string& filename) override {
+        if (scenes_dir_.empty())
+            return {false, "директория сцен не задана"};
+        if (!engine_)
+            return {false, "движок не инициализирован"};
+        // Защита от path traversal
+        if (filename.find('/') != std::string::npos ||
+            filename.find("..") != std::string::npos)
+            return {false, "недопустимое имя файла"};
+
+        std::string full_path = scenes_dir_ + "/" + filename;
+        if (!std::filesystem::exists(full_path))
+            return {false, "файл не найден: " + filename};
+
+        try {
+            engine_->pause();
+            auto new_data = s2::SceneLoader::load(full_path, plugin_factory_);
+
+            s2::SimWorld new_world;
+            new_world.set_heightmap(std::move(new_data.heightmap));
+            for (auto& g  : new_data.geometry) new_world.add_static_primitive(std::move(g));
+            for (auto& a  : new_data.agents)   new_world.add_agent(std::move(a));
+            for (auto& p  : new_data.props)     new_world.add_prop(std::move(p));
+            for (auto& ac : new_data.actors)    new_world.add_actor(std::move(ac));
+
+            engine_->load_world(std::move(new_world));
+            scene_path_ = full_path;
+            scenes_dir_ = std::filesystem::path(scene_path_).parent_path().string();
+
+            if (viz_) viz_->force_broadcast_with_geometry();
+            engine_->resume();
+            return {true, full_path};
+        } catch (const std::exception& e) {
+            engine_->resume();
+            return {false, e.what()};
+        }
+    }
+
+    SaveSceneResult on_save_scene_as(const std::string& new_name) override {
+        if (scene_path_.empty() || scenes_dir_.empty())
+            return {false, "сцена не загружена"};
+        if (new_name.empty() ||
+            new_name.find('/') != std::string::npos ||
+            new_name.find("..") != std::string::npos)
+            return {false, "недопустимое имя файла"};
+
+        std::string fname = new_name;
+        if (fname.size() < 5 || fname.substr(fname.size() - 5) != ".yaml")
+            fname += ".yaml";
+
+        std::string dest = scenes_dir_ + "/" + fname;
+        try {
+            std::filesystem::copy_file(
+                scene_path_, dest,
+                std::filesystem::copy_options::overwrite_existing);
+            // Перезаписать geometry актуальными примитивами
+            if (engine_)
+                s2::SceneWriter::save_geometry(dest, engine_->world().static_geometry());
+            return {true, dest};
+        } catch (const std::exception& e) {
+            return {false, e.what()};
+        }
+    }
+
+    SaveSceneResult on_new_scene(const std::string& new_name) override {
+        if (scenes_dir_.empty())
+            return {false, "директория сцен не задана"};
+        if (new_name.empty() ||
+            new_name.find('/') != std::string::npos ||
+            new_name.find("..") != std::string::npos)
+            return {false, "недопустимое имя"};
+
+        std::string fname = new_name;
+        if (fname.size() < 5 || fname.substr(fname.size() - 5) != ".yaml")
+            fname += ".yaml";
+
+        std::string dest = scenes_dir_ + "/" + fname;
+        if (std::filesystem::exists(dest))
+            return {false, "файл уже существует: " + fname};
+
+        // Минимальная сцена с одним агентом
+        static const char* EMPTY_SCENE =
+            "s2:\n"
+            "  update_rate: 50\n"
+            "  visualizer:\n"
+            "    enabled: true\n"
+            "    port: 1937\n"
+            "  transport:\n"
+            "    type: stub\n"
+            "  world:\n"
+            "    geometry: []\n"
+            "  agents:\n"
+            "    - name: robot_0\n"
+            "      pose: { x: 0.0, y: 0.0 }\n"
+            "      visual:\n"
+            "        type: box\n"
+            "        size: [0.6, 0.4, 0.3]\n"
+            "        color: \"#FF6B35\"\n"
+            "      plugins:\n"
+            "        - type: diff_drive\n"
+            "          wheel_base: 0.4\n"
+            "          max_linear_vel: 1.5\n"
+            "          max_angular_vel: 2.0\n";
+        try {
+            std::ofstream f(dest);
+            if (!f.is_open()) return {false, "не удалось создать файл"};
+            f << EMPTY_SCENE;
+            if (f.fail()) return {false, "ошибка записи"};
+        } catch (const std::exception& e) {
+            return {false, e.what()};
+        }
+        return on_load_scene(fname);
+    }
+
 private:
     s2::SimEngine* engine_;
     s2::VizServer* viz_;
     std::string    scene_path_;
+    std::string    scenes_dir_;
+    s2::SceneLoader::PluginFactory plugin_factory_;
 };
 
 } // anonymous namespace
@@ -300,7 +440,7 @@ int main(int argc, char* argv[]) {
     g_engine = &engine;
 
     // Подключаем обработчик команд от визуализатора (передаём путь к YAML для сохранения)
-    SimEngineCommandAdapter cmd_adapter(&engine, g_viz, scene_path);
+    SimEngineCommandAdapter cmd_adapter(&engine, g_viz, scene_path, plugin_factory);
     if (g_viz) g_viz->set_command_handler(&cmd_adapter);
 
     // Настраиваем GNSS плагины: устанавливаем geo_origin

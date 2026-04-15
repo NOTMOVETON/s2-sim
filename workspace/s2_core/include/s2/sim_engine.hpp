@@ -80,6 +80,21 @@ public:
   }
 
   /**
+   * @brief Заменить статическую геометрию мира и синхронизировать систему коллизий.
+   *
+   * Используется при редактировании сцены в рантайме через редактор.
+   * В отличие от load_world(), не затрагивает агентов и начальные состояния.
+   * @param prims Новый список примитивов статической геометрии
+   */
+  void update_static_geometry(const std::vector<WorldPrimitive>& prims)
+  {
+    world_.static_geometry().clear();
+    for (const auto& p : prims)
+      world_.add_static_primitive(p);
+    collision_system_.set_static_geometry(world_.static_geometry());
+  }
+
+  /**
    * @brief Установить указатель на визуализатор (не владеет).
    * @param viz Указатель на VizServer
    */
@@ -410,9 +425,12 @@ private:
       agent.state.resolve();
 
       // 3e. плагины (DiffDrive, GNSS, IMU, Lidar и т.д.)
-      // вызываются до кинематики, чтобы они могли установить velocity
+      // вызываются до кинематики, чтобы они могли установить velocity.
+      // Перед update() передаём CollisionSystem (GravityPlugin использует её
+      // для find_support_surface; остальные плагины игнорируют вызов).
       for (auto& plugin : agent.plugins)
       {
+          plugin->set_collision_system(&collision_system_);
           plugin->update(dt_, agent);
       }
 

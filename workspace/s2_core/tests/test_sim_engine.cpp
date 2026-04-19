@@ -66,6 +66,9 @@ TEST(SimEngineTest, AddAgents_Step1_AllPresent)
 }
 
 // --- Тест: resolver вызывается каждый тик, contributions очищаются ---
+// Новая семантика: clear_contributions() очищает списки, но НЕ сбрасывает effective_.
+// effective_ сохраняется для build_snapshot() между тиками.
+// Следующий resolve() с пустыми списками вернёт дефолты.
 
 TEST(SimEngineTest, ResolverCalledContributionsCleared)
 {
@@ -73,7 +76,7 @@ TEST(SimEngineTest, ResolverCalledContributionsCleared)
 
   Agent agent{.id = 1, .name = "test_agent"};
 
-  // Добавляем contribution перед шагом
+  // Добавляем contribution перед шагом (до load_world — ни одна зона их не перезатрёт)
   agent.state.add_scale(0.5, "test_scale");
   agent.state.add_lock(true, "test_lock");
 
@@ -88,20 +91,26 @@ TEST(SimEngineTest, ResolverCalledContributionsCleared)
   EXPECT_EQ(p->state.scale_contrib_count(), 1u);
   EXPECT_EQ(p->state.lock_contrib_count(), 1u);
 
-  // Выполняем шаг
+  // Выполняем шаг: resolve() вычисляет effective из pre-loaded contributions,
+  // затем clear_contributions() очищает списки, effective_ остаётся
   engine.step(1);
 
-  // После шага contributions очищены
+  // Списки очищены
   EXPECT_EQ(p->state.scale_contrib_count(), 0u);
   EXPECT_EQ(p->state.lock_contrib_count(), 0u);
 
-  // effective() вернул значения по умолчанию
+  // effective_ хранит результат последнего resolve() (pre-loaded contributions)
   const auto& eff = p->state.effective();
-  EXPECT_DOUBLE_EQ(eff.speed_scale, 1.0);
-  EXPECT_FALSE(eff.motion_locked);
+  EXPECT_DOUBLE_EQ(eff.speed_scale, 0.5);
+  EXPECT_TRUE(eff.motion_locked);
+
+  // Второй шаг: зоны не добавляют contributions → resolve() вычислит дефолты
+  engine.step(1);
+  EXPECT_DOUBLE_EQ(p->state.effective().speed_scale, 1.0);
+  EXPECT_FALSE(p->state.effective().motion_locked);
 }
 
-// --- Тест: contributions вычисляются через resolver ---
+// --- Тест: contributions вычисляются через resolver, effective_ сохраняется ---
 
 TEST(SimEngineTest, ContributionsResolved)
 {
@@ -109,7 +118,7 @@ TEST(SimEngineTest, ContributionsResolved)
 
   Agent agent{.id = 1, .name = "resolver_test"};
 
-  // Добавляем несколько scale contributions
+  // Добавляем несколько scale contributions (pre-load до step)
   agent.state.add_scale(0.5, "source_a");
   agent.state.add_scale(0.8, "source_b");
   agent.state.add_velocity_addition(Vec3(1.0, 2.0, 3.0), "conveyor");
@@ -118,17 +127,20 @@ TEST(SimEngineTest, ContributionsResolved)
   world.add_agent(std::move(agent));
   engine.load_world(std::move(world));
 
-  // step(1) вызовет resolve() + clear_contributions()
+  // step(1): resolve() вычислит effective из pre-loaded contributions,
+  // clear_contributions() очистит списки, effective_ останется
   engine.step(1);
 
-  // После step contributions уже очищены, но effective должен быть вычислен
-  // ПЕРЕД clear_contributions effective заполняется resolver-ом
-  // НО после clear_contributions effective сбрасывается к default
-  // Это ожидаемое поведение — проверяем что clear_contributions сбрасывает
   const auto* p = engine.world().get_agent(1);
   ASSERT_NE(p, nullptr);
+
+  // Списки очищены
   EXPECT_EQ(p->state.scale_contrib_count(), 0u);
-  EXPECT_EQ(p->state.effective().speed_scale, 1.0);  // сброшен после clear
+  EXPECT_EQ(p->state.additive_contrib_count(), 0u);
+
+  // effective_ хранит результат resolve() этого тика: 0.5 * 0.8 = 0.4
+  EXPECT_NEAR(p->state.effective().speed_scale, 0.4, 1e-9);
+  EXPECT_NEAR(p->state.effective().velocity_addition.x(), 1.0, 1e-9);
 }
 
 // --- Тест: dt при разных update_rate ---

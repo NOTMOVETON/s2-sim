@@ -302,9 +302,12 @@ public:
   }
 
   /**
-   * @brief Очистить все contributions перед новым тиком.
+   * @brief Очистить сырые contributions перед новым тиком.
    *
-   * Effective values сбрасываются к значениям по умолчанию.
+   * effective_ НЕ сбрасывается — остаётся валидным до следующего resolve().
+   * Это позволяет build_snapshot() читать корректные значения между тиками.
+   * resolve() всегда пересчитывает effective_ полностью из списков contributions,
+   * поэтому стейл значения не попадут в следующий тик.
    * Single-owner state НЕ очищается — он сохраняется между тиками.
    */
   void clear_contributions()
@@ -312,7 +315,6 @@ public:
     scale_contribs_.clear();
     additive_contribs_.clear();
     lock_contribs_.clear();
-    effective_ = EffectiveConstraints{};
   }
 
   /**

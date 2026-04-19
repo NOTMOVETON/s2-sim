@@ -17,9 +17,13 @@ void ZoneSystem::add_zone(Zone zone)
                 desc.plugin = effect_factory_(desc.type, desc.params);
                 if (desc.plugin) {
                     desc.plugin->on_init(desc.params);
-                    // Синхронизировать effect_type и required_capabilities из плагина
-                    desc.effect_type          = desc.plugin->effect_type();
-                    desc.required_capabilities = desc.plugin->required_capabilities();
+                    // effect_type всегда берётся из плагина
+                    desc.effect_type = desc.plugin->effect_type();
+                    // required_capabilities: YAML имеет приоритет над дефолтом плагина.
+                    // Если YAML не указал capabilities (пустой список) — берём из плагина.
+                    if (desc.required_capabilities.empty()) {
+                        desc.required_capabilities = desc.plugin->required_capabilities();
+                    }
                 }
             }
         }

@@ -67,9 +67,12 @@ public:
         }
 
         // Применить speed_scale (лёд замедляет, boost ускоряет).
+        // Масштабируем обе компоненты: трение влияет и на линейное, и на угловое движение.
         // После умножения повторно ограничиваем аппаратным лимитом.
-        clamped_linear *= eff.speed_scale;
-        clamped_linear = std::clamp(clamped_linear, -max_linear_, max_linear_);
+        clamped_linear  *= eff.speed_scale;
+        clamped_angular *= eff.speed_scale;
+        clamped_linear  = std::clamp(clamped_linear,  -max_linear_,  max_linear_);
+        clamped_angular = std::clamp(clamped_angular, -max_angular_, max_angular_);
 
         agent.world_velocity.linear = Vec3{clamped_linear, 0.0, 0.0};
         agent.world_velocity.angular = Vec3{0.0, 0.0, clamped_angular};

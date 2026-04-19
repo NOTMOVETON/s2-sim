@@ -4,7 +4,7 @@ s2:
   transport_rate: 100
 
   transport:
-    type: ros2
+    type: stub
 
   visualizer:
     enabled: true
@@ -15,10 +15,11 @@ s2:
     geometry:
       - type: "box"
         pose: {x: 0, y: 0, z: -0.025}
-        size: {x: 20.0, y: 20.0, z: 0.05}
+        size: {x: 40.0, y: 40.0, z: 0.05}
         color: "#222222"
 
   agents:
+    # robot_0 — surface_contact: реагирует на лёд, буст, конвейер
     - name: "robot_0"
       pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
       capabilities:
@@ -31,27 +32,117 @@ s2:
         type: "box"
         size: [0.8, 0.5, 0.3]
         color: "#FF6B35"
-      
       plugins:
         - type: "diff_drive"
-          max_linear: 2.0
-          max_angular: 1.0
+          max_linear_vel: 2.0
+          max_angular_vel: 1.5
+        - type: "gravity"
+
+    # robot_1 — без surface_contact: лёд/буст/конвейер не действуют, ветер и стоп — да
+    - name: "robot_1"
+      pose: {x: 0.0, y: -3.0, z: 0.0, yaw: 0.0}
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#44AAFF"
+      plugins:
+        - type: "diff_drive"
+          max_linear_vel: 2.0
+          max_angular_vel: 1.5
+        - type: "gravity"
 
   zones:
+    # Зона льда: замедляет до 20% скорости
+    # required_capabilities переопределяет дефолт плагина (surface_contact)
     - id: "ice_patch"
       shape:
         type: aabb
-        center: {x: 3.0, y: 0.0, z: 0.5}
-        half_size: {x: 2.0, y: 2.0, z: 1.0}
+        center: {x: 5.0, y: 0.0, z: 0.5}
+        half_size: {x: 3.0, y: 3.0, z: 1.0}
       color: "#4488FF"
       opacity: 0.3
-      label: "Лёд"
+      label: "Лёд (×0.2)"
+      effects:
+        - type: ice_modifier
+          required_capabilities: ["surface_contact"]
+          params:
+            traction_coefficient: 0.2
+            noise_amplitude: 0.0
 
+    # Зона буста: ускоряет до 180%
+    - id: "speed_corridor"
+      shape:
+        type: aabb
+        center: {x: -5.0, y: 0.0, z: 0.5}
+        half_size: {x: 2.0, y: 4.0, z: 1.0}
+      color: "#44FF88"
+      opacity: 0.3
+      label: "Буст (×1.8)"
+      effects:
+        - type: boost_zone
+          required_capabilities: ["surface_contact"]
+          params:
+            speed_multiplier: 1.8
+
+    # Запретная зона: блокирует оба робота
+    # required_capabilities не указан — эффект действует на всех
+    - id: "danger_zone"
+      shape:
+        type: sphere
+        center: {x: 0.0, y: 5.0, z: 0.0}
+        radius: 2.0
+      color: "#FF2222"
+      opacity: 0.4
+      label: "Стоп"
+      effects:
+        - type: motion_lock
+          params:
+            source_label: "danger"
+
+    # Конвейерная лента: движение по +X, длинная сторона вдоль оси движения
+    # required_capabilities: только robot_0 (surface_contact), robot_1 проезжает насквозь
+    - id: "conveyor_main"
+      shape:
+        type: aabb
+        center: {x: 3.0, y: 10.0, z: 0.5}
+        half_size: {x: 5.0, y: 2.0, z: 1.0}
+      color: "#FF8800"
+      opacity: 0.35
+      label: "Конвейер →"
+      effects:
+        - type: conveyor
+          required_capabilities: ["surface_contact"]
+          params:
+            direction: {x: 1.0, y: 0.0, z: 0.0}
+            speed: 1.0
+
+    # Ветровая зона: сносит всех (+Y), с порывами
+    # required_capabilities не указан — ветер действует на оба робота
+    - id: "outdoor_wind"
+      shape:
+        type: aabb
+        center: {x: -8.0, y: 0.0, z: 0.5}
+        half_size: {x: 3.0, y: 5.0, z: 1.0}
+      color: "#AADDFF"
+      opacity: 0.2
+      label: "Ветер"
+      effects:
+        - type: wind
+          params:
+            wind_vector: {x: 0.0, y: 0.5, z: 0.0}
+            gust_amplitude: 0.2
+            gust_frequency: 0.3
+
+    # Зарядная станция (эффект будет в задаче 26)
     - id: "charging_station"
       shape:
         type: cylinder
-        center: {x: -4.0, y: 0.0, z: 0.5}
-        radius: 1.0
+        center: {x: 0.0, y: -7.0, z: 0.5}
+        radius: 1.5
         half_height: 1.0
       color: "#FFDD44"
       opacity: 0.4

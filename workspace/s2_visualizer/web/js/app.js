@@ -393,6 +393,23 @@ function updateSidePanel(agent) {
     document.getElementById('sp-vy').textContent = (agent.velocity?.vy || 0).toFixed(3);
     document.getElementById('sp-wz').textContent = (agent.velocity?.wz || 0).toFixed(3);
 
+    // Аддитивная скорость от зон (конвейер, ветер)
+    const addVx = agent.velocity_addition?.vx || 0;
+    const addVy = agent.velocity_addition?.vy || 0;
+    const hasAdditive = Math.abs(addVx) > 0.001 || Math.abs(addVy) > 0.001;
+    document.getElementById('sp-additive-row').style.display = hasAdditive ? '' : 'none';
+    document.getElementById('sp-add-vx').textContent = addVx.toFixed(3);
+    document.getElementById('sp-add-vy').textContent = addVy.toFixed(3);
+
+    // Масштаб скорости от зон (лёд, буст)
+    const speedScale = agent.effective_speed_scale ?? 1.0;
+    const hasScale = Math.abs(speedScale - 1.0) > 0.01;
+    document.getElementById('sp-scale-row').style.display = hasScale ? '' : 'none';
+    document.getElementById('sp-speed-scale').textContent = speedScale.toFixed(2);
+
+    // Блокировка движения
+    document.getElementById('sp-lock-row').style.display = agent.motion_locked ? '' : 'none';
+
     // Сбрасываем состояние при смене агента
     pluginAccordionState = {};
     updatePluginAccordion(agent.id);
@@ -1554,11 +1571,14 @@ function updateScene(data) {
                 return;
             }
 
-            // Центр зоны: [x, y, z] в симуляции → Three.js (Y-up)
+            // Центр зоны в симуляционных координатах (x, y, z).
+            // updateOrCreateMesh сам выполняет трансформацию sim→Three.js:
+            //   position.set(pose.x, pose.z, -pose.y)
+            // Поэтому передаём sim-координаты напрямую, без предварительной конвертации.
             const cx = Array.isArray(z.center) ? z.center[0] : 0;
             const cy = Array.isArray(z.center) ? z.center[1] : 0;
             const cz = Array.isArray(z.center) ? z.center[2] : 0;
-            const pose = { x: cx, y: cz, z: -cy, yaw: 0, pitch: 0, roll: 0 };
+            const pose = { x: cx, y: cy, z: cz, yaw: 0, pitch: 0, roll: 0 };
 
             const color = z.color || '#4488FF';
             const opacity = (z.opacity !== undefined) ? z.opacity : 0.3;
@@ -1571,10 +1591,13 @@ function updateScene(data) {
                 );
             } else if (z.shape_type === 'aabb') {
                 const hs = Array.isArray(z.half_size) ? z.half_size : [2, 2, 2];
-                // half_size хранит удвоенные значения (full extents) после сериализации
-                const sx = hs[0];
-                const sy = hs[2];  // ось Z симуляции → Y Three.js
-                const sz = hs[1];  // ось Y симуляции → Z Three.js
+                // half_size хранит удвоенные значения (full extents) после сериализации.
+                // createGeometry сам выполняет трансформацию sim→Three.js:
+                //   BoxGeometry(size.x, size.z, size.y) → (sim_x, sim_z→Y, sim_y→Z)
+                // Поэтому передаём sim-координаты напрямую без предварительного свопа.
+                const sx = hs[0];  // full X (sim X)
+                const sy = hs[1];  // full Y (sim Y)
+                const sz = hs[2];  // full Z (sim Z)
                 updateOrCreateMesh(key, 'box', pose,
                     { type: 'box', size: [sx, sy, sz], color },
                     { transparent: true, opacity, depthWrite: false, side: 'double' }

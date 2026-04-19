@@ -380,7 +380,25 @@ Z push-out предотвращает проваливание, XY push-out не
 
 ZoneShapeType::CYLINDER, EffectPlugin интерфейс, ZoneSystem, ZoneSnapshot, SceneLoader парсинг зон, интеграция в SimEngine. 11 тестов.
 
-### Задача 24 — IceModifier, BoostZone, MotionLockZone ✅ ЗАВЕРШЕНА
+### Задача 25 + пост-релизные улучшения ✅ ЗАВЕРШЕНЫ
+
+**Задача 25 — ConveyorEffect, WindEffect + velocity_addition:**
+- `sim_engine.hpp` фаза 3f: `(world_vel + additive) * dt`, Z тоже
+- `conveyor_effect.hpp` — MODIFIER, "surface_contact", `direction`+`speed`
+- `wind_effect.hpp` — MODIFIER без capabilities, порывы через sin
+- Зарегистрированы в `effects_registry.cpp`
+- 7 тестов в `test_effect_velocity_addition.cpp`
+
+**Пост-релизные улучшения:**
+- `zone_system.cpp`: YAML `required_capabilities` имеют приоритет над дефолтом плагина (раньше плагин всегда перезаписывал)
+- `shared_state.hpp`: `clear_contributions()` больше не сбрасывает `effective_` — снапшот теперь видит реальные значения между тиками
+- `world_snapshot.hpp/cpp`: поле `velocity_addition` в `AgentSnapshot`; `effective_speed_scale` и `motion_locked` читаются из реального состояния
+- `sim_engine.hpp build_snapshot()`: заполняет все три поля из `agent.state.effective()`
+- `index.html` + `app.js`: три индикатора в боковой панели — `+Vx/Vy (зона)` (оранжевый), `×скорость (зона)` (синий), `Движение заблокировано` (красный); отображаются только при активном эффекте
+- `test_zones.yaml`: явные `required_capabilities` на каждом эффекте, расширенная зона конвейера
+- Обновлены 3 теста под новую семантику `clear_contributions()`
+
+### Задача 24 — IceModifier, BoostZone, MotionLockZone ✅ ЗАВЕРШЕНА (включая баг-фиксы)
 
 - **`workspace/s2_plugins/include/s2/effects/ice_modifier.hpp`** — IceModifier (замедление через traction_coefficient, детерминированный шум)
 - **`workspace/s2_plugins/include/s2/effects/boost_zone.hpp`** — BoostZone (ускорение через speed_multiplier)
@@ -388,9 +406,18 @@ ZoneShapeType::CYLINDER, EffectPlugin интерфейс, ZoneSystem, ZoneSnapsh
 - **`workspace/s2_plugins/include/s2/effects_registry.hpp`** + **`src/effects_registry.cpp`** — фабрика `s2::create_effect(type, params)`
 - **`sim_engine.hpp`**: `set_effect_factory()` + `effect_factory_` поле; в `load_world()` вызывается `zone_system_.set_effect_factory(effect_factory_)` до `add_zone()`
 - **`main.cpp`**: `engine.set_effect_factory(s2::create_effect)` до `load_world()`
-- **`diff_drive.hpp`**: читает `effective().motion_locked` и `effective().speed_scale`; при lock → `Vec3::Zero()` и ранний return; иначе `clamped_linear *= speed_scale`
+- **`diff_drive.hpp`**: читает `effective().motion_locked` и `effective().speed_scale`; при lock → `Vec3::Zero()` и ранний return; иначе `clamped_linear *= speed_scale`, `clamped_angular *= speed_scale`
 - **`test_effect_modifier.cpp`**: 9 тестов (IceModifier_SlowsAgent, NoCapability, NoiseAmplitude, BoostZone_SpeedsUpAgent, MotionLock_BlocksMovement, TwoModifiers_Combined, MotionLock_StopsRegardlessOfBoost, DiffDrive_ReadsEffectiveScale, DiffDrive_MotionLocked)
+- **`workspace/s2_config/scenes/test_zones.yaml`**: тестовая сцена (transport: stub, два робота — robot_0 с surface_contact, robot_1 без; зоны ice/boost/lock/charging)
 - **2/2 test suites, 100% тестов проходят**
+
+#### Баги, найденные при интеграционном тестировании (пост-релиз)
+
+**Угловая скорость не масштабировалась на льду**: в `diff_drive.hpp` `speed_scale` применялся только к `clamped_linear`. Исправлено: добавлено `clamped_angular *= eff.speed_scale` + повторный clamp.
+
+**Зоны отображались в неверных позициях по высоте**: в `app.js` зоны строили `pose = {x:cx, y:cz, z:-cy}` (pre-трансформация sim→Three.js), но `updateOrCreateMesh` уже делает ту же трансформацию (`position.set(pose.x, pose.z, -pose.y)`). Двойная трансформация давала неверные координаты. Исправлено: зоны теперь передают sim-координаты напрямую `{x:cx, y:cy, z:cz}`.
+
+**Зоны AABB срабатывали не там где видно / скорость долго восстанавливалась после выхода**: в `app.js` при рендере AABB размеры Y и Z переставлялись местами дважды: сначала в коде зоны (`sy=hs[2], sz=hs[1]`), затем в `createGeometry` (`BoxGeometry(size.x, size.z, size.y)`). Итог: физическая зона и визуальная имели разные пропорции. Исправлено: передаём `[hs[0], hs[1], hs[2]]` напрямую, `createGeometry` делает один правильный своп.
 
 ### Фича 22 — LidarPlugin ✅ ЗАВЕРШЕНА (включая баг-фиксы 22.2)
 
@@ -432,7 +459,7 @@ ZoneShapeType::CYLINDER, EffectPlugin интерфейс, ZoneSystem, ZoneSnapsh
 
 - `docs/23-zone-infrastructure.md` — ZoneShape CYLINDER, EffectPlugin, ZoneSystem, ZoneSnapshot ✅ РЕАЛИЗОВАНО
 - `docs/24-effect-ice-boost-lock.md` — IceModifier, BoostZone, MotionLockZone + фабрика ✅ РЕАЛИЗОВАНО
-- `docs/25-effect-conveyor-wind.md` — ConveyorEffect, WindEffect + velocity_addition в кинематике
+- `docs/25-effect-conveyor-wind.md` — ConveyorEffect, WindEffect + velocity_addition в кинематике ✅ РЕАЛИЗОВАНО
 - `docs/26-effect-charging.md` — ChargingEffect, BatteryComponent
 - `docs/27-effect-tire-puncture.md` — TirePunctureEffect, TirePunctureData
 - `docs/28-effect-teleport.md` — TeleportEffect, PendingTeleport, on_agent_exit callback

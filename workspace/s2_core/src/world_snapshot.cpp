@@ -57,6 +57,11 @@ nlohmann::json agent_snapshot_to_json(const AgentSnapshot& agent) {
     j["name"] = agent.name;
     j["pose"] = pose_to_json(agent.pose);
     j["velocity"] = velocity_to_json(agent.velocity);
+    j["velocity_addition"] = {
+        {"vx", agent.velocity_addition.x()},
+        {"vy", agent.velocity_addition.y()},
+        {"vz", agent.velocity_addition.z()}
+    };
     j["visual"] = visual_to_json(agent.visual);
     j["color"] = agent.visual.color;
     j["battery_level"] = agent.battery_level;

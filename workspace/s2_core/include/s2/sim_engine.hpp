@@ -333,10 +333,11 @@ public:
       as.name = agent.name;
       as.pose = agent.world_pose;
       as.velocity = agent.world_velocity;
+      as.velocity_addition = agent.state.effective().velocity_addition;
       as.visual = agent.visual;
       as.battery_level = 100.0;
-      as.effective_speed_scale = 1.0;
-      as.motion_locked = false;
+      as.effective_speed_scale = agent.state.effective().speed_scale;
+      as.motion_locked = agent.state.effective().motion_locked;
 
       // Коллизионный шейп для визуализации
       as.has_collision = agent.has_collision;
@@ -533,10 +534,15 @@ private:
       Vec3 body_vel{local_vx, local_vy, 0.0};
       Vec3 world_vel = R * body_vel;
 
-      agent.world_pose.x += world_vel.x() * dt_;
-      agent.world_pose.y += world_vel.y() * dt_;
-      // Z управляется GravityPlugin (позиционный контроль), не кинематикой
-      agent.world_pose.z += agent.world_velocity.linear.z() * dt_;
+      // Применяем аддитивную скорость от зон (конвейер, ветер и т.п.).
+      // Задаётся в мировых координатах и суммируется поверх actuation.
+      const Vec3& additive = agent.state.effective().velocity_addition;
+
+      agent.world_pose.x += (world_vel.x() + additive.x()) * dt_;
+      agent.world_pose.y += (world_vel.y() + additive.y()) * dt_;
+      // Z управляется GravityPlugin (позиционный контроль), не кинематикой;
+      // additive.z() добавляется для воздушных зон
+      agent.world_pose.z += (agent.world_velocity.linear.z() + additive.z()) * dt_;
       agent.world_pose.yaw += wz * dt_;
 
       // Нормализация yaw в диапазон [0, 2π)

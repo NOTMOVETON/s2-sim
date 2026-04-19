@@ -2,18 +2,62 @@
 
 ## Текущая работа
 
-### Задача 24 — IceModifier, BoostZone, MotionLockZone ✅ ЗАВЕРШЕНА
+### Задача 25 + пост-релизные улучшения ✅ ЗАВЕРШЕНЫ
 
 Все тесты проходят (2/2 test suites, 100%).
 
+**Задача 25 — ConveyorEffect, WindEffect + velocity_addition:**
+- `sim_engine.hpp` фаза 3f: `(world_vel + additive) * dt`, Z тоже поддерживает additive.
+- `conveyor_effect.hpp` — MODIFIER, "surface_contact", `direction` + `speed`.
+- `wind_effect.hpp` — MODIFIER без capabilities, порывы через sin.
+- `effects_registry.cpp` — типы `"conveyor"` и `"wind"`.
+- 7 тестов в `test_effect_velocity_addition.cpp`.
+
+**Пост-релизные улучшения (сессия после задачи 25):**
+
+1. **YAML `required_capabilities` имеют приоритет над плагином** (`zone_system.cpp`):
+   - Раньше плагин всегда перезаписывал capabilities из YAML.
+   - Теперь: если YAML указал `required_capabilities` — берётся из YAML; иначе — дефолт плагина.
+   - Позволяет переопределять кому действует эффект прямо в сцене.
+
+2. **Отображение зональных эффектов в боковой панели UI** (`index.html`, `app.js`):
+   - `+Vx / +Vy (зона)` — оранжевый, конвейер/ветер. Появляется только при ненулевом additive.
+   - `×скорость (зона)` — синий, множитель (лёд/буст). Появляется при отклонении от 1.0.
+   - `Движение заблокировано` — красный, `motion_lock`. Появляется при блокировке.
+
+3. **Фикс `AgentSnapshot`** (`world_snapshot.hpp`, `world_snapshot.cpp`, `sim_engine.hpp`):
+   - `velocity_addition` — добавлено поле, читается из `agent.state.effective()`.
+   - `effective_speed_scale` и `motion_locked` — теперь читаются из реального состояния, а не захардкожены.
+
+4. **Фикс `clear_contributions()`** (`shared_state.hpp`):
+   - Раньше сбрасывал `effective_` к дефолтам — снапшот всегда видел нули.
+   - Теперь очищает только сырые списки; `effective_` сохраняется до следующего `resolve()`.
+   - Обновлены 3 теста: `ClearContributionsKeepsEffective`, `ResolverCalledContributionsCleared`, `ContributionsResolved`.
+
+5. **Тестовая сцена `test_zones.yaml`**:
+   - Явные `required_capabilities` на каждом эффекте для самодокументирования.
+   - Конвейер расширен по оси движения (half_size.x: 5.0), скорость снижена до 1.0 м/с.
+
+**Следующий шаг:** реализовать задачу 26 (ChargingEffect, BatteryComponent).
+
+### Задача 24 — IceModifier, BoostZone, MotionLockZone ✅ ЗАВЕРШЕНА (включая баг-фиксы)
+
+Все тесты проходят (2/2 test suites, 100%). Задача полностью завершена.
+
 **Что реализовано:**
-- `IceModifier` (workspace/s2_plugins/include/s2/effects/ice_modifier.hpp) — MODIFIER, требует "surface_contact", `traction_coefficient`, детерминированный шум через sin
-- `BoostZone` (workspace/s2_plugins/include/s2/effects/boost_zone.hpp) — MODIFIER, `speed_multiplier`, требует "surface_contact"
-- `MotionLockZone` (workspace/s2_plugins/include/s2/effects/motion_lock_zone.hpp) — MODIFIER, `add_lock`, применяется ко всем
-- `s2::create_effect()` (workspace/s2_plugins/include/s2/effects_registry.hpp + src/effects_registry.cpp) — фабрика эффектов
-- `SimEngine::set_effect_factory()` + `effect_factory_` поле — фабрика передаётся в zone_system_ при каждом load_world()
-- `DiffDrivePlugin::update()` — читает `effective().motion_locked` и `effective().speed_scale`
+- `IceModifier` — MODIFIER, требует "surface_contact", `traction_coefficient`, детерминированный шум через sin
+- `BoostZone` — MODIFIER, `speed_multiplier`, требует "surface_contact"
+- `MotionLockZone` — MODIFIER, `add_lock`, применяется ко всем
+- `s2::create_effect()` — фабрика эффектов
+- `SimEngine::set_effect_factory()` — фабрика передаётся в zone_system_ при каждом load_world()
+- `DiffDrivePlugin::update()` — читает `effective().motion_locked` и `effective().speed_scale`; масштабирует обе компоненты (linear + angular)
 - 9 тестов в `test_effect_modifier.cpp`
+- Тестовая сцена `test_zones.yaml`
+
+**Баги исправлены при интеграционном тестировании:**
+- `diff_drive.hpp`: угловая скорость теперь тоже масштабируется на льду (`clamped_angular *= speed_scale`)
+- `app.js`: зоны передавали pre-трансформированные координаты в `updateOrCreateMesh`, которая трансформировала их снова — двойной своп давал неверные позиции. Исправлено: передаём sim-координаты напрямую.
+- `app.js`: AABB размеры Y/Z менялись местами дважды (в зоне и в `createGeometry`), из-за чего физическая зона не совпадала с визуальной — агент "проваливался" в зону раньше/позже чем видно. Исправлено: передаём raw sim-размеры, `createGeometry` делает один своп.
 
 **Следующий шаг:** реализовать задачу 25 (ConveyorEffect, WindEffect + velocity_addition в кинематике).
 

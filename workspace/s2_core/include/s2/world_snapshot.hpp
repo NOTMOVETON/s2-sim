@@ -21,7 +21,8 @@ struct AgentSnapshot {
     AgentId id;
     std::string name;
     Pose3D pose;
-    Velocity velocity;
+    Velocity velocity;          ///< Скорость тела (actuation, локальные координаты)
+    Vec3 velocity_addition;     ///< Аддитивная скорость от зон (мировые координаты)
     VisualDesc visual;
     double battery_level = 100.0;
     double effective_speed_scale = 1.0;

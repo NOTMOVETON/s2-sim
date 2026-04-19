@@ -284,7 +284,12 @@ TEST(SharedState, AdditiveMultiple)
 // clear_contributions()
 // ============================================================================
 
-TEST(SharedState, ClearContributionsResetsEffective)
+// clear_contributions() очищает сырые списки, но НЕ сбрасывает effective_.
+// Это необходимо, чтобы build_snapshot() мог читать корректные значения
+// между тиками (после clear, но до следующего resolve).
+// resolve() всегда пересчитывает effective_ полностью из свежих списков,
+// поэтому стейл значения не влияют на следующий тик.
+TEST(SharedState, ClearContributionsKeepsEffective)
 {
   SharedState state;
   state.add_scale(0.5, "battery");
@@ -292,15 +297,24 @@ TEST(SharedState, ClearContributionsResetsEffective)
   state.add_velocity_addition(Vec3(1.0, 0.0, 0.0), "conveyor");
   state.resolve();
 
-  // Проверяем, что contributions установлены
+  // После resolve effective отражает contributions
   EXPECT_NEAR(state.effective().speed_scale, 0.5, 1e-10);
   EXPECT_TRUE(state.effective().motion_locked);
   EXPECT_NEAR(state.effective().velocity_addition.x(), 1.0, 1e-10);
 
-  // Очищаем
+  // Очищаем — списки обнуляются, effective_ сохраняется
   state.clear_contributions();
 
-  // Effective сброшены к дефолтам
+  EXPECT_EQ(state.scale_contrib_count(), 0u);
+  EXPECT_EQ(state.additive_contrib_count(), 0u);
+
+  // effective_ остаётся с прошлого resolve() — не сброшен к дефолтам
+  EXPECT_NEAR(state.effective().speed_scale, 0.5, 1e-10);
+  EXPECT_TRUE(state.effective().motion_locked);
+  EXPECT_NEAR(state.effective().velocity_addition.x(), 1.0, 1e-10);
+
+  // Следующий resolve() с пустыми списками вернёт дефолты
+  state.resolve();
   EXPECT_DOUBLE_EQ(state.effective().speed_scale, 1.0);
   EXPECT_FALSE(state.effective().motion_locked);
   EXPECT_EQ(state.effective().velocity_addition, Vec3::Zero());

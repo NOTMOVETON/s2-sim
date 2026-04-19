@@ -2,14 +2,24 @@
 
 ## Текущая работа
 
-### Задача-дизайн: зоны, эффекты, акторы (задачи 23–36) — документация написана
+### Задача 24 — IceModifier, BoostZone, MotionLockZone ✅ ЗАВЕРШЕНА
 
-Написаны 14 подробных task-файлов в `docs/23-*.md` — `docs/36-*.md`.
-Покрыты: инфраструктура зон, 6 типов эффектов, UI зон, визуальные FX,
-сенсорные эффекты, 4 типа акторов, пропы и лифт. Ни один из этих файлов
-ещё **не реализован** — это только проектная документация.
+Все тесты проходят (2/2 test suites, 100%).
 
-Следующий шаг: реализовать задачу 23 (Zone Infrastructure) как первый шаг.
+**Что реализовано:**
+- `IceModifier` (workspace/s2_plugins/include/s2/effects/ice_modifier.hpp) — MODIFIER, требует "surface_contact", `traction_coefficient`, детерминированный шум через sin
+- `BoostZone` (workspace/s2_plugins/include/s2/effects/boost_zone.hpp) — MODIFIER, `speed_multiplier`, требует "surface_contact"
+- `MotionLockZone` (workspace/s2_plugins/include/s2/effects/motion_lock_zone.hpp) — MODIFIER, `add_lock`, применяется ко всем
+- `s2::create_effect()` (workspace/s2_plugins/include/s2/effects_registry.hpp + src/effects_registry.cpp) — фабрика эффектов
+- `SimEngine::set_effect_factory()` + `effect_factory_` поле — фабрика передаётся в zone_system_ при каждом load_world()
+- `DiffDrivePlugin::update()` — читает `effective().motion_locked` и `effective().speed_scale`
+- 9 тестов в `test_effect_modifier.cpp`
+
+**Следующий шаг:** реализовать задачу 25 (ConveyorEffect, WindEffect + velocity_addition в кинематике).
+
+### Задача 23 — Инфраструктура зон ✅ ЗАВЕРШЕНА
+
+ZoneShapeType::CYLINDER, EffectPlugin интерфейс, ZoneSystem с enter/exit detection, ZoneSnapshot, SceneLoader парсинг зон, интеграция в SimEngine. 11 тестов.
 
 ---
 

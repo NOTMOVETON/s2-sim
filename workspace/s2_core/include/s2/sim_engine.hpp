@@ -18,6 +18,7 @@
 #include <s2/sim_bus.hpp>
 #include <s2/world.hpp>
 #include <s2/world_snapshot.hpp>
+#include <s2/zone_system.hpp>
 #include <nlohmann/json.hpp>
 
 #include <thread>
@@ -79,6 +80,13 @@ public:
     // Передаём статическую геометрию в систему коллизий и raycast
     collision_system_.set_static_geometry(world_.static_geometry());
     raycast_engine_.set_static_geometry(world_.static_geometry());
+    // Инициализируем ZoneSystem из зон мира
+    zone_system_ = ZoneSystem{};
+    if (effect_factory_)
+      zone_system_.set_effect_factory(effect_factory_);
+    for (auto& zone : world_.zones())
+      zone_system_.add_zone(std::move(zone));
+    world_.zones().clear();
   }
 
   /**
@@ -95,6 +103,16 @@ public:
       world_.add_static_primitive(p);
     collision_system_.set_static_geometry(world_.static_geometry());
     raycast_engine_.set_static_geometry(world_.static_geometry());
+  }
+
+  /**
+   * @brief Установить фабрику эффектов зон.
+   * Должна быть вызвана ДО load_world(), иначе плагины эффектов не создадутся.
+   * Фабрика сохраняется и применяется при каждом вызове load_world().
+   * @param factory Функция вида unique_ptr<EffectPlugin>(type, params)
+   */
+  void set_effect_factory(EffectFactory factory) {
+    effect_factory_ = std::move(factory);
   }
 
   /**
@@ -235,6 +253,16 @@ public:
   const SimBus& bus() const { return bus_; }
 
   /**
+   * @brief Получить доступ к системе зон.
+   */
+  ZoneSystem& zone_system() { return zone_system_; }
+
+  /**
+   * @brief Получить константный доступ к системе зон.
+   */
+  const ZoneSystem& zone_system() const { return zone_system_; }
+
+  /**
    * @brief Передать входные данные конкретному плагину агента.
    * @param agent_id ID агента
    * @param plugin_type Тип плагина (напр. "diff_drive")
@@ -358,6 +386,25 @@ public:
       snap.actors.push_back(acs);
     }
 
+    // Зоны
+    for (const auto& zone : zone_system_.all_zones()) {
+      if (!zone.visible) continue;
+      ZoneSnapshot zs;
+      zs.id          = zone.id;
+      zs.enabled     = zone.enabled;
+      zs.shape_type  = zone.shape.type;
+      zs.center      = zone.shape.center;
+      zs.radius      = zone.shape.radius;
+      zs.half_size   = zone.shape.half_size;
+      zs.half_height = zone.shape.half_height;
+      zs.color       = zone.color;
+      zs.opacity     = zone.opacity;
+      zs.visible     = zone.visible;
+      zs.label       = zone.label;
+      zs.agents_inside.assign(zone.inside_agents.begin(), zone.inside_agents.end());
+      snap.zones.push_back(std::move(zs));
+    }
+
     // Геометрия
     for (const auto& prim : world_.static_geometry()) {
       GeometrySnapshot gs;
@@ -427,8 +474,8 @@ private:
     // === Фаза 1: Акторы (FSM transitions) ===
     // Пока пусто — будет в задаче 07
 
-    // === Фаза 2: Зоны (проверка входов/выходов) ===
-    // Пока пусто — будет в задаче 03
+    // === Фаза 2: Зоны (проверка входов/выходов и применение эффектов) ===
+    zone_system_.tick(world_.agents(), world_.actors(), bus_, sim_time_, dt_);
 
     // === Фаза 3: Для каждого агента ===
     for (auto& agent : world_.agents())
@@ -666,8 +713,10 @@ private:
   };
   std::map<AgentId, AgentInitialState> initial_states_;
 
-  CollisionSystem collision_system_;  ///< Система коллизий (инициализируется при load_world)
-  RaycastEngine   raycast_engine_;    ///< Движок лучей (инициализируется при load_world)
+  CollisionSystem       collision_system_;  ///< Система коллизий (инициализируется при load_world)
+  RaycastEngine         raycast_engine_;   ///< Движок лучей (инициализируется при load_world)
+  ZoneSystem            zone_system_;      ///< Система зон и эффектов (инициализируется при load_world)
+  EffectFactory             effect_factory_;  ///< Фабрика плагинов эффектов (задаётся до load_world)
 
   VizServer* viz_server_ = nullptr;
   double viz_timer_{0.0};

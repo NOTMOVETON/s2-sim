@@ -12,6 +12,7 @@
 #include <s2/world.hpp>
 #include <s2/geo_origin.hpp>
 #include <s2/agent.hpp>
+#include <s2/zone.hpp>
 #include <s2/urdf_loader.hpp>
 #include <yaml-cpp/yaml.h>
 
@@ -48,6 +49,7 @@ struct SceneData {
     std::vector<Agent> agents;
     std::vector<Prop> props;
     std::vector<Actor> actors;
+    std::vector<Zone> zones;
 };
 
 /// Загрузчик сцены из YAML.
@@ -70,6 +72,7 @@ private:
     static Heightmap parse_heightmap(const YAML::Node& node);
     static std::vector<WorldPrimitive> parse_geometry(const YAML::Node& node);
     static GeoOrigin parse_geo_origin(const YAML::Node& node);
+    static ZoneShape parse_zone_shape(const YAML::Node& node);
 };
 
 // ─── Implementation ────────────────────────────────────────────────────
@@ -152,6 +155,16 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
 
             if (agent_node["visual"]) {
                 agent.visual = parse_visual(agent_node["visual"]);
+            }
+
+            // Capabilities агента (для матчинга с требованиями эффектов зон)
+            if (agent_node["capabilities"]) {
+                const auto& caps = agent_node["capabilities"];
+                if (caps.IsSequence()) {
+                    for (const auto& cap : caps) {
+                        agent.capabilities.insert(cap.as<std::string>());
+                    }
+                }
             }
 
             // Начальная скорость (если задана в конфиге)
@@ -323,6 +336,65 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
         }
     }
 
+    // ── Зоны ──
+    if (const auto& zones_node = root["s2"]["zones"]) {
+        for (const auto& zn : zones_node) {
+            Zone z;
+            z.id             = zn["id"].as<std::string>("");
+            z.enabled        = zn["enabled"].as<bool>(true);
+            z.color          = zn["color"].as<std::string>("#4488FF");
+            z.opacity        = zn["opacity"].as<double>(0.3);
+            z.visible        = zn["visible"].as<bool>(true);
+            z.label          = zn["label"].as<std::string>("");
+            z.detection_mode = zn["detection_mode"].as<std::string>("center");
+
+            if (zn["shape"]) {
+                z.shape = parse_zone_shape(zn["shape"]);
+            }
+
+            // Привязка к актору по имени (ищем в уже загруженных акторах)
+            if (zn["attached_to"]) {
+                std::string attach_name = zn["attached_to"].as<std::string>("");
+                for (const auto& actor : scene.actors) {
+                    if (actor.name == attach_name) {
+                        z.attached_to_actor = actor.id;
+                        break;
+                    }
+                }
+            }
+
+            // Эффекты — без plugin (плагины создаются ZoneSystem через фабрику)
+            if (zn["effects"]) {
+                for (const auto& en : zn["effects"]) {
+                    Zone::EffectDesc desc;
+                    desc.type    = en["type"].as<std::string>("");
+                    desc.enabled = en["enabled"].as<bool>(true);
+
+                    // Тип эффекта
+                    if (en["effect_type"]) {
+                        std::string et = en["effect_type"].as<std::string>("modifier");
+                        if (et == "modifier")   desc.effect_type = EffectType::MODIFIER;
+                        else if (et == "continuous") desc.effect_type = EffectType::CONTINUOUS;
+                        else if (et == "mutation")   desc.effect_type = EffectType::MUTATION;
+                        else if (et == "sensor")     desc.effect_type = EffectType::SENSOR;
+                    }
+
+                    // Capabilities
+                    if (en["required_capabilities"] && en["required_capabilities"].IsSequence()) {
+                        for (const auto& cap : en["required_capabilities"]) {
+                            desc.required_capabilities.push_back(cap.as<std::string>());
+                        }
+                    }
+
+                    desc.params = en["params"] ? en["params"] : YAML::Node{};
+                    z.effects.push_back(std::move(desc));
+                }
+            }
+
+            scene.zones.push_back(std::move(z));
+        }
+    }
+
     return scene;
 }
 
@@ -438,6 +510,42 @@ inline GeoOrigin SceneLoader::parse_geo_origin(const YAML::Node& node) {
     if (node["lon"]) origin.lon = node["lon"].as<double>();
     if (node["alt"]) origin.alt = node["alt"].as<double>(0.0);
     return origin;
+}
+
+inline ZoneShape SceneLoader::parse_zone_shape(const YAML::Node& node) {
+    ZoneShape s;
+    std::string type_str = node["type"].as<std::string>("sphere");
+
+    if (type_str == "sphere") {
+        s.type   = ZoneShapeType::SPHERE;
+        s.radius = node["radius"].as<double>(1.0);
+        if (node["center"]) {
+            const auto& c = node["center"];
+            s.center = Vec3{c["x"].as<double>(0.0), c["y"].as<double>(0.0), c["z"].as<double>(0.0)};
+        }
+    } else if (type_str == "aabb") {
+        s.type = ZoneShapeType::AABB;
+        if (node["center"]) {
+            const auto& c = node["center"];
+            s.center = Vec3{c["x"].as<double>(0.0), c["y"].as<double>(0.0), c["z"].as<double>(0.0)};
+        }
+        if (node["half_size"]) {
+            const auto& hs = node["half_size"];
+            s.half_size = Vec3{hs["x"].as<double>(1.0), hs["y"].as<double>(1.0), hs["z"].as<double>(1.0)};
+        }
+    } else if (type_str == "cylinder") {
+        s.type        = ZoneShapeType::CYLINDER;
+        s.radius      = node["radius"].as<double>(1.0);
+        s.half_height = node["half_height"].as<double>(1.0);
+        if (node["center"]) {
+            const auto& c = node["center"];
+            s.center = Vec3{c["x"].as<double>(0.0), c["y"].as<double>(0.0), c["z"].as<double>(0.0)};
+        }
+    } else if (type_str == "infinite") {
+        s.type = ZoneShapeType::INFINITE;
+    }
+
+    return s;
 }
 
 } // namespace s2

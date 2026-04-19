@@ -1,0 +1,58 @@
+s2:
+  update_rate: 100
+  viz_rate: 30
+  transport_rate: 100
+
+  transport:
+    type: ros2
+
+  visualizer:
+    enabled: true
+    port: 1937
+
+  world:
+    surface: "flat"
+    geometry:
+      - type: "box"
+        pose: {x: 0, y: 0, z: -0.025}
+        size: {x: 20.0, y: 20.0, z: 0.05}
+        color: "#222222"
+
+  agents:
+    - name: "robot_0"
+      pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
+      capabilities:
+        - "surface_contact"
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#FF6B35"
+      
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.0
+
+  zones:
+    - id: "ice_patch"
+      shape:
+        type: aabb
+        center: {x: 3.0, y: 0.0, z: 0.5}
+        half_size: {x: 2.0, y: 2.0, z: 1.0}
+      color: "#4488FF"
+      opacity: 0.3
+      label: "Лёд"
+
+    - id: "charging_station"
+      shape:
+        type: cylinder
+        center: {x: -4.0, y: 0.0, z: 0.5}
+        radius: 1.0
+        half_height: 1.0
+      color: "#FFDD44"
+      opacity: 0.4
+      label: "Зарядка"

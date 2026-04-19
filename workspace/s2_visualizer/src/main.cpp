@@ -1,6 +1,7 @@
 #include <s2/scene_loader.hpp>
 #include <s2/scene_writer.hpp>
 #include <s2/sim_engine.hpp>
+#include <s2/effects_registry.hpp>
 #include <s2/plugins/plugin_base.hpp>
 #include <s2/plugins/diff_drive.hpp>
 #include <s2/plugins/gnss.hpp>
@@ -278,6 +279,7 @@ public:
             for (auto& a  : new_data.agents)   new_world.add_agent(std::move(a));
             for (auto& p  : new_data.props)     new_world.add_prop(std::move(p));
             for (auto& ac : new_data.actors)    new_world.add_actor(std::move(ac));
+            for (auto& z  : new_data.zones)     new_world.add_zone(std::move(z));
 
             engine_->load_world(std::move(new_world));
             scene_path_ = full_path;
@@ -432,9 +434,11 @@ int main(int argc, char* argv[]) {
     for (auto& agent : scene_data.agents)    world.add_agent(std::move(agent));
     for (auto& prop : scene_data.props)      world.add_prop(std::move(prop));
     for (auto& actor : scene_data.actors)    world.add_actor(std::move(actor));
+    for (auto& zone : scene_data.zones)      world.add_zone(std::move(zone));
 
     // Создаём движок
     s2::SimEngine engine(scene_data.engine_config);
+    engine.set_effect_factory(s2::create_effect);
     engine.load_world(std::move(world));
     engine.set_viz_server(g_viz);
     g_engine = &engine;

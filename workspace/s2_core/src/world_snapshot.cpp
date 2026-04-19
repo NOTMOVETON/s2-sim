@@ -41,30 +41,14 @@ nlohmann::json visual_to_json(const VisualDesc& visual) {
     };
 }
 
-nlohmann::json zone_shape_to_json(const ZoneShape& shape) {
-    nlohmann::json j;
-
-    std::string shape_type;
-    switch (shape.type) {
-        case ZoneShapeType::SPHERE:   shape_type = "sphere"; break;
-        case ZoneShapeType::AABB:     shape_type = "aabb"; break;
-        case ZoneShapeType::INFINITE: shape_type = "infinite"; break;
+std::string zone_shape_type_to_string(ZoneShapeType t) {
+    switch (t) {
+        case ZoneShapeType::SPHERE:   return "sphere";
+        case ZoneShapeType::AABB:     return "aabb";
+        case ZoneShapeType::CYLINDER: return "cylinder";
+        case ZoneShapeType::INFINITE: return "infinite";
+        default:                      return "sphere";
     }
-
-    j["shape_type"] = shape_type;
-    j["center"] = {
-        {"x", shape.center.x()},
-        {"y", shape.center.y()},
-        {"z", shape.center.z()}
-    };
-
-    if (shape.type == ZoneShapeType::SPHERE) {
-        j["radius"] = shape.radius;
-    } else if (shape.type == ZoneShapeType::AABB) {
-        j["size"] = nlohmann::json::array({shape.half_size.x() * 2, shape.half_size.y() * 2, shape.half_size.z() * 2});
-    }
-
-    return j;
 }
 
 nlohmann::json agent_snapshot_to_json(const AgentSnapshot& agent) {
@@ -150,9 +134,17 @@ nlohmann::json actor_snapshot_to_json(const ActorSnapshot& actor) {
 
 nlohmann::json zone_snapshot_to_json(const ZoneSnapshot& zone) {
     nlohmann::json j;
-    j["id"] = zone.id;
-    j["enabled"] = zone.enabled;
-    j["shape"] = zone_shape_to_json(zone.shape);
+    j["id"]          = zone.id;
+    j["enabled"]     = zone.enabled;
+    j["shape_type"]  = zone_shape_type_to_string(zone.shape_type);
+    j["center"]      = {zone.center.x(), zone.center.y(), zone.center.z()};
+    j["radius"]      = zone.radius;
+    j["half_size"]   = {zone.half_size.x() * 2, zone.half_size.y() * 2, zone.half_size.z() * 2};
+    j["half_height"] = zone.half_height;
+    j["color"]       = zone.color;
+    j["opacity"]     = zone.opacity;
+    j["visible"]     = zone.visible;
+    j["label"]       = zone.label;
     j["agents_inside"] = zone.agents_inside;
     return j;
 }

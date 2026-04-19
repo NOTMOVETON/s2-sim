@@ -4,6 +4,7 @@ add_library(s2_plugins STATIC
     src/plugins_registry.cpp
     src/color.cpp
     src/joint_vel.cpp
+    src/effects_registry.cpp
 )
 
 target_include_directories(s2_plugins PUBLIC

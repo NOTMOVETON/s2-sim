@@ -237,14 +237,16 @@ struct DesiredVelocity
 /**
  * @brief Форма зоны.
  *
- * SPHERE — сфера (центр + радиус).
- * AABB — ориентированный по осям параллелепипед (центр + half-extents).
+ * SPHERE   — сфера (центр + радиус).
+ * AABB     — ориентированный по осям параллелепипед (центр + half-extents).
+ * CYLINDER — цилиндр, ось Z: радиус в XY-плоскости + полувысота по Z.
  * INFINITE — весь мир (для глобальных эффектов: туман, ветер).
  */
 enum class ZoneShapeType
 {
   SPHERE,
   AABB,
+  CYLINDER,  ///< Цилиндр: радиус в XY-плоскости + полувысота по Z
   INFINITE
 };
 
@@ -252,25 +254,24 @@ enum class ZoneShapeType
  * @brief Геометрическая форма зоны.
  *
  * Проверяет, находится ли точка внутри зоны.
- * Для SPHERE и AABB граница считается включённой (<=).
+ * Для всех форм граница считается включённой (<=).
  */
 struct ZoneShape
 {
   ZoneShapeType type{ZoneShapeType::SPHERE};
   Vec3 center{Vec3::Zero()};
-  double radius{1.0};             ///< Радиус для SPHERE
+  double radius{1.0};             ///< Радиус для SPHERE и CYLINDER
   Vec3 half_size{1.0, 1.0, 1.0};  ///< Половинные размеры для AABB
+  double half_height{1.0};        ///< Полувысота для CYLINDER
 
   /**
    * @brief Проверяет, содержится ли точка в данной зоне.
    *
-   * SPHERE: squaredNorm до центра <= radius^2 (граница включена).
-   *         squaredNorm быстрее norm(), так как нет sqrt.
-   *
-   * AABB: отклонение по каждой оси <= half_size (граница включена).
-   *       Используем cwiseAbs() для поэлементного модуля.
-   *
-   * INFINITE: всегда true — зона покрывает весь мир.
+   * SPHERE:   squaredNorm до центра <= radius^2 (граница включена).
+   * AABB:     отклонение по каждой оси <= half_size (граница включена).
+   * CYLINDER: сначала проверка по Z (|dz| <= half_height),
+   *           затем по радиусу в XY (dx² + dy² <= radius²).
+   * INFINITE: всегда true.
    *
    * @param point Точка для проверки
    * @return true если точка внутри зоны
@@ -287,6 +288,13 @@ struct ZoneShape
         Vec3 diff = (point - center).cwiseAbs();
         return diff.x() <= half_size.x() && diff.y() <= half_size.y() &&
                diff.z() <= half_size.z();
+      }
+      case ZoneShapeType::CYLINDER: {
+        double dz = std::abs(point.z() - center.z());
+        if (dz > half_height) return false;
+        double dx = point.x() - center.x();
+        double dy = point.y() - center.y();
+        return dx * dx + dy * dy <= radius * radius;
       }
       case ZoneShapeType::INFINITE:
         return true;

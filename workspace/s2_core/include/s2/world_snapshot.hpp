@@ -60,8 +60,21 @@ struct ActorSnapshot {
 /** Снимок зоны для визуализатора */
 struct ZoneSnapshot {
     ZoneId id;
-    bool enabled = true;
-    ZoneShape shape;
+    bool enabled{true};
+
+    // Геометрия зоны в плоском виде (удобно для JSON-сериализации)
+    ZoneShapeType shape_type{ZoneShapeType::SPHERE};
+    Vec3 center{Vec3::Zero()};
+    double radius{1.0};
+    Vec3 half_size{Vec3::Zero()};
+    double half_height{1.0};
+
+    // Визуальные параметры
+    std::string color{"#4488FF"};
+    double opacity{0.3};
+    bool visible{true};
+    std::string label;
+
     std::vector<AgentId> agents_inside;
 };
 

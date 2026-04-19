@@ -1542,36 +1542,50 @@ function updateScene(data) {
         if (k.startsWith('actor_') && !currentActorKeys.has(k)) removeMesh(k);
     });
 
-    // Зоны
+    // Зоны — используем плоский формат полей из ZoneSnapshot
     const currentZoneKeys = new Set();
     if (data.zones) {
-        data.zones.forEach(zone => {
-            const key = `zone_${zone.id}`;
+        data.zones.forEach(z => {
+            const key = `zone_${z.id}`;
             currentZoneKeys.add(key);
-            if (zone.enabled) {
-                const shape = zone.shape || {};
-                let geomType = 'box';
-                let size = [2, 0.05, 2];
 
-                if (shape.shape_type === 'sphere') {
-                    geomType = 'cylinder';
-                    const r = shape.radius || 1;
-                    size = [r * 2, 0.05, r * 2];
-                } else if (shape.shape_type === 'aabb') {
-                    size = shape.size || [2, 0.05, 2];
-                }
+            if (!z.visible || !z.enabled) {
+                removeMesh(key);
+                return;
+            }
 
-                const center = shape.center || {};
-                const pose = {
-                    x: center.x || 0,
-                    y: (center.z || 0) + 0.025,
-                    z: -(center.y || 0),
-                    yaw: 0
-                };
+            // Центр зоны: [x, y, z] в симуляции → Three.js (Y-up)
+            const cx = Array.isArray(z.center) ? z.center[0] : 0;
+            const cy = Array.isArray(z.center) ? z.center[1] : 0;
+            const cz = Array.isArray(z.center) ? z.center[2] : 0;
+            const pose = { x: cx, y: cz, z: -cy, yaw: 0, pitch: 0, roll: 0 };
 
-                updateOrCreateMesh(key, geomType, pose,
-                    { type: geomType, size: size, color: '#4488ff' },
-                    { wireframe: true, opacity: 0.5, forceType: geomType }
+            const color = z.color || '#4488FF';
+            const opacity = (z.opacity !== undefined) ? z.opacity : 0.3;
+
+            if (z.shape_type === 'sphere') {
+                const r = z.radius || 1;
+                updateOrCreateMesh(key, 'sphere', pose,
+                    { type: 'sphere', radius: r, color },
+                    { transparent: true, opacity, depthWrite: false, side: 'double' }
+                );
+            } else if (z.shape_type === 'aabb') {
+                const hs = Array.isArray(z.half_size) ? z.half_size : [2, 2, 2];
+                // half_size хранит удвоенные значения (full extents) после сериализации
+                const sx = hs[0];
+                const sy = hs[2];  // ось Z симуляции → Y Three.js
+                const sz = hs[1];  // ось Y симуляции → Z Three.js
+                updateOrCreateMesh(key, 'box', pose,
+                    { type: 'box', size: [sx, sy, sz], color },
+                    { transparent: true, opacity, depthWrite: false, side: 'double' }
+                );
+            } else if (z.shape_type === 'cylinder') {
+                const r = z.radius || 1;
+                const h = (z.half_height || 1) * 2;
+                // Цилиндр зоны — ось Z симуляции, в Three.js ось Y
+                updateOrCreateMesh(key, 'cylinder', pose,
+                    { type: 'cylinder', radius: r, height: h, color },
+                    { transparent: true, opacity, depthWrite: false, side: 'double' }
                 );
             } else {
                 removeMesh(key);

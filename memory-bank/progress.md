@@ -376,6 +376,22 @@ Z push-out предотвращает проваливание, XY push-out не
 - **Frontend**: кнопка "Scenes", панель браузера, loading overlay, `loadSceneList()`, `loadScene()`, `saveSceneAs()`, `newScene()`, `resetEditorState()`
 - Тесты: 254/254
 
+### Задача 23 — ZoneSystem инфраструктура ✅ ЗАВЕРШЕНА
+
+ZoneShapeType::CYLINDER, EffectPlugin интерфейс, ZoneSystem, ZoneSnapshot, SceneLoader парсинг зон, интеграция в SimEngine. 11 тестов.
+
+### Задача 24 — IceModifier, BoostZone, MotionLockZone ✅ ЗАВЕРШЕНА
+
+- **`workspace/s2_plugins/include/s2/effects/ice_modifier.hpp`** — IceModifier (замедление через traction_coefficient, детерминированный шум)
+- **`workspace/s2_plugins/include/s2/effects/boost_zone.hpp`** — BoostZone (ускорение через speed_multiplier)
+- **`workspace/s2_plugins/include/s2/effects/motion_lock_zone.hpp`** — MotionLockZone (add_lock для любых агентов)
+- **`workspace/s2_plugins/include/s2/effects_registry.hpp`** + **`src/effects_registry.cpp`** — фабрика `s2::create_effect(type, params)`
+- **`sim_engine.hpp`**: `set_effect_factory()` + `effect_factory_` поле; в `load_world()` вызывается `zone_system_.set_effect_factory(effect_factory_)` до `add_zone()`
+- **`main.cpp`**: `engine.set_effect_factory(s2::create_effect)` до `load_world()`
+- **`diff_drive.hpp`**: читает `effective().motion_locked` и `effective().speed_scale`; при lock → `Vec3::Zero()` и ранний return; иначе `clamped_linear *= speed_scale`
+- **`test_effect_modifier.cpp`**: 9 тестов (IceModifier_SlowsAgent, NoCapability, NoiseAmplitude, BoostZone_SpeedsUpAgent, MotionLock_BlocksMovement, TwoModifiers_Combined, MotionLock_StopsRegardlessOfBoost, DiffDrive_ReadsEffectiveScale, DiffDrive_MotionLocked)
+- **2/2 test suites, 100% тестов проходят**
+
 ### Фича 22 — LidarPlugin ✅ ЗАВЕРШЕНА (включая баг-фиксы 22.2)
 
 - **`LidarScanData`** в `sensor_data.hpp`: seq, angle_min/max, angle_increment, time_increment, scan_time, range_min/max, ranges
@@ -404,7 +420,7 @@ Z push-out предотвращает проваливание, XY push-out не
 
 ## Следующие задачи
 
-### Задачи 23–36: Зоны, эффекты, акторы — задокументированы, не реализованы
+### Задачи 23–36: Зоны, эффекты, акторы
 
 Написаны подробные task-файлы в `docs/`. Порядок реализации:
 
@@ -414,8 +430,8 @@ Z push-out предотвращает проваливание, XY push-out не
 32 → 33 → 34 → 35 → 36
 ```
 
-- `docs/23-zone-infrastructure.md` — ZoneShape CYLINDER, EffectPlugin, ZoneSystem, ZoneSnapshot
-- `docs/24-effect-ice-boost-lock.md` — IceModifier, BoostZone, MotionLockZone + фабрика
+- `docs/23-zone-infrastructure.md` — ZoneShape CYLINDER, EffectPlugin, ZoneSystem, ZoneSnapshot ✅ РЕАЛИЗОВАНО
+- `docs/24-effect-ice-boost-lock.md` — IceModifier, BoostZone, MotionLockZone + фабрика ✅ РЕАЛИЗОВАНО
 - `docs/25-effect-conveyor-wind.md` — ConveyorEffect, WindEffect + velocity_addition в кинематике
 - `docs/26-effect-charging.md` — ChargingEffect, BatteryComponent
 - `docs/27-effect-tire-puncture.md` — TirePunctureEffect, TirePunctureData

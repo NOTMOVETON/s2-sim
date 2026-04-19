@@ -12,6 +12,7 @@
 #include <s2/actor.hpp>
 #include <s2/prop.hpp>
 #include <s2/heightmap.hpp>
+#include <s2/zone.hpp>
 
 #include <vector>
 #include <string>
@@ -177,6 +178,39 @@ public:
    */
   const Heightmap& heightmap() const { return heightmap_; }
 
+  // ── Зоны ──────────────────────────────────────────────────────────────────
+
+  /**
+   * @brief Добавить зону в мир.
+   * Используется при загрузке сцены; после load_world() зоны переходят в ZoneSystem.
+   */
+  void add_zone(Zone zone)
+  {
+    zones_.push_back(std::move(zone));
+  }
+
+  /**
+   * @brief Найти зону по идентификатору.
+   * @return Указатель на зону или nullptr если не найдена
+   */
+  Zone* get_zone(const ZoneId& id)
+  {
+    for (auto& zone : zones_)
+    {
+      if (zone.id == id)
+        return &zone;
+    }
+    return nullptr;
+  }
+
+  /// Изменяемый доступ к зонам (для передачи в ZoneSystem).
+  std::vector<Zone>& zones() { return zones_; }
+
+  /// Константный доступ к зонам.
+  const std::vector<Zone>& zones() const { return zones_; }
+
+  // ── Проверка коллизий ─────────────────────────────────────────────────────
+
   /**
    * @brief Проверить коллизию сферы с статикой.
    * @param center Центр сферы
@@ -189,6 +223,7 @@ private:
   std::vector<Agent> agents_;
   std::vector<Prop> props_;
   std::vector<Actor> actors_;
+  std::vector<Zone> zones_;
   std::vector<WorldPrimitive> static_geometry_;
   Heightmap heightmap_ = Heightmap::flat(40.0, 40.0);  // default: плоский мир 40x40
 };

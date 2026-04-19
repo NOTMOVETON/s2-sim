@@ -55,6 +55,22 @@ public:
             clamped_angular = std::clamp(desired_angular, -max_angular_, max_angular_);
         }
 
+        // Читаем effective constraints из SharedState.
+        // resolve() вызывается до update() — effective() уже содержит зонные эффекты.
+        const auto& eff = agent.state.effective();
+
+        // Если движение заблокировано (motion_lock, e-stop) — немедленно останавливаем
+        if (eff.motion_locked) {
+            agent.world_velocity.linear = Vec3::Zero();
+            agent.world_velocity.angular = Vec3::Zero();
+            return;
+        }
+
+        // Применить speed_scale (лёд замедляет, boost ускоряет).
+        // После умножения повторно ограничиваем аппаратным лимитом.
+        clamped_linear *= eff.speed_scale;
+        clamped_linear = std::clamp(clamped_linear, -max_linear_, max_linear_);
+
         agent.world_velocity.linear = Vec3{clamped_linear, 0.0, 0.0};
         agent.world_velocity.angular = Vec3{0.0, 0.0, clamped_angular};
 

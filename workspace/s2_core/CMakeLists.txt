@@ -22,6 +22,7 @@ add_library(s2_core STATIC
     src/sim_engine_viz.cpp
     src/kinematic_tree.cpp
     src/urdf_loader.cpp
+    src/zone_system.cpp
 )
 
 target_include_directories(s2_core PUBLIC
@@ -57,6 +58,8 @@ add_executable(s2_core_tests
     tests/test_collision_system.cpp
     tests/test_gravity_plugin.cpp
     tests/test_lidar_plugin.cpp
+    tests/test_zone_system.cpp
+    tests/test_effect_modifier.cpp
 )
 target_link_libraries(s2_core_tests PRIVATE s2_core s2_plugins s2_transport GTest::gtest_main)
 

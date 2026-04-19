@@ -149,9 +149,9 @@ TEST(WorldSnapshotTest, ZoneSnapshotWithAgentsInside) {
     ZoneSnapshot zone;
     zone.id = "ice_zone_1";
     zone.enabled = true;
-    zone.shape.type = ZoneShapeType::SPHERE;
-    zone.shape.center = Vec3(5, 5, 0);
-    zone.shape.radius = 3.0;
+    zone.shape_type = ZoneShapeType::SPHERE;
+    zone.center = Vec3(5, 5, 0);
+    zone.radius = 3.0;
     zone.agents_inside = {1, 2};
 
     snap.zones.push_back(zone);
@@ -161,8 +161,8 @@ TEST(WorldSnapshotTest, ZoneSnapshotWithAgentsInside) {
     EXPECT_EQ(json["zones"].size(), 1);
     EXPECT_EQ(json["zones"][0]["id"].get<std::string>(), "ice_zone_1");
     EXPECT_EQ(json["zones"][0]["enabled"].get<bool>(), true);
-    EXPECT_EQ(json["zones"][0]["shape"]["shape_type"].get<std::string>(), "sphere");
-    EXPECT_DOUBLE_EQ(json["zones"][0]["shape"]["radius"].get<double>(), 3.0);
+    EXPECT_EQ(json["zones"][0]["shape_type"].get<std::string>(), "sphere");
+    EXPECT_DOUBLE_EQ(json["zones"][0]["radius"].get<double>(), 3.0);
     EXPECT_EQ(json["zones"][0]["agents_inside"].size(), 2);
 }
 
@@ -170,19 +170,19 @@ TEST(WorldSnapshotTest, ZoneSnapshotWithAABBShape) {
     WorldSnapshot snap;
 
     ZoneSnapshot zone;
-    zone.shape.type = ZoneShapeType::AABB;
-    zone.shape.center = Vec3(0, 0, 0);
-    zone.shape.half_size = Vec3(5, 5, 3);  // half_size
+    zone.shape_type = ZoneShapeType::AABB;
+    zone.center = Vec3(0, 0, 0);
+    zone.half_size = Vec3(5, 5, 3);
 
     snap.zones.push_back(zone);
 
     auto json = snapshot_to_json(snap, false);
 
-    EXPECT_EQ(json["zones"][0]["shape"]["shape_type"].get<std::string>(), "aabb");
-    // JSON должен содержать full size (half_size * 2)
-    EXPECT_DOUBLE_EQ(json["zones"][0]["shape"]["size"][0].get<double>(), 10.0);
-    EXPECT_DOUBLE_EQ(json["zones"][0]["shape"]["size"][1].get<double>(), 10.0);
-    EXPECT_DOUBLE_EQ(json["zones"][0]["shape"]["size"][2].get<double>(), 6.0);
+    EXPECT_EQ(json["zones"][0]["shape_type"].get<std::string>(), "aabb");
+    // JSON содержит full size (half_size * 2)
+    EXPECT_DOUBLE_EQ(json["zones"][0]["half_size"][0].get<double>(), 10.0);
+    EXPECT_DOUBLE_EQ(json["zones"][0]["half_size"][1].get<double>(), 10.0);
+    EXPECT_DOUBLE_EQ(json["zones"][0]["half_size"][2].get<double>(), 6.0);
 }
 
 TEST(WorldSnapshotTest, MultipleAgentsSerializeInOrder) {

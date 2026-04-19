@@ -403,3 +403,28 @@ Z push-out предотвращает проваливание, XY push-out не
 **Самостоятельное движение робота**: не баг — latch-поведение DiffDrive (стандарт cmd_vel). Явный Stop отправляет нули и сбрасывает флаг.
 
 ## Следующие задачи
+
+### Задачи 23–36: Зоны, эффекты, акторы — задокументированы, не реализованы
+
+Написаны подробные task-файлы в `docs/`. Порядок реализации:
+
+```
+23 → 24 → 25 → 26 → 27 → 28 → 29 → 30 → 31
+                                 ↓
+32 → 33 → 34 → 35 → 36
+```
+
+- `docs/23-zone-infrastructure.md` — ZoneShape CYLINDER, EffectPlugin, ZoneSystem, ZoneSnapshot
+- `docs/24-effect-ice-boost-lock.md` — IceModifier, BoostZone, MotionLockZone + фабрика
+- `docs/25-effect-conveyor-wind.md` — ConveyorEffect, WindEffect + velocity_addition в кинематике
+- `docs/26-effect-charging.md` — ChargingEffect, BatteryComponent
+- `docs/27-effect-tire-puncture.md` — TirePunctureEffect, TirePunctureData
+- `docs/28-effect-teleport.md` — TeleportEffect, PendingTeleport, on_agent_exit callback
+- `docs/29-zone-ui-editor.md` — Kernel Commands для зон, Three.js ZoneManager, панель инспектора
+- `docs/30-zone-visual-effects.md` — VisualHint pipeline, arrows/particles/glow/grid
+- `docs/31-sensor-effects.md` — FogEffect, EMInterference, SensorModResolver
+- `docs/32-actor-base-door.md` — IActorBehavior, DoorBehavior FSM, DoorOpenerPlugin (proximity)
+- `docs/33-pedestrian.md` — PedestrianBehavior, attached presence zone
+- `docs/34-conveyor-actor.md` — ConveyorActor с attached ConveyorEffect зоной
+- `docs/35-props-attachment.md` — Prop, AttachObjectCommand, GrabberPlugin
+- `docs/36-elevator-actor.md` — ElevatorBehavior, ElevatorUserPlugin, Agent Attachment

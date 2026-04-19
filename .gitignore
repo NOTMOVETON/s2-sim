@@ -1,0 +1,7 @@
+# Build artifacts
+workspace/build/
+workspace/install/
+workspace/log/
+workspace/s2_msgs_ws/build/
+workspace/s2_msgs_ws/install/
+workspace/s2_msgs_ws/log/

@@ -1,0 +1,105 @@
+s2:
+  update_rate: 50
+  visualizer:
+    enabled: true
+    port: 1937
+  transport:
+    type: stub
+  world:
+    geometry:
+      - type: box
+        pose:
+          x: 3
+          y: 0
+          z: 0.5
+          yaw: 0
+          pitch: 0
+          roll: 0
+        size:
+          x: 2
+          y: 1
+          z: 1
+        color: "#4444FF"
+      - type: sphere
+        pose:
+          x: 0
+          y: -3
+          z: 0.5
+          yaw: 0
+          pitch: 0
+          roll: 0
+        radius: 0.5
+        color: "#FF4444"
+      - type: box
+        pose:
+          x: 1
+          y: 1
+          z: 0.25
+          yaw: 0
+          pitch: 0.29999999999999999
+          roll: 0
+        size:
+          x: 3
+          y: 0.5
+          z: 0.5
+        color: "#FF8800"
+      - type: box
+        pose:
+          x: -0.82372568971340243
+          y: -1.6716731372633635
+          z: 8.7404384319746704
+          yaw: 0
+          pitch: 0
+          roll: -0.72544504364895546
+        size:
+          x: 4.4335824488413902
+          y: 2.6380140866991519
+          z: 4.5960579387167444
+        color: "#09b364"
+      - type: box
+        pose:
+          x: -0.82372568971340254
+          y: -4.7358457674450918
+          z: 9.9140317022600382
+          yaw: 0
+          pitch: 0
+          roll: 0
+        size:
+          x: 3.7642683285554566
+          y: 2.6759263703633906
+          z: 4.4397945262511378
+        color: "#ffd500"
+      - type: box
+        pose:
+          x: -0.82372568971340243
+          y: 5.5598488791095271
+          z: 7.2214222487374506
+          yaw: 0
+          pitch: 0
+          roll: -0.99393100241852494
+        size:
+          x: -6.7029330963324121
+          y: -6.7029330963324121
+          z: -6.7029330963324121
+        color: "#ffffff"
+  agents:
+    - domain_id: 1
+      name: robot_1
+      plugins:
+        - max_angular_vel: 2
+          max_linear_vel: 1.5
+          type: diff_drive
+          wheel_base: 0.40000000000000002
+      pose:
+        x: 6.9100000000000001
+        y: -3.8199999999999998
+        yaw: 0
+        z: 0
+      urdf: ../robots/dozer.urdf
+      visual:
+        color: "#ff6b35"
+        size:
+          - 0.59999999999999998
+          - 0.40000000000000002
+          - 0.29999999999999999
+        type: box

@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S2 Simulator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #1a1a2e; }
+        canvas { display: block; }
+
+        /* Информационный блок (top-left) */
+        #info-panel {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.75);
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            z-index: 100;
+            min-width: 200px;
+            pointer-events: none;
+        }
+        #info-panel .label { color: #888; }
+        #info-panel .value { color: #fff; font-weight: bold; }
+        #info-panel .connected { color: #4caf50; }
+        #info-panel .disconnected { color: #f44336; }
+
+        /* Панель управления (top-center) */
+        #control-panel {
+            position: fixed;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75);
+            padding: 8px 14px;
+            border-radius: 6px;
+            z-index: 100;
+            display: flex;
+            gap: 8px;
+            user-select: none;
+        }
+        #control-panel button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            transition: background 0.15s;
+        }
+        #control-panel button:hover { background: #555; }
+        #control-panel button:active { background: #777; }
+        #control-panel button.active { background: #4caf50; border-color: #4caf50; }
+
+        /* Боковая панель робота (left, под info-panel) */
+        #side-panel {
+            position: fixed;
+            top: calc(100px + 16px); /* Height info-panel + gap */
+            left: 12px;
+            width: 320px;
+            max-height: calc(100vh - 140px);
+            background: rgba(0, 0, 0, 0.9);
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            border-radius: 6px;
+            z-index: 101;
+            overflow: visible;
+            display: none;
+        }
+        #side-panel.visible { display: block; }
+        #side-panel-scroll {
+            padding: 14px;
+            overflow-y: auto;
+            max-height: calc(100vh - 140px);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        /* Ресайзер боковой панели */
+        #side-panel-resizer {
+            position: absolute;
+            top: 0;
+            right: -6px;
+            width: 14px;
+            height: 100%;
+            cursor: ew-resize;
+            z-index: 102;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #side-panel-resizer::after {
+            content: '⟺';
+            color: #aaa;
+            font-size: 16px;
+            opacity: 0;
+            transition: opacity 0.15s;
+            pointer-events: none;
+            user-select: none;
+        }
+        #side-panel-resizer:hover::after,
+        #side-panel-resizer.dragging::after {
+            opacity: 1;
+        }
+        #side-panel h3 {
+            margin: 0 0 10px 0;
+            color: #fff;
+            font-size: 15px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 6px;
+        }
+        #side-panel .section {
+            margin-bottom: 12px;
+        }
+        #side-panel .section-title {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        #side-panel .row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+        #side-panel .row .label { color: #999; }
+        #side-panel .row .value { color: #fff; }
+        #side-panel button.close-btn {
+            background: #c0392b;
+            color: #fff;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 8px;
+            float: right;
+        }
+        #side-panel button.follow-btn {
+            background: #2980b9;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 13px;
+            width: 100%;
+            margin-top: 4px;
+        }
+        #side-panel button.follow-btn.following {
+            background: #27ae60;
+        }
+
+        /* Аккордеон плагинов */
+        #plugin-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .plugin-accordion {
+            border: 1px solid #3a3a4e;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .plugin-header {
+            background: #2a2a3e;
+            color: #fff;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        .plugin-header:hover {
+            background: #3a3a4e;
+        }
+        .plugin-header .arrow {
+            transition: transform 0.2s;
+            display: inline-block;
+            font-size: 10px;
+        }
+        .plugin-header.open .arrow {
+            transform: rotate(90deg);
+        }
+        .plugin-content {
+            background: #1a1a2e;
+            padding: 0 8px;
+            font-size: 11px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            white-space: pre;
+            color: #ccc;
+        }
+        .plugin-content.open {
+            max-height: 300px;
+            padding: 8px;
+            overflow-y: auto;
+        }
+
+        /* Кнопка входа плагина (⚙️) */
+        .plugin-input-btn {
+            background: #2980b9;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.15s;
+        }
+        .plugin-input-btn:hover {
+            background: #3498db;
+        }
+
+        /* Форма ввода плагина */
+        .plugin-input-form {
+            background: #12122a;
+            border-top: 1px solid #3a3a4e;
+            padding: 8px 12px;
+        }
+        .plugin-input-form-inner {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: flex-end;
+        }
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .form-field label {
+            font-size: 11px;
+            color: #999;
+        }
+        .form-field input[type="number"] {
+            background: #2a2a3e;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 3px;
+            width: 100px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+        .form-field input[type="number"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        .plugin-send-btn {
+            background: #27ae60;
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            transition: background 0.15s;
+        }
+        .plugin-send-btn:hover {
+            background: #2ecc71;
+        }
+        .plugin-stop-btn {
+            background: #c0392b;
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            transition: background 0.15s;
+        }
+        .plugin-stop-btn:hover {
+            background: #e74c3c;
+        }
+
+        /* Toast уведомления */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 10px 18px;
+            border-radius: 6px;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            max-width: 400px;
+        }
+        .toast.fade-out { opacity: 0; }
+
+        /* Панель редактора сцены */
+        #editor-panel {
+            position: fixed;
+            top: calc(100px + 16px);
+            left: 12px;
+            width: 290px;
+            max-height: calc(100vh - 140px);
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.9);
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            border-radius: 6px;
+            z-index: 101;
+            padding: 14px;
+            display: none;
+            border: 1px solid #4caf50;
+        }
+        #editor-panel h4 {
+            color: #4caf50;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            border-bottom: 1px solid #4caf50;
+            padding-bottom: 6px;
+        }
+        #editor-panel .editor-section {
+            margin-bottom: 10px;
+        }
+        #editor-panel .editor-section-title {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .editor-add-buttons, .editor-transform-mode, .editor-save-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        #editor-panel button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            transition: background 0.15s;
+        }
+        #editor-panel button:hover { background: #555; }
+        #editor-panel button.active { background: #2980b9; border-color: #2980b9; }
+        #editor-panel button.danger { background: #c0392b; border-color: #c0392b; }
+        #editor-panel button.save { background: #27ae60; border-color: #27ae60; }
+        #primitive-props {
+            border-top: 1px solid #444;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+        #primitive-props h4 {
+            color: #fff;
+            border-color: #444;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        #primitive-props label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #bbb;
+        }
+        #primitive-props input[type="number"],
+        #primitive-props input[type="color"] {
+            background: #2a2a3e;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        #primitive-props input[type="number"] {
+            width: 80px;
+            padding: 3px 6px;
+            font-size: 12px;
+        }
+        #primitive-props input[type="color"] {
+            width: 50px;
+            height: 24px;
+            padding: 1px;
+            cursor: pointer;
+        }
+
+        /* Вкладки редактора */
+        .editor-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+        .editor-tab-btn {
+            flex: 1;
+            background: #333;
+            color: #ccc;
+            border: 1px solid #555;
+            padding: 5px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            transition: background 0.15s;
+        }
+        .editor-tab-btn:hover { background: #444; }
+        .editor-tab-btn.active { background: #1a6e3c; border-color: #4caf50; color: #fff; }
+
+        /* Редактор агентов */
+        .editor-hint {
+            color: #888;
+            font-size: 11px;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+        #agent-list {
+            margin-top: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .agent-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 6px;
+            border: 1px solid #3a3a4e;
+            border-radius: 3px;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+        .agent-list-item .agent-name { color: #fff; flex: 1; }
+        .agent-list-item .agent-plugins { color: #888; font-size: 10px; flex: 2; padding: 0 4px; }
+        .agent-list-item button {
+            background: #444;
+            color: #ccc;
+            border: 1px solid #555;
+            border-radius: 3px;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            margin-left: 2px;
+        }
+        .agent-list-item button:hover { background: #555; }
+        .agent-list-item button.danger { background: #5a1515; border-color: #8a2222; }
+        .agent-list-item button.danger:hover { background: #7a2020; }
+
+        /* Форма агента */
+        #agent-form-view {
+            overflow-y: auto;
+        }
+        #agent-form-view h5 {
+            color: #4caf50;
+            margin: 0 0 8px 0;
+            font-size: 13px;
+        }
+        #agent-form-view label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #bbb;
+        }
+        #agent-form-view input[type="text"],
+        #agent-form-view input[type="number"],
+        #agent-form-view select {
+            background: #2a2a3e;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 3px;
+            padding: 3px 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            width: 110px;
+        }
+        #agent-form-view input[type="color"] {
+            width: 50px;
+            height: 22px;
+            padding: 1px;
+            background: #2a2a3e;
+            border: 1px solid #444;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        #agent-form-view h6 {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin: 8px 0 4px 0;
+        }
+        .af-plugin-row {
+            border: 1px solid #2a2a3e;
+            border-radius: 3px;
+            margin-bottom: 4px;
+            overflow: hidden;
+        }
+        .af-plugin-header {
+            display: flex;
+            align-items: center;
+            padding: 4px 6px;
+            background: #1e1e2e;
+            cursor: pointer;
+        }
+        .af-plugin-header input[type="checkbox"] { margin-right: 6px; cursor: pointer; }
+        .af-plugin-header label { color: #ccc; font-size: 11px; cursor: pointer; margin: 0; }
+        .af-plugin-params {
+            background: #12122a;
+            padding: 4px 8px;
+            display: none;
+        }
+        .af-plugin-params.open { display: block; }
+        .af-param-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+            font-size: 11px;
+            color: #999;
+        }
+        .af-param-row input[type="number"],
+        .af-param-row input[type="text"] {
+            width: 80px;
+            background: #2a2a3e;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 3px;
+            padding: 2px 5px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+        }
+        .af-param-row input[type="color"] {
+            width: 44px;
+            height: 20px;
+            padding: 1px;
+            background: #2a2a3e;
+            border: 1px solid #444;
+            border-radius: 3px;
+        }
+        .af-buttons {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .af-buttons button {
+            flex: 1;
+            padding: 6px 8px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* TF Frames checkbox */
+        .tf-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+            cursor: pointer;
+        }
+        .tf-toggle input[type="checkbox"] {
+            cursor: pointer;
+        }
+        .tf-toggle label {
+            cursor: pointer;
+            font-size: 12px;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div id="info-panel">
+        <div><span class="label">Connection: </span><span id="conn-status" class="disconnected">Disconnected</span></div>
+        <div><span class="label">Sim Time: </span><span id="sim-time" class="value">0.00s</span></div>
+        <div><span class="label">Agents: </span><span id="agent-count" class="value">0</span></div>
+        <div><span class="label">Actors: </span><span id="actor-count" class="value">0</span></div>
+        <div><span class="label">FPS: </span><span id="fps" class="value">0</span></div>
+        <div id="pause-indicator" style="color: #f39c12; font-weight: bold; margin-top: 4px; display: none;">⏸ PAUSED</div>
+    </div>
+
+    <!-- Панель управления -->
+    <div id="control-panel">
+        <button id="btn-play" onclick="sendCommand('resume')">&#9654; Play</button>
+        <button id="btn-pause" onclick="sendCommand('pause')">&#9646;&#9646; Pause</button>
+        <button id="btn-reset" onclick="sendCommand('reset')">&#8635; Reset</button>
+        <button id="btn-transform" onclick="toggleTransformMode()" style="margin-left: 8px;">Mode: Translate</button>
+        <button id="btn-gizmo" onclick="toggleTransformControls()" style="margin-left: 8px;">Axes: ON</button>
+        <button id="btn-edit-scene" onclick="toggleEditorMode()" style="margin-left: 8px;">Edit Scene</button>
+        <button id="btn-scenes" onclick="toggleScenesPanel()" style="margin-left: 8px;">Scenes</button>
+        <button id="btn-collisions" onclick="toggleCollisions()" style="margin-left: 8px;">Collisions: OFF</button>
+    </div>
+
+    <!-- Панель браузера сцен -->
+    <div id="scenes-panel" style="display:none; position:fixed; top:60px; right:12px; width:280px;
+         background:rgba(20,20,30,0.97); color:#e0e0e0; font-family:'Courier New',monospace;
+         font-size:13px; border-radius:6px; z-index:200; padding:14px;
+         border:1px solid #555; box-shadow:0 4px 16px rgba(0,0,0,0.5);">
+        <h4 style="margin:0 0 10px 0; color:#fff; border-bottom:1px solid #444; padding-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+            Сцены
+            <button onclick="toggleScenesPanel()" style="background:none; border:none; color:#aaa; cursor:pointer; font-size:16px; padding:0;">&#x2715;</button>
+        </h4>
+        <div id="scenes-list" style="max-height:300px; overflow-y:auto; margin-bottom:10px;">
+            <div style="color:#666;">Загрузка...</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; padding-top:6px; border-top:1px solid #444;">
+            <button onclick="saveSceneAs()" style="background:#2980b9; color:#fff; border:none; padding:4px 10px; border-radius:3px; cursor:pointer; font-size:12px;">Save As</button>
+            <button onclick="newScene()" style="background:#27ae60; color:#fff; border:none; padding:4px 10px; border-radius:3px; cursor:pointer; font-size:12px;">New Scene</button>
+        </div>
+    </div>
+
+    <!-- Overlay загрузки сцены (на верхнем уровне body) -->
+    <div id="loading-overlay" style="display:none; position:fixed; top:0; left:0;
+         width:100%; height:100%; background:rgba(0,0,0,0.75); color:#fff;
+         align-items:center; justify-content:center; font-size:1.4em;
+         font-family:'Courier New',monospace; z-index:9999; flex-direction:column; gap:12px;">
+        Загрузка сцены...
+    </div>
+
+    <!-- Панель редактора сцены (скрыта по умолчанию) -->
+    <div id="editor-panel">
+        <h4>&#9998; Редактор сцены</h4>
+
+        <!-- Вкладки -->
+        <div class="editor-tabs">
+            <button class="editor-tab-btn active" data-tab="geometry" onclick="switchEditorTab('geometry')">Геометрия</button>
+            <button class="editor-tab-btn" data-tab="agents" onclick="switchEditorTab('agents')">Агенты</button>
+        </div>
+
+        <!-- Вкладка: Геометрия -->
+        <div id="editor-tab-geometry">
+            <div class="editor-section">
+                <div class="editor-section-title">Добавить примитив</div>
+                <div class="editor-add-buttons">
+                    <button id="btn-add-box" onclick="addPrimitiveBox()">+ Box</button>
+                    <button id="btn-add-cylinder" onclick="addPrimitiveCylinder()">+ Cyl</button>
+                    <button id="btn-add-sphere" onclick="addPrimitiveSphere()">+ Sphere</button>
+                </div>
+            </div>
+
+            <div class="editor-section">
+                <div class="editor-section-title">Режим трансформации</div>
+                <div class="editor-transform-mode">
+                    <button id="btn-mode-translate" class="active" onclick="setEditorTransformMode('translate')">Move</button>
+                    <button id="btn-mode-rotate" onclick="setEditorTransformMode('rotate')">Rotate</button>
+                    <button id="btn-mode-scale" onclick="setEditorTransformMode('scale')">Scale</button>
+                </div>
+            </div>
+
+            <!-- Свойства выбранного примитива -->
+            <div id="primitive-props" style="display:none">
+                <h4 id="primitive-type-label">Box</h4>
+
+                <label>Цвет: <input type="color" id="prop-color" value="#808080" oninput="onPrimColorChange(this.value)"></label>
+
+                <div id="props-box">
+                    <label>W (x): <input type="number" id="prop-sx" step="0.1" value="1" min="0.05" oninput="onPrimSizeChange()"></label>
+                    <label>D (y): <input type="number" id="prop-sy" step="0.1" value="1" min="0.05" oninput="onPrimSizeChange()"></label>
+                    <label>H (z): <input type="number" id="prop-sz" step="0.1" value="1" min="0.05" oninput="onPrimSizeChange()"></label>
+                </div>
+
+                <div id="props-cylinder" style="display:none">
+                    <label>Radius: <input type="number" id="prop-radius" step="0.1" value="0.5" min="0.05" oninput="onPrimSizeChange()"></label>
+                    <label>Height: <input type="number" id="prop-height" step="0.1" value="1.0" min="0.05" oninput="onPrimSizeChange()"></label>
+                </div>
+
+                <div id="props-sphere" style="display:none">
+                    <label>Radius: <input type="number" id="prop-radius-sphere" step="0.1" value="0.5" min="0.05" oninput="onPrimSizeChange()"></label>
+                </div>
+
+                <button class="danger" onclick="deleteSelectedPrimitive()" style="margin-top: 6px; width: 100%;">Удалить</button>
+            </div>
+
+            <div class="editor-section" style="margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">
+                <div class="editor-save-buttons">
+                    <button class="save" onclick="applyGeometry()" style="flex:1;">Применить</button>
+                    <button class="save" onclick="saveScene()" style="flex:1;">Сохранить</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка: Агенты -->
+        <div id="editor-tab-agents" style="display:none">
+            <!-- Список агентов -->
+            <div id="agents-list-view">
+                <button class="save" onclick="startPlaceAgent()" style="width:100%;margin-bottom:6px;">+ Добавить агента</button>
+                <div id="agent-list"></div>
+                <p class="editor-hint">Агенты применяются после перезапуска симуляции</p>
+                <div style="margin-top:8px;border-top:1px solid #444;padding-top:8px;">
+                    <button class="save" onclick="saveScene()" style="width:100%;">Сохранить сцену</button>
+                </div>
+            </div>
+
+            <!-- Форма редактирования/создания агента -->
+            <div id="agent-form-view" style="display:none">
+                <h5 id="af-title">Новый агент</h5>
+                <label>Имя: <input type="text" id="af-name" value="robot_0" style="width:110px;"></label>
+                <label>Domain ID: <input type="number" id="af-domain" value="0" min="0" style="width:70px;"></label>
+                <label>X: <input type="number" id="af-x" step="0.1" value="0" style="width:70px;"></label>
+                <label>Y: <input type="number" id="af-y" step="0.1" value="0" style="width:70px;"></label>
+                <label>Yaw: <input type="number" id="af-yaw" step="0.05" value="0" style="width:70px;"></label>
+                <label>Цвет: <input type="color" id="af-color" value="#FF6B35"></label>
+                <label>W (x): <input type="number" id="af-sx" step="0.1" value="0.6" min="0.05" style="width:70px;"></label>
+                <label>D (y): <input type="number" id="af-sy" step="0.1" value="0.4" min="0.05" style="width:70px;"></label>
+                <label>H (z): <input type="number" id="af-sz" step="0.1" value="0.3" min="0.05" style="width:70px;"></label>
+                <label>URDF: <select id="af-urdf" style="width:110px;"><option value="">— нет —</option></select></label>
+                <h6>Плагины</h6>
+                <div id="af-plugins-list"></div>
+                <div class="af-buttons">
+                    <button class="save" onclick="confirmAgent()">Подтвердить</button>
+                    <button class="danger" onclick="closeAgentForm()">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Боковая панель робота -->
+    <div id="side-panel">
+        <div id="side-panel-scroll">
+            <h3 id="side-agent-title">Agent</h3>
+
+            <div class="section">
+                <div class="section-title">Метаинформация</div>
+                <div class="row"><span class="label">ID:</span><span class="value" id="sp-agent-id">-</span></div>
+                <div class="row"><span class="label">Name:</span><span class="value" id="sp-agent-name">-</span></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Текущее состояние</div>
+                <div class="row"><span class="label">X:</span><span class="value" id="sp-pos-x">0.00</span></div>
+                <div class="row"><span class="label">Y:</span><span class="value" id="sp-pos-y">0.00</span></div>
+                <div class="row"><span class="label">Z:</span><span class="value" id="sp-pos-z">0.00</span></div>
+                <div class="row"><span class="label">Yaw:</span><span class="value" id="sp-yaw">0.00</span></div>
+                <div class="row"><span class="label">Vx:</span><span class="value" id="sp-vx">0.00</span></div>
+                <div class="row"><span class="label">Vy:</span><span class="value" id="sp-vy">0.00</span></div>
+                <div class="row"><span class="label">Wz:</span><span class="value" id="sp-wz">0.00</span></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Режим слежения</div>
+                <button class="follow-btn" id="btn-follow" onclick="toggleFollow()">Follow</button>
+                <div class="tf-toggle">
+                    <input type="checkbox" id="tf-frames-toggle" />
+                    <label for="tf-frames-toggle">Show TF frames</label>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Плагины</div>
+                <div id="plugin-container">
+                    <div style="color: #666; font-size: 12px;">нет данных</div>
+                </div>
+            </div>
+
+            <button class="close-btn" onclick="closeSidePanel()">✕ Закрыть</button>
+            <div style="clear: both;"></div>
+        </div>
+        <div id="side-panel-resizer"></div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="js/app.js"></script>
+    <script>
+        // Side panel resize handle
+        (function() {
+            const panel = document.getElementById('side-panel');
+            const resizer = document.getElementById('side-panel-resizer');
+            const scroll = document.getElementById('side-panel-scroll');
+            const MIN_WIDTH = 200;
+            const MAX_WIDTH = 700;
+
+            resizer.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                const startX = e.clientX;
+                const startWidth = parseInt(getComputedStyle(panel).width, 10);
+                resizer.classList.add('dragging');
+                document.body.style.cursor = 'ew-resize';
+                document.body.style.userSelect = 'none';
+
+                function onMouseMove(e) {
+                    const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + e.clientX - startX));
+                    panel.style.width = newWidth + 'px';
+                    scroll.style.maxHeight = 'calc(100vh - 140px)';
+                }
+
+                function onMouseUp() {
+                    resizer.classList.remove('dragging');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                }
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+        })();
+    </script>
+</body>
+</html>

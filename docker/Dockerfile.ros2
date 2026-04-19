@@ -1,0 +1,65 @@
+# Multi-stage Dockerfile с ROS2 Jazzy
+# Базовый stage (то же, что основной Dockerfile)
+ FROM ubuntu:noble AS base
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+     build-essential \
+     cmake \
+     git \
+     libeigen3-dev \
+     libyaml-cpp-dev \
+     nlohmann-json3-dev \
+     libgtest-dev \
+     libgmock-dev \
+     zlib1g-dev \
+     libssl-dev \
+     pkg-config \
+     libgeographiclib-dev \
+     geographiclib-tools \
+     libtinyxml2-dev \
+     && rm -rf /var/lib/apt/lists/*
+
+# uWebSockets
+RUN git clone --recurse-submodules https://github.com/uNetworking/uWebSockets.git /tmp/uws \
+    && cp -r /tmp/uws/src/* /usr/local/include/ \
+    && cp -r /tmp/uws/uSockets/src/* /usr/local/include/ \
+    && cd /tmp/uws/uSockets && make && cp uSockets.a /usr/local/lib/ \
+    && rm -rf /tmp/uws
+
+ # ROS2 layer (using Jazzy for Ubuntu Noble)
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    curl \
+    && add-apt-repository universe \
+    && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" > /etc/apt/sources.list.d/ros2.list \
+    && apt-get update && apt-get install -y \
+     ros-jazzy-ros-base \
+     ros-jazzy-ros2-control \
+     ros-jazzy-geometry-msgs \
+     ros-jazzy-sensor-msgs \
+     ros-jazzy-nav-msgs \
+     ros-jazzy-std-msgs \
+     ros-jazzy-std-srvs \
+     ros-jazzy-tf2 \
+     ros-jazzy-tf2-ros \
+     ros-jazzy-tf2-geometry-msgs \
+     ros-jazzy-fastcdr \
+     ros-jazzy-fastrtps \
+     python3-rosdep \
+     python3-colcon-common-extensions \
+     && rm -rf /var/lib/apt/lists/*
+
+# Инициализация rosdep
+RUN rosdep init || true && rosdep update
+
+ # Source ROS2 (jazzy)
+ RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
+ ENV PATH="/opt/ros/jazzy/bin:${PATH}"
+ ENV ROS_DISTRO=jazzy
+
+WORKDIR /workspace
+
+CMD ["bash"]

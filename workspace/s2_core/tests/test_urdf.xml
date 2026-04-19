@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<robot name="test_robot">
+  <!-- Статические звенья -->
+  <joint name="base_to_gps" type="fixed">
+    <parent link="base_link"/>
+    <child link="gps_link"/>
+    <origin xyz="0.1 0.0 0.3" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Revolute (вращение с ограничениями) -->
+  <joint name="base_to_arm" type="revolute">
+    <parent link="base_link"/>
+    <child link="arm"/>
+    <origin xyz="0.5 0.0 0.2" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.57" upper="1.57"/>
+  </joint>
+
+  <!-- Continuous (вращение без ограничений) -->
+  <joint name="base_to_wheel_fl" type="continuous">
+    <parent link="base_link"/>
+    <child link="FL_wheel"/>
+    <origin xyz="0.3 0.2 0.0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- Prismatic (линейное) -->
+  <joint name="arm_to_bucket" type="prismatic">
+    <parent link="arm"/>
+    <child link="bucket"/>
+    <origin xyz="0.3 0.0 0.0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0.0" upper="0.5"/>
+  </joint>
+</robot>

@@ -1,0 +1,42 @@
+s2:
+  update_rate: 100
+  viz_rate: 30
+  transport_rate: 100
+
+  transport:
+    type: ros2
+
+  visualizer:
+    enabled: true
+    port: 8080
+
+  world:
+    surface: "flat"
+    geo_origin:
+      lat: 55.7522
+      lon: 37.6156
+      alt: 156.0
+
+  agents:
+    - name: "robot_0"
+      id: 0
+      domain_id: 50
+      pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#FF6B35"
+
+      plugins:
+        - type: "diff_drive"
+          max_linear: 2.0
+          max_angular: 1.5
+
+        - type: "trajectory_recorder"
+          record_interval_s: 0.2
+          max_points: 300
+          color: "#FFAA00"
+
+        - type: "path_display"
+          topic: "/plan"
+          color: "#00FF88"

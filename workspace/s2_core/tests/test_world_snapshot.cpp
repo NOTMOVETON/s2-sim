@@ -73,7 +73,8 @@ TEST(WorldSnapshotTest, AgentSnapshotSerializesCorrectly) {
     agent.visual.type = "box";
     agent.visual.size = Vec3(0.5, 0.4, 0.3);
     agent.visual.color = "#FF6B35";
-    agent.battery_level = 75.5;
+    // Доменные данные плагинов идут в extra (заполняются через contribute_snapshot)
+    agent.extra["battery_level"] = 75.5;
     agent.effective_speed_scale = 0.85;
     agent.motion_locked = false;
 

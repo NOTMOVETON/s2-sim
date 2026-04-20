@@ -19,11 +19,14 @@ s2:
         color: "#222222"
 
   agents:
-    # robot_0 — surface_contact: реагирует на лёд, буст, конвейер
+    # robot_0 — surface_contact + has_battery:
+    #   реагирует на все зоны, батарея 50% → заряжается на станции.
+    #   battery_level и battery_charging доступны в AgentSnapshot.extra (фронтенд).
     - name: "robot_0"
       pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
       capabilities:
         - "surface_contact"
+        - "has_battery"
       collision:
         bounding:
           type: "sphere"
@@ -37,8 +40,18 @@ s2:
           max_linear_vel: 2.0
           max_angular_vel: 1.5
         - type: "gravity"
+        - type: "battery"
+          initial_level: 0.5          # 50% заряда при старте
+          nominal_voltage: 24.0       # В
+          capacity_ah: 10.0           # Ач (последняя полная ёмкость)
+          design_capacity_ah: 10.0    # Ач (расчётная ёмкость)
+          technology: lion            # Li-Ion (nimh|lion|lipo|life|nicd|limn)
+          location: "main"
+          publish_rate_hz: 1.0        # ROS2 sensor_msgs/BatteryState @ 1 Гц
 
-    # robot_1 — без surface_contact: лёд/буст/конвейер не действуют, ветер и стоп — да
+    # robot_1 — без surface_contact, без батареи:
+    #   лёд/буст/конвейер не действуют, ветер и стоп — да.
+    #   battery_level = -1.0 (нет BatteryComponent).
     - name: "robot_1"
       pose: {x: 0.0, y: -3.0, z: 0.0, yaw: 0.0}
       collision:
@@ -103,8 +116,8 @@ s2:
           params:
             source_label: "danger"
 
-    # Конвейерная лента: движение по +X, длинная сторона вдоль оси движения
-    # required_capabilities: только robot_0 (surface_contact), robot_1 проезжает насквозь
+    # Конвейерная лента: движение по +X
+    # Только robot_0 (surface_contact); robot_1 проезжает насквозь
     - id: "conveyor_main"
       shape:
         type: aabb
@@ -137,7 +150,9 @@ s2:
             gust_amplitude: 0.2
             gust_frequency: 0.3
 
-    # Зарядная станция (эффект будет в задаче 26)
+    # Зарядная станция: заряжает батарею robot_0
+    # Скорость 5%/с → полный заряд за ~10 сек (50% → 100%)
+    # battery.charging = true пока robot_0 внутри (сбрасывается при выходе)
     - id: "charging_station"
       shape:
         type: cylinder
@@ -147,3 +162,8 @@ s2:
       color: "#FFDD44"
       opacity: 0.4
       label: "Зарядка"
+      effects:
+        - type: charging
+          required_capabilities: ["has_battery"]
+          params:
+            charge_rate: 0.05

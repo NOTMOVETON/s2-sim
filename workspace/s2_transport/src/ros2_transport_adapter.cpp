@@ -220,6 +220,20 @@ void Ros2TransportAdapter::register_sensor(SensorRegistration reg)
                       << " (domain " << reg.domain_id << ")" << std::endl;
         }
     }
+    else if (stype == "battery")
+    {
+        std::string topic = reg.topic_override.empty()
+            ? (sname.empty() ? "/battery_state" : "/" + sname + "/battery_state")
+            : reg.topic_override;
+        if (info.battery_pubs.find(sname) == info.battery_pubs.end())
+        {
+            info.battery_pubs[sname] =
+                info.node->create_publisher<sensor_msgs::msg::BatteryState>(
+                    topic, rclcpp::QoS(10));
+            std::cout << "[Ros2TransportAdapter] BatteryState publisher: " << topic
+                      << " (domain " << reg.domain_id << ")" << std::endl;
+        }
+    }
     else
     {
         std::cerr << "[Ros2TransportAdapter] register_sensor: unknown sensor type '"
@@ -692,6 +706,48 @@ void Ros2TransportAdapter::publish_agent_frame(const AgentSensorFrame& frame)
             scan.ranges          = ld.ranges;
 
             pub_it->second->publish(scan);
+        }
+
+        // ── Battery (BatteryState) ────────────────────────────────────────
+        else if (sensor.sensor_type == "battery" && sensor.battery.has_value())
+        {
+            auto pub_it = info.battery_pubs.find(sname);
+            if (pub_it == info.battery_pubs.end())
+            {
+                std::cerr << "[Ros2TransportAdapter] No BatteryState publisher for name='"
+                          << sname << "'" << std::endl;
+                continue;
+            }
+
+            const auto& bd = sensor.battery.value();
+
+            sensor_msgs::msg::BatteryState msg;
+            msg.header.stamp    = now;
+            msg.header.frame_id = "base_link";
+
+            // Напряжение — линейная аппроксимация: V_nom * level
+            msg.voltage          = static_cast<float>(bd.nominal_voltage * bd.level);
+            msg.temperature      = std::numeric_limits<float>::quiet_NaN();
+            msg.current          = std::numeric_limits<float>::quiet_NaN();
+            msg.charge           = static_cast<float>(bd.capacity_ah * bd.level);
+            msg.capacity         = static_cast<float>(bd.capacity_ah);
+            msg.design_capacity  = static_cast<float>(bd.design_capacity_ah);
+            msg.percentage       = static_cast<float>(bd.level);
+
+            if (bd.level >= 1.0 && bd.charging)
+                msg.power_supply_status = sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_FULL;
+            else if (bd.charging)
+                msg.power_supply_status = sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_CHARGING;
+            else
+                msg.power_supply_status = sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING;
+
+            msg.power_supply_health     = sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD;
+            msg.power_supply_technology = bd.technology;
+            msg.present                 = true;
+            msg.location                = bd.location;
+            msg.serial_number           = bd.serial_number;
+
+            pub_it->second->publish(msg);
         }
     }
 }

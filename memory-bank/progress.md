@@ -380,6 +380,17 @@ Z push-out предотвращает проваливание, XY push-out не
 
 ZoneShapeType::CYLINDER, EffectPlugin интерфейс, ZoneSystem, ZoneSnapshot, SceneLoader парсинг зон, интеграция в SimEngine. 11 тестов.
 
+### Задача 26 — ChargingEffect + BatteryComponent ✅ ЗАВЕРШЕНА (с рефакторингом)
+
+- `s2_plugins/include/s2/components/battery_component.hpp` — доменный тип в plugins, не в core
+- `s2_plugins/include/s2/effects/charging_effect.hpp` — CONTINUOUS; `on_agent_exit` сбрасывает `charging`
+- `interfaces/effect_plugin.hpp`: виртуальный `on_agent_exit(SharedState&, ctx)` — no-op в базе
+- `zone_system.cpp`: `on_agent_exit` делегирует плагинам, не знает о доменных типах
+- `world_snapshot.hpp/cpp`: `battery_level{-1.0}`, `battery_charging{false}` — заполняет BatteryPlugin (задача 32)
+- `effects_registry.cpp`: `"charging"` зарегистрирован
+- `test_effect_charging.cpp`: 7 тестов; тест 7 — SharedState напрямую
+- **Фикс ODR**: локальный `BatteryComponent` в `test_shared_state.cpp` → anonymous namespace
+
 ### Задача 25 + пост-релизные улучшения ✅ ЗАВЕРШЕНЫ
 
 **Задача 25 — ConveyorEffect, WindEffect + velocity_addition:**
@@ -460,7 +471,7 @@ ZoneShapeType::CYLINDER, EffectPlugin интерфейс, ZoneSystem, ZoneSnapsh
 - `docs/23-zone-infrastructure.md` — ZoneShape CYLINDER, EffectPlugin, ZoneSystem, ZoneSnapshot ✅ РЕАЛИЗОВАНО
 - `docs/24-effect-ice-boost-lock.md` — IceModifier, BoostZone, MotionLockZone + фабрика ✅ РЕАЛИЗОВАНО
 - `docs/25-effect-conveyor-wind.md` — ConveyorEffect, WindEffect + velocity_addition в кинематике ✅ РЕАЛИЗОВАНО
-- `docs/26-effect-charging.md` — ChargingEffect, BatteryComponent
+- `docs/26-effect-charging.md` — ChargingEffect, BatteryComponent ✅ РЕАЛИЗОВАНО
 - `docs/27-effect-tire-puncture.md` — TirePunctureEffect, TirePunctureData
 - `docs/28-effect-teleport.md` — TeleportEffect, PendingTeleport, on_agent_exit callback
 - `docs/29-zone-ui-editor.md` — Kernel Commands для зон, Three.js ZoneManager, панель инспектора

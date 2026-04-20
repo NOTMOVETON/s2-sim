@@ -223,6 +223,23 @@ void ZoneSystem::on_agent_enter(Agent& agent, Zone& zone, SimBus& bus,
 void ZoneSystem::on_agent_exit(Agent& agent, Zone& zone, SimBus& bus)
 {
     bus.publish(event::AgentExitedZone{.agent = agent.id, .zone = zone.id});
+
+    // Уведомить плагины эффектов о выходе агента.
+    // Каждый плагин сам решает что сбросить в SharedState (например charging-флаг).
+    for (auto& desc : zone.effects) {
+        if (!desc.enabled || !desc.plugin) continue;
+        if (!capabilities_match(agent, desc.required_capabilities)) continue;
+
+        EffectContext ctx;
+        ctx.zone_id        = zone.id;
+        ctx.zone_center    = zone.shape.center;
+        ctx.zone_half_size = zone.shape.half_size;
+        ctx.agent_id       = agent.id;
+        ctx.agent_position = agent.world_pose.position();
+
+        desc.plugin->on_agent_exit(agent.state, ctx);
+    }
+
     // MUTATION не отменяется
     // MODIFIER/CONTINUOUS прекращают действовать автоматически (агент не в inside_agents)
 }

@@ -2,6 +2,71 @@
 
 ## Текущая работа
 
+### BatteryPlugin: разряд + ограничения скорости ✅ ЗАВЕРШЕНО
+
+Все тесты проходят (2/2 test suites, 100%).
+
+**Что реализовано:**
+- `plugin_base.hpp` — новый виртуальный метод `pre_resolve(double dt, Agent&)` — no-op по умолчанию
+- `sim_engine.hpp` фаза 3a — вызов `plugin->pre_resolve(dt_, agent)` для каждого плагина до `resolve()`
+- `battery.hpp::pre_resolve()`:
+  - Разряд: `level -= drain_rate_ * dt` при `!charging` (по умолчанию 1%/с)
+  - `level <= 0.05` → `add_lock(true, "battery_critical")`
+  - `0.05 < level < 0.20` → `add_scale((level-0.05)/0.15, "battery_low")`
+  - `level >= 0.20` → нет contribution
+- `battery.hpp::from_config()` — `drain_rate`, `low_level`, `critical_level`
+- 8 новых тестов (тест 9–16): drain, no-drain при charging, scale contribution, lock contribution, граница 20%, граница 5%, unlock при восстановлении заряда
+
+**Архитектурное решение: `pre_resolve()` вместо `update()`**
+`resolve()` вызывается до `plugin->update()`. Если бы BatteryPlugin добавлял contributions в `update()`, DiffDrive уже прочитал бы effective() без них. Решение — `pre_resolve()` в фазе 3a: вызывается до `resolve()`, contributions учитываются в этом же тике.
+
+**Следующий шаг:** задача 27 (TirePunctureEffect, TirePunctureData).
+
+### BatteryPlugin (задача 32) ✅ ЗАВЕРШЁН
+
+Все тесты проходят (2/2 test suites).
+
+**Что реализовано:**
+- `s2_core/include/s2/sensor_data.hpp` — добавлен `BatteryData`
+- `s2_core/include/s2/transport_adapter.hpp` — `SensorOutput` получил `std::optional<BatteryData> battery`
+- `s2_plugins/include/s2/plugins/battery.hpp` — `BatteryPlugin`: initialize, update, contribute_snapshot, to_json, from_config
+- `s2_transport/src/sim_transport_bridge.cpp` — "battery" в `is_sensor_plugin()` и ветка в `on_post_tick()`
+- `s2_transport/include/s2/ros2_transport_adapter.hpp` — `battery_pubs` в `NodeInfo`
+- `s2_transport/src/ros2_transport_adapter.cpp` — регистрация топика и публикация `BatteryState`
+- `s2_plugins/src/plugins_registry.cpp` — тип `"battery"` зарегистрирован
+- `s2_core/tests/test_battery_plugin.cpp` — 8+8 тестов
+- `test_zones.yaml` — robot_0 получил battery плагин (initial_level: 0.5)
+
+### Рефакторинг AgentSnapshot.extra ✅ ЗАВЕРШЁН
+
+Все тесты проходят (326/326, 2/2 test suites).
+
+**Что изменено:**
+- `world_snapshot.hpp`: убраны доменные поля `battery_level`, `battery_charging`, `held_objects`; добавлено `nlohmann::json extra = nlohmann::json::object()`
+- `plugin_base.hpp`: добавлен `virtual void contribute_snapshot(nlohmann::json& out, const Agent& agent) const {}` + `#include <nlohmann/json.hpp>`
+- `sim_engine.hpp`: в `build_snapshot()` вызывается `plugin->contribute_snapshot(as.extra, agent)` для каждого плагина
+- `world_snapshot.cpp`: `j.update(agent.extra)` вместо хардкода `battery_level` и др.
+- `test_world_snapshot.cpp`, `test_snapshot_viz.cpp`: доменные поля переведены на `agent.extra["battery_level"] = ...`
+
+**Граница:** в `AgentSnapshot` остаются только core-поля (`effective_speed_scale`, `motion_locked`); доменные данные — через `extra`.
+
+### Задача 26 — ChargingEffect + BatteryComponent ✅ ЗАВЕРШЕНА
+
+Все тесты проходят.
+
+**Что реализовано:**
+- `s2_plugins/include/s2/components/battery_component.hpp` — `BatteryComponent {level, charging}` (в plugins, не в core)
+- `s2_plugins/include/s2/effects/charging_effect.hpp` — CONTINUOUS эффект; `on_agent_exit` сбрасывает `charging=false`
+- `interfaces/effect_plugin.hpp`: новый виртуальный метод `on_agent_exit(SharedState&, ctx)` — no-op в базе
+- `zone_system.cpp`: `on_agent_exit` вызывает `plugin->on_agent_exit()` для всех эффектов (без знания о BatteryComponent)
+- `effects_registry.cpp`: тип `"charging"` зарегистрирован
+- `test_effect_charging.cpp`: 7 тестов; тест 7 проверяет SharedState напрямую, не snapshot
+- `test_shared_state.cpp`: локальный `BatteryComponent` перемещён в anonymous namespace (фикс ODR violation)
+
+**Архитектурное решение:** `BatteryComponent` живёт в `s2_plugins` — core не знает о доменных типах. `battery_level` попадает в JSON через `extra` (через `BatteryPlugin::contribute_snapshot`, задача 32).
+
+**Следующий шаг:** задача 27 (TirePunctureEffect, TirePunctureData).
+
 ### Задача 25 + пост-релизные улучшения ✅ ЗАВЕРШЕНЫ
 
 Все тесты проходят (2/2 test suites, 100%).

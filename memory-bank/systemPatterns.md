@@ -148,3 +148,53 @@ External input (от ROS2 или UI) сохраняется до получен�
 - Путь: `IAgentPlugin::sensor_frame_id()` → `sim_transport_bridge` → `SensorRegistration.frame_id` → адаптер
 - Дефолт в базе: `""` (адаптер сам решает, обычно fallback `"base_link"`)
 - Переопределяется плагинами со специфическим монтажным фреймом
+
+### Система зон и эффектов (задачи 23–26)
+
+**Граница s2_core / s2_plugins:**
+- `s2_core` содержит: `ZoneSystem`, `ZoneShape`, `EffectPlugin` interface, `Zone::EffectDesc`, `EffectContext`
+- `s2_plugins` содержит: конкретные эффекты (`ChargingEffect`, `IceModifier`, …) и доменные компоненты (`BatteryComponent`)
+- `s2_core` не импортирует типы из `s2_plugins` — нет circular dependency
+
+**EffectPlugin жизненный цикл:**
+1. `on_init(YAML::Node)` — один раз при загрузке зоны
+2. `apply_modifier / apply_continuous` — каждый тик пока агент внутри зоны
+3. `apply_mutation` — один раз при входе агента (MUTATION-эффекты)
+4. `on_agent_exit(SharedState&, ctx)` — при выходе агента; плагин сбрасывает свои persistent-флаги в SharedState
+
+**Как EffectPlugin сбрасывает флаги без знания core о доменных типах:**
+`ZoneSystem::on_agent_exit` вызывает `plugin->on_agent_exit(agent.state, ctx)` для каждого эффекта зоны. Плагин (в `s2_plugins`) имеет доступ к своим типам (`BatteryComponent`) и сбрасывает их напрямую через `state.get<T>()`. Core ничего не знает о конкретных типах.
+
+**pre_resolve() — ранняя фаза тика для плагинов:**
+- Новый виртуальный метод `IAgentPlugin::pre_resolve(double dt, Agent&)` — no-op по умолчанию
+- Вызывается SimEngine в фазе 3a, до `zone_system_.tick()` → до `resolve()` → до `update()`
+- Нужен плагинам, которые публикуют contributions (add_scale/add_lock) чтобы DiffDrive их увидел в этом же тике
+- Порядок в тике: `pre_resolve()` → zone effects → `resolve()` → `update()` → kinematics → `clear_contributions()`
+- Без `pre_resolve()`: contributions из `update()` добавляются после `resolve()` и не попадают в effective() — DiffDrive их не видит
+
+**BatteryComponent (задача 26) + BatteryPlugin (задача 32):**
+- `BatteryComponent` живёт в `s2_plugins/include/s2/components/battery_component.hpp` — доменный тип, не в ядре
+- `ChargingEffect::apply_continuous` создаёт компонент если отсутствует (graceful init)
+- `BatteryPlugin` (`s2_plugins/include/s2/plugins/battery.hpp`) — `IAgentPlugin` типа `"battery"`:
+  - `initialize()` — создаёт `BatteryComponent` с `initial_level` (не перезаписывает существующий)
+  - `update()` — читает `BatteryComponent`, пишет `BatteryData` в SharedState с учётом `publish_rate_hz`
+  - `contribute_snapshot()` — добавляет `battery_level`, `battery_charging` в `AgentSnapshot.extra`
+  - Публикует `sensor_msgs/BatteryState` через ROS2 транспорт
+- `BatteryData` в `sensor_data.hpp` — транспортный тип (`level`, `charging`, `nominal_voltage`, `capacity_ah`, `design_capacity_ah`, `technology`, `location`, `serial_number`)
+- ROS2 топик по умолчанию: `/battery_state` (с sensor_name: `/<name>/battery_state`), переопределяется через `topic:` в YAML
+- `power_supply_status`: FULL если `level==1.0 && charging`, CHARGING если `charging`, DISCHARGING иначе
+- Напряжение = `nominal_voltage * level` (линейная аппроксимация)
+
+**contribute_snapshot — расширяемые поля агента в снапшоте:**
+- `AgentSnapshot.extra = nlohmann::json::object()` — JSON-объект для доменных полей плагинов
+- `IAgentPlugin::contribute_snapshot(nlohmann::json& out, const Agent& agent)` — виртуальный метод, no-op по умолчанию
+- `SimEngine::build_snapshot()` вызывает `plugin->contribute_snapshot(as.extra, agent)` для каждого плагина
+- `agent_snapshot_to_json()` делает `j.update(agent.extra)` — все ключи extra мержатся в JSON агента
+- **Инициализация**: `= nlohmann::json::object()` (не `{nlohmann::json::object()}` — последнее создаёт array через initializer_list)
+- В `AgentSnapshot` остаются только core-поля: `effective_speed_scale`, `motion_locked` (агрегированная физика SharedState); доменные поля (`battery_level`, `held_objects`) — через extra
+- Плагин добавляет поля прямо в out: `out["battery_level"] = bat->level;`
+
+**required_capabilities (приоритет YAML над плагином):**
+- Если YAML указал `required_capabilities` — берётся из YAML
+- Если не указал — берётся дефолт из `plugin->required_capabilities()`
+- Позволяет переопределять целевую аудиторию эффекта прямо в сцене без изменения плагина

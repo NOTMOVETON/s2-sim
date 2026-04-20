@@ -58,6 +58,11 @@ public:
     /// Вызывается один раз при входе. Состояние сохраняется при выходе.
     virtual void apply_mutation(SharedState& /*state*/, const EffectContext& /*ctx*/) {}
 
+    /// Вызывается при выходе агента из зоны.
+    /// CONTINUOUS-эффекты могут использовать для сброса persistent-флагов в SharedState.
+    /// По умолчанию — ничего не делает.
+    virtual void on_agent_exit(SharedState& /*state*/, const EffectContext& /*ctx*/) {}
+
     // ── SENSOR-эффекты (задача 31) ──────────────────────────────────────────
 
     /// Описание модификации параметра сенсора.

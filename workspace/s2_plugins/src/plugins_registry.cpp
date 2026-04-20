@@ -1,4 +1,5 @@
 #include <s2/plugins/plugin_base.hpp>
+#include <s2/plugins/battery.hpp>
 #include <s2/plugins/color.hpp>
 #include <s2/plugins/lidar.hpp>
 #include <s2/plugins/diff_drive.hpp>
@@ -37,6 +38,7 @@ struct PluginRegistrar
     }
 };
 
+static const PluginRegistrar register_battery("battery", []() { return std::make_unique<BatteryPlugin>(); });
 static const PluginRegistrar register_color("color", []() { return std::make_unique<ColorPlugin>(); });
 static const PluginRegistrar register_diff_drive("diff_drive", []() { return std::make_unique<DiffDrivePlugin>(); });
 static const PluginRegistrar register_gravity("gravity", []() { return std::make_unique<GravityPlugin>(); });
@@ -70,7 +72,7 @@ std::string list_plugin_schemas()
 
     // Фиксированный порядок для предсказуемого UI
     const std::vector<std::string> order = {
-        "diff_drive", "gnss", "imu", "lidar",
+        "diff_drive", "gnss", "imu", "lidar", "battery",
         "trajectory_recorder", "path_display", "topic_display",
         "joint_vel", "color"
     };

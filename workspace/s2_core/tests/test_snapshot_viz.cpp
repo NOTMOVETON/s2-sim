@@ -138,7 +138,8 @@ TEST(SnapshotToJsonTest, AgentInJson) {
     as.pose.z = 0.0;
     as.pose.yaw = 1.57;
     as.visual.color = "#00FF00";
-    as.battery_level = 85.0;
+    // Доменные поля плагинов идут в extra (заполняются через contribute_snapshot)
+    as.extra["battery_level"] = 85.0;
     snap.agents.push_back(as);
 
     auto json = snapshot_to_json(snap, false);

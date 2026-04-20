@@ -16,16 +16,19 @@
 #include <gtest/gtest.h>
 #include <cmath>
 
-namespace s2
-{
-
-// Вспомогательный компонент для тестирования single-owner state
+// Локальные типы для тестирования SharedState (в анонимном namespace, чтобы избежать
+// конфликта с реальным s2::BatteryComponent из components/battery_component.hpp)
+namespace {
 struct BatteryComponent
 {
   double level{100.0};
   BatteryComponent() = default;
   explicit BatteryComponent(double lvl) : level(lvl) {}
 };
+} // anonymous namespace
+
+namespace s2
+{
 
 // Вспомогательный компонент для тестирования held objects
 struct HeldObjects

@@ -4,6 +4,7 @@
 #include <s2/effects/motion_lock_zone.hpp>
 #include <s2/effects/conveyor_effect.hpp>
 #include <s2/effects/wind_effect.hpp>
+#include <s2/effects/charging_effect.hpp>
 
 namespace s2 {
 
@@ -17,7 +18,8 @@ std::unique_ptr<EffectPlugin> create_effect(
     else if (type == "motion_lock")  plugin = std::make_unique<effects::MotionLockZone>();
     else if (type == "conveyor")     plugin = std::make_unique<effects::ConveyorEffect>();
     else if (type == "wind")         plugin = std::make_unique<effects::WindEffect>();
-    // Новые эффекты добавляются здесь по мере реализации задач 26–29.
+    else if (type == "charging")     plugin = std::make_unique<effects::ChargingEffect>();
+    // Новые эффекты добавляются здесь по мере реализации задач 27–29.
 
     if (plugin) {
         plugin->on_init(params);

@@ -335,9 +335,12 @@ public:
       as.velocity = agent.world_velocity;
       as.velocity_addition = agent.state.effective().velocity_addition;
       as.visual = agent.visual;
-      as.battery_level = 100.0;
       as.effective_speed_scale = agent.state.effective().speed_scale;
       as.motion_locked = agent.state.effective().motion_locked;
+
+      // Плагины добавляют свои доменные поля (battery_level, held_objects и т.п.)
+      for (const auto& plugin : agent.plugins)
+        plugin->contribute_snapshot(as.extra, agent);
 
       // Коллизионный шейп для визуализации
       as.has_collision = agent.has_collision;
@@ -481,7 +484,12 @@ private:
     // === Фаза 3: Для каждого агента ===
     for (auto& agent : world_.agents())
     {
-      // 3a. Resource modules — пока пусто
+      // 3a. Resource modules — плагины публикуют contributions до resolve().
+      // Плагины переопределяют pre_resolve() если им нужна ранняя фаза.
+      // Пример: BatteryPlugin разряжает батарею и добавляет add_scale/add_lock.
+      for (auto& plugin : agent.plugins)
+          plugin->pre_resolve(dt_, agent);
+
       // 3b. Own effects CONTINUOUS — пока пусто
       // 3c. Zone effects CONTINUOUS — пока пусто
 

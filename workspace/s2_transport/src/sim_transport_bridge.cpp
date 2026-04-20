@@ -20,7 +20,8 @@ bool SimTransportBridge::is_sensor_plugin(const std::string& plugin_type)
     return plugin_type == "gnss"
         || plugin_type == "imu"
         || plugin_type == "diff_drive"
-        || plugin_type == "lidar";
+        || plugin_type == "lidar"
+        || plugin_type == "battery";
 }
 
 SimTransportBridge::SimTransportBridge(SimEngine* engine,
@@ -242,6 +243,17 @@ void SimTransportBridge::on_post_tick(const SimWorld& world, double sim_time)
                 if (data && (it == last_published_seq_.end() || data->seq > it->second))
                 {
                     out.lidar_scan = *data;
+                    has_new_data = true;
+                    last_published_seq_[key] = data->seq;
+                }
+            }
+            else if (ptype == "battery")
+            {
+                auto* data = agent.state.get<BatteryData>();
+                auto it = last_published_seq_.find(key);
+                if (data && (it == last_published_seq_.end() || data->seq > it->second))
+                {
+                    out.battery = *data;
                     has_new_data = true;
                     last_published_seq_[key] = data->seq;
                 }

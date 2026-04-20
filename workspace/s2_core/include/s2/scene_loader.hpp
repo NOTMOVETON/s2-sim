@@ -167,6 +167,9 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
                 }
             }
 
+            // Инициализация компонентов по capabilities выполняется плагинами (задача 32).
+            // SceneLoader отвечает только за структуру агента, не за доменные компоненты.
+
             // Начальная скорость (если задана в конфиге)
             if (agent_node["velocity"]) {
                 const auto& vel = agent_node["velocity"];

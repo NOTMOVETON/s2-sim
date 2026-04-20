@@ -24,10 +24,16 @@ struct AgentSnapshot {
     Velocity velocity;          ///< Скорость тела (actuation, локальные координаты)
     Vec3 velocity_addition;     ///< Аддитивная скорость от зон (мировые координаты)
     VisualDesc visual;
-    double battery_level = 100.0;
-    double effective_speed_scale = 1.0;
-    bool motion_locked = false;
-    std::vector<ActorId> held_objects;
+
+    /// Агрегированное физическое состояние ядра (из SharedState::effective()).
+    double effective_speed_scale{1.0};
+    bool motion_locked{false};
+
+    /// Расширяемые данные плагинов.
+    /// Каждый плагин вносит свои поля через IAgentPlugin::contribute_snapshot().
+    /// Пример: BatteryPlugin добавляет battery_level и battery_charging.
+    nlohmann::json extra = nlohmann::json::object();
+
     /// Позы всех звеньев кинематического дерева (кроме корня) в мировых координатах.
     /// Пустой — если kinematic_tree не задано.
     std::vector<LinkFrameSnapshot> kinematic_frames;

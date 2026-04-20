@@ -53,6 +53,25 @@ struct DiffDriveData
 };
 
 /**
+ * @brief Данные батареи для публикации в sensor_msgs/BatteryState.
+ */
+struct BatteryData
+{
+    uint64_t seq{0};             ///< Монотонно растущий счётчик
+
+    double level{1.0};           ///< Уровень заряда [0.0, 1.0]
+    bool   charging{false};      ///< true пока агент в зарядной зоне
+
+    // Параметры батареи (задаются в конфиге плагина)
+    double nominal_voltage{24.0};     ///< Номинальное напряжение [В]
+    double capacity_ah{10.0};         ///< Ёмкость (последняя полная) [Ач]
+    double design_capacity_ah{10.0};  ///< Расчётная ёмкость [Ач]
+    uint8_t technology{2};            ///< POWER_SUPPLY_TECHNOLOGY_* (2 = Li-Ion)
+    std::string location;             ///< Слот / разъём ("main", "slot_0", …)
+    std::string serial_number;        ///< Серийный номер
+};
+
+/**
  * @brief Данные 2D лидара.
  */
 struct LidarScanData

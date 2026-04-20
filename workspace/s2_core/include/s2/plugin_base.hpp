@@ -11,6 +11,7 @@
 
 #include <s2/transport_adapter.hpp>
 #include <yaml-cpp/yaml.h>
+#include <nlohmann/json.hpp>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -105,6 +106,20 @@ public:
     virtual void initialize(Agent& agent) { (void)agent; }
 
     /**
+     * @brief Ранняя фаза тика — до resolve() contributions.
+     *
+     * Вызывается SimEngine в фазе 3a (Resource modules), до zone_effects и до resolve().
+     * Используется плагинами, которым нужно публиковать contributions в SharedState
+     * так, чтобы они были учтены resolve() в этом же тике.
+     *
+     * Типичное применение: BatteryPlugin разряжает батарею и публикует
+     * add_scale() / add_lock() чтобы DiffDrive прочитал ограничения через effective().
+     *
+     * По умолчанию — no-op. Плагины, которым не нужна ранняя фаза, не переопределяют.
+     */
+    virtual void pre_resolve(double /*dt*/, Agent& /*agent*/) {}
+
+    /**
      * @brief Передать ссылку на CollisionSystem перед вызовом update().
      * Вызывается SimEngine в фазе 3e для каждого плагина каждый тик.
      * Плагины, которым нужна CollisionSystem (например, GravityPlugin),
@@ -130,6 +145,21 @@ public:
     virtual void update(double dt, Agent& agent) = 0;
     virtual void from_config(const YAML::Node& node) = 0;
     virtual std::string to_json() const = 0;
+
+    /**
+     * @brief Добавить данные плагина в снапшот агента.
+     *
+     * Вызывается SimEngine::build_snapshot() для каждого плагина каждого агента.
+     * Плагины записывают свои поля прямо в out (JSON-объект).
+     * Ключи из разных плагинов объединяются.
+     *
+     * Пример реализации в BatteryPlugin:
+     *   out["battery_level"]    = bat->level;
+     *   out["battery_charging"] = bat->charging;
+     *
+     * По умолчанию ничего не добавляет.
+     */
+    virtual void contribute_snapshot(nlohmann::json& /*out*/, const Agent& /*agent*/) const {}
 
     // ─── Схема конфигурации для UI-редактора сцены ───
 

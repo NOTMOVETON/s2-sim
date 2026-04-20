@@ -36,6 +36,7 @@ struct SensorOutput
     std::optional<ImuData>       imu;              ///< заполнен для sensor_type == "imu"
     std::optional<DiffDriveData> diff_drive;       ///< заполнен для sensor_type == "diff_drive"
     std::optional<LidarScanData> lidar_scan;       ///< заполнен для sensor_type == "lidar"
+    std::optional<BatteryData>   battery;          ///< заполнен для sensor_type == "battery"
 };
 
 /**

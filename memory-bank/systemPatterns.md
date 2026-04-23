@@ -194,6 +194,14 @@ External input (от ROS2 или UI) сохраняется до получен�
 - В `AgentSnapshot` остаются только core-поля: `effective_speed_scale`, `motion_locked` (агрегированная физика SharedState); доменные поля (`battery_level`, `held_objects`) — через extra
 - Плагин добавляет поля прямо в out: `out["battery_level"] = bat->level;`
 
+**TirePunctureData (задача 27):**
+- Живёт в `s2_core/include/s2/components/tire_puncture_data.hpp` — в ядре, т.к. DiffDrivePlugin (s2_plugins) читает его
+- `TirePunctureEffect::apply_mutation()` создаёт TirePunctureData если отсутствует, устанавливает `punctured = true`
+- Необратимость: `on_agent_exit()` не переопределяется — прокол остаётся навсегда
+- Упрощённая модель: `bool punctured` (binary), без отдельных шин — будет усложняться позже
+- `DiffDrivePlugin`: `clamped_linear *= 0.5`, `clamped_angular += 0.05*sin(time_acc_*15.0)`; `time_acc_` накапливается независимо
+- `AgentSnapshot.tire_punctured` — заполняется `SimEngine::build_snapshot()` напрямую из SharedState (не через contribute_snapshot), т.к. TirePunctureData в ядре
+
 **required_capabilities (приоритет YAML над плагином):**
 - Если YAML указал `required_capabilities` — берётся из YAML
 - Если не указал — берётся дефолт из `plugin->required_capabilities()`

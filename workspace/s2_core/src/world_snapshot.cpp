@@ -66,6 +66,7 @@ nlohmann::json agent_snapshot_to_json(const AgentSnapshot& agent) {
     j["color"] = agent.visual.color;
     j["effective_speed_scale"] = agent.effective_speed_scale;
     j["motion_locked"] = agent.motion_locked;
+    j["tire_punctured"] = agent.tire_punctured;
     // Доменные поля плагинов (battery_level, held_objects и т.д.) живут в extra:
     // каждый плагин наполняет их через IAgentPlugin::contribute_snapshot().
     j.update(agent.extra);

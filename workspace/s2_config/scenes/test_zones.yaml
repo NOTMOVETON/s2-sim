@@ -27,6 +27,7 @@ s2:
       capabilities:
         - "surface_contact"
         - "has_battery"
+        - "wheeled"
       collision:
         bounding:
           type: "sphere"
@@ -40,20 +41,22 @@ s2:
           max_linear_vel: 2.0
           max_angular_vel: 1.5
         - type: "gravity"
-        - type: "battery"
-          initial_level: 0.5          # 50% заряда при старте
-          nominal_voltage: 24.0       # В
-          capacity_ah: 10.0           # Ач (последняя полная ёмкость)
-          design_capacity_ah: 10.0    # Ач (расчётная ёмкость)
-          technology: lion            # Li-Ion (nimh|lion|lipo|life|nicd|limn)
-          location: "main"
-          publish_rate_hz: 1.0        # ROS2 sensor_msgs/BatteryState @ 1 Гц
+        # - type: "battery"
+        #   initial_level: 0.5          # 50% заряда при старте
+        #   nominal_voltage: 24.0       # В
+        #   capacity_ah: 10.0           # Ач (последняя полная ёмкость)
+        #   design_capacity_ah: 10.0    # Ач (расчётная ёмкость)
+        #   technology: lion            # Li-Ion (nimh|lion|lipo|life|nicd|limn)
+        #   location: "main"
+        #   publish_rate_hz: 1.0        # ROS2 sensor_msgs/BatteryState @ 1 Гц
 
-    # robot_1 — без surface_contact, без батареи:
+    # robot_1 — без surface_contact, без батареи, но wheeled:
     #   лёд/буст/конвейер не действуют, ветер и стоп — да.
     #   battery_level = -1.0 (нет BatteryComponent).
     - name: "robot_1"
       pose: {x: 0.0, y: -3.0, z: 0.0, yaw: 0.0}
+      capabilities:
+        - "wheeled"
       collision:
         bounding:
           type: "sphere"
@@ -149,6 +152,21 @@ s2:
             wind_vector: {x: 0.0, y: 0.5, z: 0.0}
             gust_amplitude: 0.2
             gust_frequency: 0.3
+
+    # Полоса шипов: прокалывает оба передних колеса у wheeled-роботов
+    # Эффект необратим — колёса остаются проколотыми после выхода.
+    # DiffDrivePlugin снизит max_speed на 0.7² = 0.49 и добавит drift.
+    - id: "nail_strip"
+      shape:
+        type: aabb
+        center: {x: 5.0, y: -3.0, z: 0.5}
+        half_size: {x: 0.3, y: 2.0, z: 1.0}
+      color: "#AA2200"
+      opacity: 0.5
+      label: "Шипы (прокол fl+fr)"
+      effects:
+        - type: tire_puncture
+          required_capabilities: ["wheeled"]
 
     # Зарядная станция: заряжает батарею robot_0
     # Скорость 5%/с → полный заряд за ~10 сек (50% → 100%)

@@ -2,6 +2,27 @@
 
 ## Текущая работа
 
+### Задача 27 — TirePunctureEffect + TirePunctureData ✅ ЗАВЕРШЕНА
+
+Все тесты проходят (2/2 test suites, 100%).
+
+**Что реализовано:**
+- `s2_core/include/s2/components/tire_puncture_data.hpp` — `TirePunctureData { bool punctured{false} }` — единый флаг
+- `s2_plugins/include/s2/effects/tire_puncture.hpp` — `TirePunctureEffect`: MUTATION, capability "wheeled", `apply_mutation()` устанавливает `punctured = true`, `visual_hint()` "grid" (#AA2200)
+- `diff_drive.hpp` — читает TirePunctureData: `clamped_linear *= 0.5`, `clamped_angular += 0.05*sin(time_acc_*15.0)`; member `time_acc_`
+- `world_snapshot.hpp` — поле `tire_punctured{false}` в AgentSnapshot
+- `sim_engine.hpp::build_snapshot()` — заполняет `tire_punctured` из SharedState
+- `world_snapshot.cpp` — сериализация `tire_punctured` в JSON
+- `effects_registry.cpp` — тип `"tire_puncture"` зарегистрирован
+- `test_effect_mutation.cpp` — 5 тестов: AppliedOnEntry, PersistsAfterExit, NoCapability, DiffDrivePenalty, DiffDriveNoPenaltyWhenOk
+
+**Архитектурные детали:**
+- TirePunctureData в s2_core — DiffDrivePlugin (s2_plugins) читает его напрямую
+- Упрощённая модель: binary punctured/not punctured, без отдельных шин — будет усложняться позже
+- `on_agent_exit()` не переопределяется — прокол необратим
+
+**Следующий шаг:** задача 28 (TeleportEffect, PendingTeleport, on_agent_exit callback).
+
 ### BatteryPlugin: разряд + ограничения скорости ✅ ЗАВЕРШЕНО
 
 Все тесты проходят (2/2 test suites, 100%).

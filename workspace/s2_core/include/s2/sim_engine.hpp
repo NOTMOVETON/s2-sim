@@ -342,6 +342,10 @@ public:
       for (const auto& plugin : agent.plugins)
         plugin->contribute_snapshot(as.extra, agent);
 
+      // Состояние шин из SharedState (заполняется TirePunctureEffect при входе в зону)
+      const auto* tire = agent.state.get<TirePunctureData>();
+      if (tire) as.tire_punctured = tire->punctured;
+
       // Коллизионный шейп для визуализации
       as.has_collision = agent.has_collision;
       if (agent.has_collision) {

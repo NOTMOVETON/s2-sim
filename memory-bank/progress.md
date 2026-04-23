@@ -472,7 +472,7 @@ ZoneShapeType::CYLINDER, EffectPlugin интерфейс, ZoneSystem, ZoneSnapsh
 - `docs/24-effect-ice-boost-lock.md` — IceModifier, BoostZone, MotionLockZone + фабрика ✅ РЕАЛИЗОВАНО
 - `docs/25-effect-conveyor-wind.md` — ConveyorEffect, WindEffect + velocity_addition в кинематике ✅ РЕАЛИЗОВАНО
 - `docs/26-effect-charging.md` — ChargingEffect, BatteryComponent ✅ РЕАЛИЗОВАНО
-- `docs/27-effect-tire-puncture.md` — TirePunctureEffect, TirePunctureData
+- `docs/27-effect-tire-puncture.md` — TirePunctureEffect, TirePunctureData ✅ РЕАЛИЗОВАНО
 - `docs/28-effect-teleport.md` — TeleportEffect, PendingTeleport, on_agent_exit callback
 - `docs/29-zone-ui-editor.md` — Kernel Commands для зон, Three.js ZoneManager, панель инспектора
 - `docs/30-zone-visual-effects.md` — VisualHint pipeline, arrows/particles/glow/grid

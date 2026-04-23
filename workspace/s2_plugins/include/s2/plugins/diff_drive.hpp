@@ -13,6 +13,7 @@
 
 #include <s2/agent.hpp>
 #include <s2/sensor_data.hpp>
+#include <s2/components/tire_puncture_data.hpp>
 #include <yaml-cpp/yaml.h>
 
 #include <cmath>
@@ -33,7 +34,7 @@ public:
 
     std::string type() const override { return "diff_drive"; }
 
-    void update(double /*dt*/, Agent& agent) override
+    void update(double dt, Agent& agent) override
     {
         // Читаем desired из SharedState
         auto* dd = agent.state.get<DiffDriveData>();
@@ -64,6 +65,14 @@ public:
             agent.world_velocity.linear = Vec3::Zero();
             agent.world_velocity.angular = Vec3::Zero();
             return;
+        }
+
+        // Учёт проколотых шин: снижение скорости и детерминированный drift
+        const auto* tire_data = agent.state.get<TirePunctureData>();
+        if (tire_data && tire_data->punctured) {
+            clamped_linear *= 0.5;
+            time_acc_ += dt;
+            clamped_angular += 0.05 * std::sin(time_acc_ * 15.0);
         }
 
         // Применить speed_scale (лёд замедляет, boost ускоряет).
@@ -171,6 +180,9 @@ private:
     bool has_external_input_{false};
     double external_linear_velocity_{0.0};
     double external_angular_velocity_{0.0};
+
+    // Накопленное время для детерминированного drift при проколах шин
+    double time_acc_{0.0};
 };
 
 } // namespace plugins

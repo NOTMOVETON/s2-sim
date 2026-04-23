@@ -2,6 +2,7 @@
 
 #include <s2/types.hpp>
 #include <s2/kinematic_tree.hpp>
+#include <s2/components/tire_puncture_data.hpp>
 #include <vector>
 #include <string>
 #include <optional>
@@ -33,6 +34,9 @@ struct AgentSnapshot {
     /// Каждый плагин вносит свои поля через IAgentPlugin::contribute_snapshot().
     /// Пример: BatteryPlugin добавляет battery_level и battery_charging.
     nlohmann::json extra = nlohmann::json::object();
+
+    /// true если шины проколоты (TirePunctureData::punctured).
+    bool tire_punctured{false};
 
     /// Позы всех звеньев кинематического дерева (кроме корня) в мировых координатах.
     /// Пустой — если kinematic_tree не задано.

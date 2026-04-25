@@ -9,6 +9,15 @@
 #include <s2/actor.hpp>
 #include <s2/sim_bus.hpp>
 #include <s2/sensor_data.hpp>
+#include <s2/world_query.hpp>
+#include <s2/event_bus.hpp>
+#include <s2/plugin_base.hpp>
+
+// Null-контекст для тестов плагинов
+static s2::WorldQuery         g_null_world;
+static s2::EventBus           g_null_bus;
+static s2::KernelCommandQueue g_null_cmds;
+static s2::PluginContext      g_ctx{g_null_world, g_null_bus, g_null_cmds};
 
 namespace s2 {
 
@@ -249,7 +258,7 @@ TEST(EffectModifier, DiffDrive_ReadsEffectiveScale)
     // Запускаем DiffDrivePlugin
     plugins::DiffDrivePlugin drive;
     drive.from_config(YAML::Load("max_linear_vel: 2.0\nmax_angular_vel: 1.5"));
-    drive.update(0.01, agent);
+    drive.update(0.01, agent, g_ctx);
 
     // Ожидаем: 1.0 * 0.5 = 0.5 м/с
     EXPECT_NEAR(agent.world_velocity.linear.x(), 0.5, 1e-9);
@@ -270,7 +279,7 @@ TEST(EffectModifier, DiffDrive_MotionLocked_StopsAgent)
 
     plugins::DiffDrivePlugin drive;
     drive.from_config(YAML::Load("max_linear_vel: 2.0\nmax_angular_vel: 1.5"));
-    drive.update(0.01, agent);
+    drive.update(0.01, agent, g_ctx);
 
     EXPECT_NEAR(agent.world_velocity.linear.x(), 0.0, 1e-9);
     EXPECT_NEAR(agent.world_velocity.angular.z(), 0.0, 1e-9);

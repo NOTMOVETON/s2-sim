@@ -6,7 +6,16 @@
 #include <s2/plugins/color.hpp>
 #include <s2/agent.hpp>
 #include <s2/kinematic_tree.hpp>
+#include <s2/world_query.hpp>
+#include <s2/event_bus.hpp>
+#include <s2/plugin_base.hpp>
 #include <gtest/gtest.h>
+
+// Null-контекст для тестов плагинов
+static s2::WorldQuery         g_null_world;
+static s2::EventBus           g_null_bus;
+static s2::KernelCommandQueue g_null_cmds;
+static s2::PluginContext      g_ctx{g_null_world, g_null_bus, g_null_cmds};
 
 namespace
 {
@@ -92,7 +101,7 @@ TEST(ColorPluginTest, FromConfigSetsFields)
     auto agent = make_simple_agent();
     plugin.initialize(agent);
     plugin.handle_service("/set_color", "");
-    plugin.update(0.1, agent);
+    plugin.update(0.1, agent, g_ctx);
     EXPECT_EQ(agent.visual.color, "#AABBCC");
 }
 
@@ -106,7 +115,7 @@ TEST(ColorPluginTest, InitializeStoresOriginalColorSimple)
     plugin.initialize(agent);
 
     // Без триггера update должен восстанавливать исходный цвет
-    plugin.update(0.1, agent);
+    plugin.update(0.1, agent, g_ctx);
     EXPECT_EQ(agent.visual.color, "#AABBCC");
 }
 
@@ -118,7 +127,7 @@ TEST(ColorPluginTest, InitializeStoresLinkColorsForUrdf)
     plugin.initialize(agent);
 
     // Без триггера — исходные цвета звеньев сохраняются
-    plugin.update(0.1, agent);
+    plugin.update(0.1, agent, g_ctx);
     for (const auto& link : agent.kinematic_tree->links())
     {
         if (link.name == "base_link") EXPECT_EQ(link.visual.color, "#FF6B35");
@@ -138,7 +147,7 @@ TEST(ColorPluginTest, ServiceCallChangesColorSimple)
     std::string resp = plugin.handle_service("/set_color", "");
     EXPECT_NE(resp.find("true"), std::string::npos);
 
-    plugin.update(0.1, agent);
+    plugin.update(0.1, agent, g_ctx);
     EXPECT_EQ(agent.visual.color, "#FF0000");
 }
 
@@ -150,7 +159,7 @@ TEST(ColorPluginTest, ServiceCallChangesAllLinkColorsForUrdf)
     plugin.initialize(agent);
 
     plugin.handle_service("/set_color", "");
-    plugin.update(0.1, agent);
+    plugin.update(0.1, agent, g_ctx);
 
     for (const auto& link : agent.kinematic_tree->links())
     {
@@ -170,14 +179,14 @@ TEST(ColorPluginTest, TimerExpiryRestoresDefaultColorSimple)
 
     plugin.handle_service("/set_color", "");
 
-    plugin.update(0.2, agent);
+    plugin.update(0.2, agent, g_ctx);
     EXPECT_EQ(agent.visual.color, "#FF0000");
 
-    plugin.update(0.2, agent);
+    plugin.update(0.2, agent, g_ctx);
     EXPECT_EQ(agent.visual.color, "#FF0000");
 
     // Таймер истёк
-    plugin.update(0.2, agent);
+    plugin.update(0.2, agent, g_ctx);
     EXPECT_EQ(agent.visual.color, "#FF6B35");
 }
 
@@ -190,13 +199,13 @@ TEST(ColorPluginTest, TimerExpiryRestoresLinkColorsForUrdf)
 
     plugin.handle_service("/set_color", "");
 
-    plugin.update(0.2, agent);
+    plugin.update(0.2, agent, g_ctx);
     for (const auto& link : agent.kinematic_tree->links())
         if (!link.visual.type.empty())
             EXPECT_EQ(link.visual.color, "blue");
 
     // Таймер истёк
-    plugin.update(0.2, agent);
+    plugin.update(0.2, agent, g_ctx);
     for (const auto& link : agent.kinematic_tree->links())
     {
         if (link.name == "base_link") EXPECT_EQ(link.visual.color, "#FF6B35");
@@ -213,7 +222,7 @@ TEST(ColorPluginTest, ZeroDurationImmediateReset)
 
     plugin.handle_service("/set_color", "");
     // timer_ == 0 → первый update сразу восстанавливает
-    plugin.update(0.1, agent);
+    plugin.update(0.1, agent, g_ctx);
     EXPECT_EQ(agent.visual.color, "#FF6B35");
 }
 
@@ -227,7 +236,7 @@ TEST(ColorPluginTest, ToJsonContainsColorAndRemaining)
     plugin.initialize(agent);
 
     plugin.handle_service("/set_color", "");
-    plugin.update(0.5, agent);
+    plugin.update(0.5, agent, g_ctx);
 
     std::string json = plugin.to_json();
     EXPECT_NE(json.find("active_color"), std::string::npos);

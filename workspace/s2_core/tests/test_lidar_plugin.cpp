@@ -8,11 +8,20 @@
 #include <s2/sensor_data.hpp>
 #include <s2/agent.hpp>
 #include <s2/kinematic_tree.hpp>
+#include <s2/world_query.hpp>
+#include <s2/event_bus.hpp>
+#include <s2/plugin_base.hpp>
 
 #include <gtest/gtest.h>
 #include <yaml-cpp/yaml.h>
 #include <cmath>
 #include <string>
+
+// Null-контекст для тестов плагинов
+static s2::WorldQuery         g_null_world;
+static s2::EventBus           g_null_bus;
+static s2::KernelCommandQueue g_null_cmds;
+static s2::PluginContext      g_ctx{g_null_world, g_null_bus, g_null_cmds};
 
 using namespace s2;
 using namespace s2::plugins;
@@ -141,7 +150,7 @@ TEST(LidarPluginTest, NoRaycastEngine_NoData)
     Agent agent = make_agent();
     plugin.initialize(agent);
 
-    plugin.update(1.0, agent);
+    plugin.update(1.0, agent, g_ctx);
 
     auto* data = agent.state.get<LidarScanData>();
     EXPECT_EQ(data, nullptr);
@@ -162,7 +171,7 @@ TEST(LidarPluginTest, HitsStaticBox)
 
     Agent agent = make_agent(0.0, 0.0, 0.5);
     plugin.initialize(agent);
-    plugin.update(1.0, agent);
+    plugin.update(1.0, agent, g_ctx);
 
     auto* data = agent.state.get<LidarScanData>();
     ASSERT_NE(data, nullptr);
@@ -185,7 +194,7 @@ TEST(LidarPluginTest, MissReturnsMaxRange)
 
     Agent agent = make_agent();
     plugin.initialize(agent);
-    plugin.update(1.0, agent);
+    plugin.update(1.0, agent, g_ctx);
 
     auto* data = agent.state.get<LidarScanData>();
     ASSERT_NE(data, nullptr);
@@ -210,7 +219,7 @@ TEST(LidarPluginTest, HitsDynamicAgent)
 
     Agent agent = make_agent(0.0, 0.0, 0.5);
     plugin.initialize(agent);
-    plugin.update(1.0, agent);
+    plugin.update(1.0, agent, g_ctx);
 
     auto* data = agent.state.get<LidarScanData>();
     ASSERT_NE(data, nullptr);
@@ -233,7 +242,7 @@ TEST(LidarPluginTest, MinRangeFilter)
 
     Agent agent = make_agent(0.0, 0.0, 0.5);
     plugin.initialize(agent);
-    plugin.update(1.0, agent);
+    plugin.update(1.0, agent, g_ctx);
 
     auto* data = agent.state.get<LidarScanData>();
     ASSERT_NE(data, nullptr);
@@ -262,7 +271,7 @@ TEST(LidarPluginTest, PublishRateThrottling)
 
     // 100 тиков × 0.01 с = 1 с → должно быть ~10 публикаций
     for (int i = 0; i < 100; ++i) {
-        plugin.update(0.01, agent);
+        plugin.update(0.01, agent, g_ctx);
         auto* data = agent.state.get<LidarScanData>();
         if (data && data->seq > last_seq) {
             last_seq = data->seq;
@@ -290,7 +299,7 @@ TEST(LidarPluginTest, SeqIncrementsOnEachPublish)
 
     for (int i = 0; i < 3; ++i) {
         // Достаточно большой dt чтобы спровоцировать публикацию
-        plugin.update(1.0, agent);
+        plugin.update(1.0, agent, g_ctx);
         auto* data = agent.state.get<LidarScanData>();
         ASSERT_NE(data, nullptr);
         EXPECT_GT(data->seq, prev_seq);
@@ -326,7 +335,7 @@ TEST(LidarPluginTest, ToJsonVisibleTrue_WithHits)
 
     Agent agent = make_agent(0.0, 0.0, 0.5);
     plugin.initialize(agent);
-    plugin.update(1.0, agent);
+    plugin.update(1.0, agent, g_ctx);
 
     const std::string json = plugin.to_json();
     EXPECT_NE(json.find("\"visible\":true"), std::string::npos);
@@ -350,7 +359,7 @@ TEST(LidarPluginTest, AngleSector_NoHitsOutside)
 
     Agent agent = make_agent(0.0, 0.0, 0.5);
     plugin.initialize(agent);
-    plugin.update(1.0, agent);
+    plugin.update(1.0, agent, g_ctx);
 
     auto* data = agent.state.get<LidarScanData>();
     ASSERT_NE(data, nullptr);
@@ -395,7 +404,7 @@ TEST(LidarPluginTest, MountLink_OffsetPose)
     plugin.from_config(cfg);
     plugin.set_raycast_engine(&engine);
     plugin.initialize(agent);
-    plugin.update(1.0, agent);
+    plugin.update(1.0, agent, g_ctx);
 
     auto* data = agent.state.get<LidarScanData>();
     ASSERT_NE(data, nullptr);
@@ -460,7 +469,7 @@ TEST(LidarPluginTest, FieldsFilledCorrectly)
 
     Agent agent = make_agent();
     plugin.initialize(agent);
-    plugin.update(1.0, agent);
+    plugin.update(1.0, agent, g_ctx);
 
     auto* data = agent.state.get<LidarScanData>();
     ASSERT_NE(data, nullptr);

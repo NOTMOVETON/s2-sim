@@ -29,14 +29,15 @@ class TopicDisplayPlugin : public IAgentPlugin
 {
 public:
     std::string type() const override { return "topic_display"; }
+    PluginRole  role() const override  { return PluginRole::UTILITY; }
 
     std::string display_label() const override { return "Топик Display"; }
 
-    std::string config_schema() const override
+    nlohmann::json config_schema() const override
     {
-        return R"([
-            {"key":"topic","label":"Топик ROS2","type":"text","default":"/status"}
-        ])";
+        return nlohmann::json::array({
+            {{"key","topic"},{"label","ROS2 topic"},{"type","text"},{"default","/status"}}
+        });
     }
 
     void from_config(const YAML::Node& node) override
@@ -45,7 +46,7 @@ public:
             topic_ = node["topic"].as<std::string>();
     }
 
-    void update(double /*dt*/, Agent& /*agent*/) override {}
+    void update(double /*dt*/, Agent& /*agent*/, const PluginContext& /*ctx*/) override {}
 
     // ─── Подписка ──────────────────────────────────────────────────────────
 

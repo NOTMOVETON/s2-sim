@@ -89,9 +89,7 @@ std::string list_plugin_schemas()
         entry["type"]   = type_name;
         entry["label"]  = plugin->display_label();
 
-        const std::string schema_str = plugin->config_schema();
-        auto params = nlohmann::json::parse(schema_str, nullptr, /*exceptions=*/false);
-        entry["params"] = params.is_discarded() ? nlohmann::json::array() : params;
+        entry["params"] = plugin->config_schema();
 
         result.push_back(std::move(entry));
     }
@@ -109,9 +107,7 @@ std::string list_plugin_schemas()
         entry["type"]   = type_name;
         entry["label"]  = plugin->display_label();
 
-        const std::string schema_str = plugin->config_schema();
-        auto params = nlohmann::json::parse(schema_str, nullptr, false);
-        entry["params"] = params.is_discarded() ? nlohmann::json::array() : params;
+        entry["params"] = plugin->config_schema();
 
         result.push_back(std::move(entry));
     }

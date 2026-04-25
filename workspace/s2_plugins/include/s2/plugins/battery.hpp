@@ -46,6 +46,7 @@ public:
     BatteryPlugin() = default;
 
     std::string type() const override { return "battery"; }
+    PluginRole  role() const override  { return PluginRole::RESOURCE; }
     double default_publish_rate_hz() const override { return publish_rate_hz_; }
     std::string display_label() const override { return "Battery"; }
 
@@ -112,7 +113,7 @@ public:
 
     // ─── Основной тик ────────────────────────────────────────────────────────
 
-    void update(double dt, Agent& agent) override
+    void update(double dt, Agent& agent, const PluginContext& /*ctx*/) override
     {
         const auto* bat = agent.state.get<BatteryComponent>();
         if (!bat) return;
@@ -206,15 +207,15 @@ public:
             critical_level_      = node["critical_level"].as<double>();
     }
 
-    std::string config_schema() const override
+    nlohmann::json config_schema() const override
     {
-        return "["
-            "{\"key\":\"initial_level\",       \"label\":\"Начальный заряд [0-1]\", \"type\":\"number\", \"default\":1.0},"
-            "{\"key\":\"nominal_voltage\",      \"label\":\"Напряжение (В)\",        \"type\":\"number\", \"default\":24.0},"
-            "{\"key\":\"capacity_ah\",          \"label\":\"Ёмкость (Ач)\",          \"type\":\"number\", \"default\":10.0},"
-            "{\"key\":\"design_capacity_ah\",   \"label\":\"Расч. ёмкость (Ач)\",   \"type\":\"number\", \"default\":10.0},"
-            "{\"key\":\"publish_rate_hz\",      \"label\":\"Частота публ. (Гц)\",    \"type\":\"number\", \"default\":1.0}"
-            "]";
+        return nlohmann::json::array({
+            {{"key","initial_level"},     {"label","Initial level [0-1]"}, {"type","number"}, {"default",1.0}},
+            {{"key","nominal_voltage"},    {"label","Nominal voltage (V)"},  {"type","number"}, {"default",24.0}},
+            {{"key","capacity_ah"},        {"label","Capacity (Ah)"},        {"type","number"}, {"default",10.0}},
+            {{"key","design_capacity_ah"}, {"label","Design capacity (Ah)"}, {"type","number"}, {"default",10.0}},
+            {{"key","publish_rate_hz"},    {"label","Publish rate (Hz)"},    {"type","number"}, {"default",1.0}}
+        });
     }
 
 private:

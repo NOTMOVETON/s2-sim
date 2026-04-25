@@ -7,12 +7,21 @@
 #include <s2/plugins/gravity.hpp>
 #include <s2/collision_system.hpp>
 #include <s2/agent.hpp>
+#include <s2/world_query.hpp>
+#include <s2/event_bus.hpp>
+#include <s2/plugin_base.hpp>
 
 #include <gtest/gtest.h>
 #include <cmath>
 
 using namespace s2;
 using namespace s2::plugins;
+
+// Вспомогательный null-контекст для тестов
+static WorldQuery    g_null_world;
+static EventBus      g_null_bus;
+static KernelCommandQueue g_null_cmds;
+static PluginContext g_ctx{g_null_world, g_null_bus, g_null_cmds};
 
 // ─── Вспомогательные функции ────────────────────────────────────────────────
 
@@ -82,14 +91,14 @@ TEST(GravityPlugin, FreeFall)
     const double dt = 0.02;
     const double z_start = agent.world_pose.z;
 
-    plugin.update(dt, agent);
+    plugin.update(dt, agent, g_ctx);
     EXPECT_LT(agent.world_pose.z, z_start)
         << "Агент должен начать падать при отсутствии опоры";
 
     double z_prev = agent.world_pose.z;
     for (int i = 0; i < 10; ++i)
     {
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
         EXPECT_LT(agent.world_pose.z, z_prev)
             << "Z должен монотонно уменьшаться при свободном падении, тик " << i;
         z_prev = agent.world_pose.z;
@@ -111,7 +120,7 @@ TEST(GravityPlugin, LandsOnFloor)
     const double dt = 0.02;
     for (int i = 0; i < 300; ++i)
     {
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
     }
 
     // Агент должен стоять на поверхности пола: z = 0 + bounding_radius
@@ -139,7 +148,7 @@ TEST(GravityPlugin, StaysOnGround)
     const double dt = 0.02;
     for (int i = 0; i < 50; ++i)
     {
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
     }
 
     EXPECT_NEAR(agent.world_pose.z, z_init, 0.02)
@@ -162,7 +171,7 @@ TEST(GravityPlugin, FallsOffPlatform)
     // Несколько тиков на платформе — должен стоять
     const double dt = 0.02;
     for (int i = 0; i < 10; ++i)
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
 
     const double z_on_platform = agent.world_pose.z;
     EXPECT_NEAR(z_on_platform, 1.05 + radius, 0.02)
@@ -175,7 +184,7 @@ TEST(GravityPlugin, FallsOffPlatform)
 
     // Несколько тиков — должен начать падать
     for (int i = 0; i < 5; ++i)
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
 
     EXPECT_LT(agent.world_pose.z, z_before_fall)
         << "После смещения за край платформы агент должен начать падать";
@@ -193,7 +202,7 @@ TEST(GravityPlugin, MaxFallSpeed)
 
     const double dt = 0.02;
     for (int i = 0; i < 500; ++i)
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
 
     // Скорость падения не должна превышать max_fall_speed
     // (world_velocity.z всегда 0 — GravityPlugin его обнуляет;
@@ -234,7 +243,7 @@ TEST(GravityPlugin, FlatFloor_NoHorizontalEffect)
     auto plugin = make_gravity(cs);
 
     const double dt = 0.02;
-    plugin.update(dt, agent);
+    plugin.update(dt, agent, g_ctx);
 
     EXPECT_NEAR(agent.world_velocity.linear.x(), 1.0, 0.01)
         << "На плоском полу горизонтальная скорость не должна меняться от гравитации";
@@ -254,7 +263,7 @@ TEST(GravityPlugin, NoSliding_OnRamp)
 
     const double dt = 0.02;
     for (int i = 0; i < 200; ++i)
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
 
     // После приземления скорость не должна расти от гравитации
     EXPECT_NEAR(agent.world_velocity.linear.x(), 0.0, 1e-9)
@@ -276,11 +285,11 @@ TEST(GravityPlugin, DriveVelocity_PreservedOnRamp)
     const double dt = 0.02;
     // Приземляем
     for (int i = 0; i < 200; ++i)
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
 
     // Устанавливаем скорость от привода
     agent.world_velocity.linear.x() = 1.5;
-    plugin.update(dt, agent);
+    plugin.update(dt, agent, g_ctx);
 
     // Гравитация не должна менять горизонтальную скорость
     EXPECT_NEAR(agent.world_velocity.linear.x(), 1.5, 0.01)
@@ -304,7 +313,7 @@ TEST(GravityPlugin, SlidingOnRamp_ZeroFriction)
     {
         agent.world_velocity.linear.x() = 0.0;
         agent.world_velocity.linear.y() = 0.0;
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
     }
 
     // Проверяем slide через to_json
@@ -330,7 +339,7 @@ TEST(GravityPlugin, SlidingOnRamp_FullFriction)
     {
         agent.world_velocity.linear.x() = 0.0;
         agent.world_velocity.linear.y() = 0.0;
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
     }
 
     auto j = nlohmann::json::parse(plugin.to_json());
@@ -363,8 +372,8 @@ TEST(GravityPlugin, SlidingOnRamp_PartialFriction)
         agent0.world_velocity.linear.y() = 0.0;
         agent5.world_velocity.linear.x() = 0.0;
         agent5.world_velocity.linear.y() = 0.0;
-        plugin0.update(dt, agent0);
-        plugin5.update(dt, agent5);
+        plugin0.update(dt, agent0, g_ctx);
+        plugin5.update(dt, agent5, g_ctx);
     }
 
     auto j0 = nlohmann::json::parse(plugin0.to_json());
@@ -394,7 +403,7 @@ TEST(GravityPlugin, DrivingUphill_AlwaysClimbs_WithFriction)
     for (int i = 0; i < 200; ++i)
     {
         agent.world_velocity.linear.x() = 0.0;
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
     }
 
     // Задаём маленькую скорость привода (как DiffDrive) и проверяем много тиков
@@ -402,7 +411,7 @@ TEST(GravityPlugin, DrivingUphill_AlwaysClimbs_WithFriction)
     {
         agent.world_velocity.linear.x() = 0.1;  // DiffDrive перезаписывает каждый тик
         agent.world_velocity.linear.y() = 0.0;
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
 
         // Итоговая скорость в направлении движения должна быть > 0
         EXPECT_GT(agent.world_velocity.linear.x(), 0.0)
@@ -426,7 +435,7 @@ TEST(GravityPlugin, DrivingUphill_NoClimb_ZeroFriction)
     for (int i = 0; i < 200; ++i)
     {
         agent.world_velocity.linear.x() = 0.0;
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
     }
 
     // При friction=0 максимальное скольжение = drive_speed * 1.0 = drive_speed.
@@ -436,7 +445,7 @@ TEST(GravityPlugin, DrivingUphill_NoClimb_ZeroFriction)
     {
         agent.world_velocity.linear.x() = 1.0;
         agent.world_velocity.linear.y() = 0.0;
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
         sum_net_speed += agent.world_velocity.linear.x();
     }
 
@@ -458,7 +467,7 @@ TEST(GravityPlugin, FlatFloor_NoSliding_AnyFriction)
 
     const double dt = 0.02;
     for (int i = 0; i < 100; ++i)
-        plugin.update(dt, agent);
+        plugin.update(dt, agent, g_ctx);
 
     auto j = nlohmann::json::parse(plugin.to_json());
     double slide_speed = j["slide_speed"].get<double>();

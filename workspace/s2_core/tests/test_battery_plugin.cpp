@@ -8,7 +8,16 @@
 #include <s2/zone_system.hpp>
 #include <s2/effects/charging_effect.hpp>
 #include <s2/effects_registry.hpp>
+#include <s2/world_query.hpp>
+#include <s2/event_bus.hpp>
+#include <s2/plugin_base.hpp>
 #include <nlohmann/json.hpp>
+
+// Null-контекст для тестов плагинов
+static s2::WorldQuery         g_null_world;
+static s2::EventBus           g_null_bus;
+static s2::KernelCommandQueue g_null_cmds;
+static s2::PluginContext      g_ctx{g_null_world, g_null_bus, g_null_cmds};
 
 namespace s2 {
 namespace plugins {
@@ -79,7 +88,7 @@ TEST(BatteryPlugin, UpdateWritesBatteryData)
 
     Agent agent = make_agent();
     plugin.initialize(agent);
-    plugin.update(0.01, agent);
+    plugin.update(0.01, agent, g_ctx);
 
     const auto* data = agent.state.get<BatteryData>();
     ASSERT_NE(data, nullptr);
@@ -105,14 +114,14 @@ TEST(BatteryPlugin, PublishRateThrottles)
 
     // dt = 0.01 с, 50 тиков = 0.5 с — ещё не должно быть публикации
     for (int i = 0; i < 50; ++i)
-        plugin.update(0.01, agent);
+        plugin.update(0.01, agent, g_ctx);
 
     const auto* data = agent.state.get<BatteryData>();
     EXPECT_EQ(data, nullptr);  // данных ещё нет
 
     // Ещё 60 тиков — итого 1.1 с — должна быть публикация
     for (int i = 0; i < 60; ++i)
-        plugin.update(0.01, agent);
+        plugin.update(0.01, agent, g_ctx);
 
     data = agent.state.get<BatteryData>();
     ASSERT_NE(data, nullptr);
@@ -231,7 +240,7 @@ TEST(BatteryPlugin, FromConfigTechnology)
 
     Agent agent = make_agent();
     plugin.initialize(agent);
-    plugin.update(0.01, agent);  // publish_rate_hz по умолчанию = 1.0, но проверим to_json
+    plugin.update(0.01, agent, g_ctx);  // publish_rate_hz по умолчанию = 1.0, но проверим to_json
 
     // Проверяем через BatteryData в SharedState после достаточного времени
     YAML::Node cfg2;
@@ -240,7 +249,7 @@ TEST(BatteryPlugin, FromConfigTechnology)
     BatteryPlugin plugin2;
     plugin2.from_config(cfg2);
     plugin2.initialize(agent);
-    plugin2.update(0.01, agent);
+    plugin2.update(0.01, agent, g_ctx);
 
     const auto* data = agent.state.get<BatteryData>();
     ASSERT_NE(data, nullptr);
@@ -265,7 +274,7 @@ TEST(BatteryPlugin, DrainReducesLevel)
     for (int i = 0; i < 100; ++i) {
         plugin.pre_resolve(0.01, agent);
         agent.state.resolve();
-        plugin.update(0.01, agent);
+        plugin.update(0.01, agent, g_ctx);
         agent.state.clear_contributions();
     }
 
@@ -295,7 +304,7 @@ TEST(BatteryPlugin, NoDrainWhenCharging)
     for (int i = 0; i < 100; ++i) {
         plugin.pre_resolve(0.01, agent);
         agent.state.resolve();
-        plugin.update(0.01, agent);
+        plugin.update(0.01, agent, g_ctx);
         agent.state.clear_contributions();
     }
 

@@ -37,6 +37,7 @@ class LidarPlugin : public IAgentPlugin
 {
 public:
     std::string type() const override { return "lidar"; }
+    PluginRole  role() const override  { return PluginRole::SENSOR; }
     double default_publish_rate_hz() const override { return 10.0; }
     std::string display_label() const override { return "Lidar"; }
 
@@ -53,18 +54,18 @@ public:
         if (node["viz_color"])   viz_color_   = node["viz_color"].as<std::string>("#00FFFF");
     }
 
-    std::string config_schema() const override
+    nlohmann::json config_schema() const override
     {
-        return "["
-            "{\"key\":\"num_rays\",     \"label\":\"Количество лучей\",  \"type\":\"number\",\"default\":360},"
-            "{\"key\":\"min_range\",    \"label\":\"Мин. дальность (м)\",\"type\":\"number\",\"default\":0.1},"
-            "{\"key\":\"max_range\",    \"label\":\"Макс. дальность (м)\",\"type\":\"number\",\"default\":10.0},"
-            "{\"key\":\"start_angle\",  \"label\":\"Нач. угол (рад)\",    \"type\":\"number\",\"default\":-3.14159},"
-            "{\"key\":\"end_angle\",    \"label\":\"Кон. угол (рад)\",    \"type\":\"number\",\"default\":3.14159},"
-            "{\"key\":\"mount_link\",   \"label\":\"Монтажный линк\",     \"type\":\"text\",  \"default\":\"\"},"
-            "{\"key\":\"viz_color\",    \"label\":\"Цвет лучей\",         \"type\":\"color\", \"default\":\"#00FFFF\"},"
-            "{\"key\":\"publish_rate_hz\",\"label\":\"Частота (Гц)\",     \"type\":\"number\",\"default\":10}"
-            "]";
+        return nlohmann::json::array({
+            {{"key","num_rays"},        {"label","Num rays"},           {"type","number"},{"default",360}},
+            {{"key","min_range"},       {"label","Min range (m)"},      {"type","number"},{"default",0.1}},
+            {{"key","max_range"},       {"label","Max range (m)"},      {"type","number"},{"default",10.0}},
+            {{"key","start_angle"},     {"label","Start angle (rad)"},  {"type","number"},{"default",-3.14159}},
+            {{"key","end_angle"},       {"label","End angle (rad)"},    {"type","number"},{"default",3.14159}},
+            {{"key","mount_link"},      {"label","Mount link"},         {"type","text"},  {"default",""}},
+            {{"key","viz_color"},       {"label","Ray color"},          {"type","color"}, {"default","#00FFFF"}},
+            {{"key","publish_rate_hz"}, {"label","Publish rate (Hz)"},  {"type","number"},{"default",10}}
+        });
     }
 
     // ─── Управляющая кнопка (паттерн TrajectoryRecorderPlugin) ───────────────
@@ -100,7 +101,7 @@ public:
 
     // ─── Основной цикл ────────────────────────────────────────────────────────
 
-    void update(double dt, Agent& agent) override
+    void update(double dt, Agent& agent, const PluginContext& /*ctx*/) override
     {
         if (!raycast_) return;
 

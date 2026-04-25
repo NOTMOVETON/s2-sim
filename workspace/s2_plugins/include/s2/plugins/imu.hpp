@@ -25,9 +25,10 @@ public:
     ImuPlugin() = default;
 
     std::string type() const override { return "imu"; }
+    PluginRole  role() const override  { return PluginRole::SENSOR; }
     double publish_rate_hz() const override { return publish_rate_hz_; }
 
-    void update(double dt, Agent& agent) override
+    void update(double dt, Agent& agent, const PluginContext& /*ctx*/) override
     {
         publish_timer_ += dt;
         double interval = (publish_rate_hz_ > 0.0) ? (1.0 / publish_rate_hz_) : 0.0;
@@ -53,11 +54,11 @@ public:
 
     std::string display_label() const override { return "IMU"; }
 
-    std::string config_schema() const override
+    nlohmann::json config_schema() const override
     {
-        return "["
-            "{\"key\":\"publish_rate_hz\",\"label\":\"Частота (Гц)\",\"type\":\"number\",\"default\":100}"
-            "]";
+        return nlohmann::json::array({
+            {{"key","publish_rate_hz"},{"label","Publish rate (Hz)"},{"type","number"},{"default",100}}
+        });
     }
 
     void from_config(const YAML::Node& node) override

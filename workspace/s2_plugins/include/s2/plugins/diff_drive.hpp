@@ -33,8 +33,9 @@ public:
     DiffDrivePlugin() = default;
 
     std::string type() const override { return "diff_drive"; }
+    PluginRole  role() const override  { return PluginRole::ACTUATION; }
 
-    void update(double dt, Agent& agent) override
+    void update(double dt, Agent& agent, const PluginContext& /*ctx*/) override
     {
         // Читаем desired из SharedState
         auto* dd = agent.state.get<DiffDriveData>();
@@ -102,13 +103,13 @@ public:
 
     std::string display_label() const override { return "DiffDrive (привод)"; }
 
-    std::string config_schema() const override
+    nlohmann::json config_schema() const override
     {
-        return "["
-            "{\"key\":\"wheel_base\",      \"label\":\"База колёс (м)\",       \"type\":\"number\",\"default\":0.4},"
-            "{\"key\":\"max_linear_vel\",  \"label\":\"Макс линейная (м/с)\",  \"type\":\"number\",\"default\":1.5},"
-            "{\"key\":\"max_angular_vel\", \"label\":\"Макс угловая (рад/с)\", \"type\":\"number\",\"default\":2.0}"
-            "]";
+        return nlohmann::json::array({
+            {{"key","wheel_base"},      {"label","Wheel base (m)"},       {"type","number"},{"default",0.4}},
+            {{"key","max_linear_vel"},  {"label","Max linear vel (m/s)"},  {"type","number"},{"default",1.5}},
+            {{"key","max_angular_vel"}, {"label","Max angular vel (rad/s)"},{"type","number"},{"default",2.0}}
+        });
     }
 
     void from_config(const YAML::Node& node) override

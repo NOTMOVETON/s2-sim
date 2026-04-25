@@ -29,16 +29,17 @@ class TrajectoryRecorderPlugin : public IAgentPlugin
 {
 public:
     std::string type() const override { return "trajectory_recorder"; }
+    PluginRole  role() const override  { return PluginRole::UTILITY; }
 
     std::string display_label() const override { return "Запись траектории"; }
 
-    std::string config_schema() const override
+    nlohmann::json config_schema() const override
     {
-        return "["
-            "{\"key\":\"record_interval_s\",\"label\":\"Интервал записи (с)\",\"type\":\"number\",\"default\":0.5},"
-            "{\"key\":\"max_points\",       \"label\":\"Макс точек\",          \"type\":\"number\",\"default\":200},"
-            "{\"key\":\"color\",            \"label\":\"Цвет линии\",          \"type\":\"color\", \"default\":\"#FFAA00\"}"
-            "]";
+        return nlohmann::json::array({
+            {{"key","record_interval_s"},{"label","Record interval (s)"},{"type","number"},{"default",0.5}},
+            {{"key","max_points"},       {"label","Max points"},         {"type","number"},{"default",200}},
+            {{"key","color"},            {"label","Line color"},         {"type","color"}, {"default","#FFAA00"}}
+        });
     }
 
     void from_config(const YAML::Node& node) override
@@ -51,7 +52,7 @@ public:
             color_ = node["color"].as<std::string>();
     }
 
-    void update(double dt, Agent& agent) override
+    void update(double dt, Agent& agent, const PluginContext& /*ctx*/) override
     {
         if (!enabled_) return;
 

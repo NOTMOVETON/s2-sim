@@ -33,14 +33,15 @@ class PathDisplayPlugin : public IAgentPlugin
 {
 public:
     std::string type() const override { return "path_display"; }
+    PluginRole  role() const override  { return PluginRole::UTILITY; }
 
     std::string display_label() const override { return "Отображение пути"; }
 
-    std::string config_schema() const override
+    nlohmann::json config_schema() const override
     {
-        return R"([
-            {"key":"color","label":"Цвет пути","type":"color","default":"#00FF88"}
-        ])";
+        return nlohmann::json::array({
+            {{"key","color"},{"label","Path color"},{"type","color"},{"default","#00FF88"}}
+        });
     }
 
     void from_config(const YAML::Node& node) override
@@ -54,7 +55,7 @@ public:
     }
 
     // Ничего не делает в update — данные приходят через handle_subscription
-    void update(double /*dt*/, Agent& /*agent*/) override {}
+    void update(double /*dt*/, Agent& /*agent*/, const PluginContext& /*ctx*/) override {}
 
     std::string to_json() const override
     {

@@ -31,6 +31,7 @@ class GravityPlugin : public IAgentPlugin
 {
 public:
     std::string type() const override { return "gravity"; }
+    PluginRole  role() const override  { return PluginRole::ACTUATION; }
 
     void from_config(const YAML::Node& node) override
     {
@@ -45,7 +46,7 @@ public:
         collision_ = cs;
     }
 
-    void update(double dt, Agent& agent) override
+    void update(double dt, Agent& agent, const PluginContext& /*ctx*/) override
     {
         if (!collision_) return;
 
@@ -146,14 +147,14 @@ public:
 
     std::string display_label() const override { return "Gravity"; }
 
-    std::string config_schema() const override
+    nlohmann::json config_schema() const override
     {
-        return R"JSON([
-            {"key":"gravity_accel",    "label":"Gravity accel, m/s2", "type":"number", "default":9.81},
-            {"key":"max_fall_speed",   "label":"Max fall speed, m/s", "type":"number", "default":20.0},
-            {"key":"grounded_epsilon", "label":"Grounded epsilon, m", "type":"number", "default":0.02},
-            {"key":"friction_coef",    "label":"Friction coefficient", "type":"number", "default":0.0}
-        ])JSON";
+        return nlohmann::json::array({
+            {{"key","gravity_accel"},    {"label","Gravity accel (m/s2)"},  {"type","number"}, {"default",9.81}},
+            {{"key","max_fall_speed"},   {"label","Max fall speed (m/s)"},  {"type","number"}, {"default",20.0}},
+            {{"key","grounded_epsilon"}, {"label","Grounded epsilon (m)"},  {"type","number"}, {"default",0.02}},
+            {{"key","friction_coef"},    {"label","Friction coefficient"},   {"type","number"}, {"default",0.0}}
+        });
     }
 
 private:

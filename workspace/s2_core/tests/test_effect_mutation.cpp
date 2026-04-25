@@ -10,6 +10,15 @@
 #include <s2/sim_bus.hpp>
 #include <s2/world.hpp>
 #include <s2/plugins/diff_drive.hpp>
+#include <s2/world_query.hpp>
+#include <s2/event_bus.hpp>
+#include <s2/plugin_base.hpp>
+
+// Null-контекст для тестов плагинов
+static s2::WorldQuery         g_null_world;
+static s2::EventBus           g_null_bus;
+static s2::KernelCommandQueue g_null_cmds;
+static s2::PluginContext      g_ctx{g_null_world, g_null_bus, g_null_cmds};
 
 namespace s2 {
 
@@ -141,7 +150,7 @@ TEST(TirePuncture, DiffDrivePenalty)
     plugins::DiffDrivePlugin plugin;
     plugin.from_config(YAML::Load("max_linear_vel: 2.0\nmax_angular_vel: 1.5"));
 
-    plugin.update(0.01, agent);
+    plugin.update(0.01, agent, g_ctx);
 
     // При проколе скорость = 1.0 × 0.5 = 0.5
     EXPECT_NEAR(agent.world_velocity.linear.x(), 0.5, 0.01);
@@ -164,7 +173,7 @@ TEST(TirePuncture, DiffDriveNoPenaltyWhenOk)
     plugins::DiffDrivePlugin plugin;
     plugin.from_config(YAML::Load("max_linear_vel: 2.0\nmax_angular_vel: 1.5"));
 
-    plugin.update(0.01, agent);
+    plugin.update(0.01, agent, g_ctx);
 
     // Без прокола скорость = 1.0 (штрафа нет)
     EXPECT_NEAR(agent.world_velocity.linear.x(), 1.0, 0.01);

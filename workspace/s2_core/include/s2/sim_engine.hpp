@@ -15,9 +15,11 @@
 
 #include <s2/collision_system.hpp>
 #include <s2/components/pending_teleport.hpp>
+#include <s2/plugin_base.hpp>
 #include <s2/raycast_engine.hpp>
 #include <s2/sim_bus.hpp>
 #include <s2/world.hpp>
+#include <s2/world_query.hpp>
 #include <s2/world_snapshot.hpp>
 #include <s2/zone_system.hpp>
 #include <nlohmann/json.hpp>
@@ -530,7 +532,9 @@ private:
       {
           plugin->set_collision_system(&collision_system_);
           plugin->set_raycast_engine(&raycast_engine_);
-          plugin->update(dt_, agent);
+          // Plan 05 заменит null_query_ на WorldQueryImpl.
+          // Пока используем базовый WorldQuery (заглушки).
+          plugin->update(dt_, agent, plugin_ctx_);
       }
 
       // 3f. Kinematics — обновляем позу на основе скорости
@@ -752,6 +756,13 @@ private:
   RaycastEngine         raycast_engine_;   ///< Движок лучей (инициализируется при load_world)
   ZoneSystem            zone_system_;      ///< Система зон и эффектов (инициализируется при load_world)
   EffectFactory             effect_factory_;  ///< Фабрика плагинов эффектов (задаётся до load_world)
+
+  // ─── PluginContext (Plan 02) ────────────────────────────────────────────────
+  // Базовый WorldQuery — заглушки. В Plan 05 заменяется на WorldQueryImpl.
+  WorldQuery            null_world_query_;
+  EventBus              plugin_bus_;       ///< Шина для плагинов (отдельная от bus_)
+  KernelCommandQueue    plugin_cmds_;      ///< Однотиковый буфер команд ядра (очищается в phase 0)
+  PluginContext         plugin_ctx_{null_world_query_, plugin_bus_, plugin_cmds_}; ///< Передаётся в update()
 
   VizServer* viz_server_ = nullptr;
   double viz_timer_{0.0};

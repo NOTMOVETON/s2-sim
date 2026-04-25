@@ -6,7 +6,16 @@
 #include <s2/plugins/joint_vel.hpp>
 #include <s2/agent.hpp>
 #include <s2/kinematic_tree.hpp>
+#include <s2/world_query.hpp>
+#include <s2/event_bus.hpp>
+#include <s2/plugin_base.hpp>
 #include <gtest/gtest.h>
+
+// Null-контекст для тестов плагинов
+static s2::WorldQuery         g_null_world;
+static s2::EventBus           g_null_bus;
+static s2::KernelCommandQueue g_null_cmds;
+static s2::PluginContext      g_ctx{g_null_world, g_null_bus, g_null_cmds};
 
 namespace
 {
@@ -117,7 +126,7 @@ TEST(JointVelPluginTest, HandleInputMovesJoint)
     // Команда: linear.x = 0.05 → arm получает target_vel = 0.05
     std::string input = R"({"linear":{"x":0.05,"y":0,"z":0},"angular":{"x":0,"y":0,"z":0}})";
     plugin.handle_input(input);
-    plugin.update(1.0, agent);  // dt = 1с
+    plugin.update(1.0, agent, g_ctx);  // dt = 1с
 
     // arm.value должен стать 0.05
     for (const auto& link : agent.kinematic_tree->links()) {
@@ -137,7 +146,7 @@ TEST(JointVelPluginTest, HandleInputMovesJointByName)
     // Команда: {"arm": 0.05} → arm получает target_vel = 0.05
     std::string input = R"({"arm": 0.05})";
     plugin.handle_input(input);
-    plugin.update(1.0, agent);  // dt = 1с
+    plugin.update(1.0, agent, g_ctx);  // dt = 1с
 
     // arm.value должен стать 0.05
     for (const auto& link : agent.kinematic_tree->links()) {
@@ -157,7 +166,7 @@ TEST(JointVelPluginTest, HandleInputClampsByMaxVel)
     // Команда превышает max_vel=0.1
     std::string input = R"({"linear":{"x":5.0,"y":0,"z":0},"angular":{"x":0,"y":0,"z":0}})";
     plugin.handle_input(input);
-    plugin.update(1.0, agent);
+    plugin.update(1.0, agent, g_ctx);
 
     // arm.value не должен превысить max_vel * dt = 0.1
     for (const auto& link : agent.kinematic_tree->links()) {
@@ -177,7 +186,7 @@ TEST(JointVelPluginTest, HandleInputBucketAxis)
     // angular.z = 0.03 → bucket получает target_vel = 0.03
     std::string input = R"({"linear":{"x":0,"y":0,"z":0},"angular":{"x":0,"y":0,"z":0.03}})";
     plugin.handle_input(input);
-    plugin.update(1.0, agent);
+    plugin.update(1.0, agent, g_ctx);
 
     for (const auto& link : agent.kinematic_tree->links()) {
         if (link.name == "bucket") {
@@ -195,7 +204,7 @@ TEST(JointVelPluginTest, UpdateWithoutKinematicTreeIsNoop)
     std::string input = R"({"linear":{"x":1.0}})";
     plugin.handle_input(input);
     // Не должно крашиться
-    EXPECT_NO_THROW(plugin.update(1.0, agent));
+    EXPECT_NO_THROW(plugin.update(1.0, agent, g_ctx));
 }
 
 TEST(JointVelPluginTest, JointClampedAtMax)
@@ -209,7 +218,7 @@ TEST(JointVelPluginTest, JointClampedAtMax)
     std::string input = R"({"linear":{"x":0.1}})";
     plugin.handle_input(input);
     for (int i = 0; i < 100; ++i) {
-        plugin.update(1.0, agent);
+        plugin.update(1.0, agent, g_ctx);
     }
 
     for (const auto& link : agent.kinematic_tree->links()) {
@@ -261,7 +270,7 @@ TEST(JointVelPluginTest, JointNamesMatchUrdfLinks)
     // Команда напрямую — имя поля == имя link
     std::string input = R"({"arm": 0.01, "bucket": 0.01})";
     plugin.handle_input(input);
-    plugin.update(1.0, agent);
+    plugin.update(1.0, agent, g_ctx);
 
     // Оба звена должны получить значение
     double arm_val = 0.0, bucket_val = 0.0;

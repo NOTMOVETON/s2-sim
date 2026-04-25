@@ -33,11 +33,12 @@ class JointVelPlugin : public IAgentPlugin
 {
 public:
     std::string type() const override { return "joint_vel"; }
+    PluginRole  role() const override  { return PluginRole::UTILITY; }
 
     std::string display_label() const override { return "Joint Velocity"; }
 
     // Параметры задаются динамически (по джоинтам URDF), схема пустая
-    std::string config_schema() const override { return "[]"; }
+    nlohmann::json config_schema() const override { return nlohmann::json::array(); }
 
     bool has_inputs() const override { return true; }
     std::string inputs_schema() const override;
@@ -65,7 +66,7 @@ public:
      * @brief Обновить значения джоинтов на основе накопленной скорости.
      * new_val = old_val + target_vel * dt, с clamping по [min, max].
      */
-    void update(double dt, Agent& agent) override;
+    void update(double dt, Agent& agent, const PluginContext& ctx) override;
 
     /**
      * @brief Состояние плагина в JSON.

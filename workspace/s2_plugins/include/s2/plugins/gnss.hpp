@@ -27,6 +27,7 @@ public:
     GnssPlugin() = default;
 
     std::string type() const override { return "gnss"; }
+    PluginRole  role() const override  { return PluginRole::SENSOR; }
     double default_publish_rate_hz() const override { return publish_rate_hz_; }
 
     void set_geo_origin(const GeoOrigin& origin)
@@ -35,7 +36,7 @@ public:
         converter_.Reset(origin.lat, origin.lon, origin.alt);
     }
 
-    void update(double dt, Agent& agent) override
+    void update(double dt, Agent& agent, const PluginContext& /*ctx*/) override
     {
         // Управляем собственным таймером публикации
         publish_timer_ += dt;
@@ -80,12 +81,12 @@ public:
 
     std::string display_label() const override { return "GNSS"; }
 
-    std::string config_schema() const override
+    nlohmann::json config_schema() const override
     {
-        return "["
-            "{\"key\":\"publish_rate_hz\",\"label\":\"Частота (Гц)\",\"type\":\"number\",\"default\":10},"
-            "{\"key\":\"noise_std\",      \"label\":\"Шум (м)\",      \"type\":\"number\",\"default\":0.5}"
-            "]";
+        return nlohmann::json::array({
+            {{"key","publish_rate_hz"},{"label","Publish rate (Hz)"},{"type","number"},{"default",10}},
+            {{"key","noise_std"},      {"label","Noise std (m)"},    {"type","number"},{"default",0.5}}
+        });
     }
 
     void from_config(const YAML::Node& node) override

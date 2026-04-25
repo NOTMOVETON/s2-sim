@@ -5,11 +5,13 @@
  * Базовый интерфейс для плагинов агента.
  *
  * Живёт в s2_core, потому что Agent хранит unique_ptr<IAgentPlugin>
- * и SimEngine вызывает plugin->update(dt, agent).
+ * и SimEngine вызывает plugin->update(dt, agent, ctx).
  * Реестр фабрик — в s2_plugins.
  */
 
+#include <s2/event_bus.hpp>
 #include <s2/transport_adapter.hpp>
+#include <s2/world_query.hpp>
 #include <yaml-cpp/yaml.h>
 #include <nlohmann/json.hpp>
 #include <functional>
@@ -25,6 +27,67 @@ namespace s2
 struct Agent;
 class CollisionSystem;
 class RaycastEngine;
+class SimWorld;
+
+/**
+ * @brief Команда ядра симуляции.
+ *
+ * Placeholder-определение для Plan 02. Полный вариант с std::variant<...>
+ * будет добавлен в kernel_command.hpp (Plan 04).
+ *
+ * Позволяет PlaginContext::commands передавать очередь команд без
+ * полного определения всех типов команд.
+ */
+struct KernelCommand
+{
+  // TODO(Plan04): заменить на std::variant<cmd::SpawnEntity, cmd::DespawnEntity, ...>
+  // Пока — пустой тип для compileability PluginContext.
+};
+
+/// Очередь команд ядра — однотиковый локальный буфер плагина.
+/// Плагин добавляет команды, SimEngine применяет их в Phase 0 следующего тика.
+using KernelCommandQueue = std::vector<KernelCommand>;
+
+/**
+ * @brief Роль плагина агента в системе.
+ *
+ * Определяет к каким ресурсам плагин имеет право доступа:
+ *  ACTUATION   — читает SharedState, пишет agent.velocity (движение тела)
+ *  SENSOR      — читает WorldQuery, публикует данные на транспорт
+ *  INTERACTION — читает WorldQuery, публикует KernelCommand и EventBus
+ *  RESOURCE    — пишет в SharedState (battery, payload)
+ *  UTILITY     — вспомогательные действия (joints, trajectory recorder)
+ *
+ * Ограничение: у агента максимум один ACTUATION-плагин (валидируется при загрузке).
+ */
+enum class PluginRole
+{
+  ACTUATION,    ///< Пишет в agent.velocity (DiffDrive, GravityPlugin)
+  SENSOR,       ///< Читает WorldQuery, публикует данные (Lidar, GNSS, IMU)
+  INTERACTION,  ///< Выдаёт KernelCommand / EventBus (Grabber, DoorOpener)
+  RESOURCE,     ///< Пишет в SharedState (Battery, Payload)
+  UTILITY       ///< Вспомогательные (JointVel, TrajectoryRecorder, Color)
+};
+
+/**
+ * @brief Контекст плагина — доступ к инфраструктуре ядра.
+ *
+ * Передаётся в update() каждого плагина каждый тик.
+ * Позволяет плагинам взаимодействовать с ядром без прямой зависимости.
+ *
+ * world    — read-only доступ к миру (поиск Entity, сигналы, raycast, зоны)
+ * bus      — публикация событий (только publish, не subscribe)
+ * commands — очередь команд ядра (SpawnEntity, Interact, AttachObject и т.п.)
+ *
+ * KernelCommandQueue — однотиковый локальный буфер. Плагин добавляет команды,
+ * SimEngine применяет их в Phase 0 следующего тика.
+ */
+struct PluginContext
+{
+  const WorldQuery&   world;     ///< Read-only доступ к миру
+  EventBus&           bus;       ///< Шина событий (publish)
+  KernelCommandQueue& commands;  ///< Очередь команд ядра
+};
 
 namespace plugins
 {
@@ -99,11 +162,54 @@ public:
     virtual std::string type() const = 0;
 
     /**
+     * @brief Роль плагина в системе.
+     * Используется для валидации (ACTUATION = max 1 на агента) и маршрутизации.
+     */
+    virtual PluginRole role() const = 0;
+
+    /**
+     * @brief Список capabilities, которые плагин автоматически добавляет Entity.
+     * Используется WorldQuery::EntityFilter::required_capabilities.
+     * По умолчанию — пустой список.
+     */
+    virtual std::vector<std::string> provided_capabilities() const { return {}; }
+
+    /**
      * @brief Инициализировать плагин после загрузки агента.
      * Вызывается из SimTransportBridge::init() после регистрации всех плагинов.
      * Позволяет плагину запомнить начальное состояние агента (например, цвет).
      */
     virtual void initialize(Agent& agent) { (void)agent; }
+
+    // ─── Lifecycle-методы плагина ──────────────────────────────────────────────
+
+    /**
+     * @brief Вызывается при добавлении плагина к Entity (spawn или AddPlugin команда).
+     * Используется для инициализации, которая требует доступа к Entity-контексту.
+     * По умолчанию — no-op.
+     */
+    virtual void on_spawn(Agent& agent) { (void)agent; }
+
+    /**
+     * @brief Вызывается при удалении плагина (DespawnEntity или RemovePlugin команда).
+     * Используется для освобождения ресурсов, публикации финальных событий.
+     * По умолчанию — no-op.
+     */
+    virtual void on_despawn(Agent& agent) { (void)agent; }
+
+    /**
+     * @brief Вызывается при загрузке новой сцены (LoadScene или NewScene команда).
+     * Позволяет плагину прочитать начальное состояние мира.
+     * По умолчанию — no-op.
+     */
+    virtual void on_scene_load(const SimWorld& world) { (void)world; }
+
+    /**
+     * @brief Вызывается при сбросе симуляции (ResetSim команда).
+     * Плагин должен сбросить своё внутреннее состояние к начальному.
+     * По умолчанию — no-op.
+     */
+    virtual void on_reset(Agent& agent) { (void)agent; }
 
     /**
      * @brief Ранняя фаза тика — до resolve() contributions.
@@ -142,7 +248,13 @@ public:
      */
     virtual std::string sensor_frame_id() const { return ""; }
 
-    virtual void update(double dt, Agent& agent) = 0;
+    /**
+     * @brief Основной тиковый метод плагина.
+     * @param dt   Длительность тика (секунды)
+     * @param agent Агент, которому принадлежит плагин
+     * @param ctx  Контекст ядра: WorldQuery, EventBus, KernelCommandQueue
+     */
+    virtual void update(double dt, Agent& agent, const PluginContext& ctx) = 0;
     virtual void from_config(const YAML::Node& node) = 0;
     virtual std::string to_json() const = 0;
 
@@ -173,13 +285,13 @@ public:
     /**
      * @brief Схема параметров конфигурации плагина для UI-редактора.
      *
-     * Возвращает JSON-массив параметров конфигурации:
+     * Возвращает JSON Schema (массив параметров конфигурации):
      * [{"key":"...", "label":"...", "type":"number|text|color", "default":...}, ...]
      *
      * По умолчанию возвращает пустой массив (плагин без параметров).
      * Переопределяется плагинами с конфигурируемыми параметрами.
      */
-    virtual std::string config_schema() const { return "[]"; }
+    virtual nlohmann::json config_schema() const { return nlohmann::json::array(); }
 
     // ─── Методы входа (input handling) ───
 

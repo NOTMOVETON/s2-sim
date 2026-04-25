@@ -105,7 +105,7 @@ void JointVelPlugin::handle_input(const std::string& json_input)
     }
 }
 
-void JointVelPlugin::update(double dt, Agent& agent)
+void JointVelPlugin::update(double dt, Agent& agent, const PluginContext& /*ctx*/)
 {
     if (!agent.kinematic_tree) return;
 

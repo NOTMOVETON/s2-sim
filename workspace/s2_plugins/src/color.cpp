@@ -49,7 +49,7 @@ std::string ColorPlugin::handle_service(const std::string& /*service_name*/,
     return R"({"success":true})";
 }
 
-void ColorPlugin::update(double dt, Agent& agent)
+void ColorPlugin::update(double dt, Agent& agent, const PluginContext& /*ctx*/)
 {
     if (timer_ > 0.0)
         timer_ -= dt;

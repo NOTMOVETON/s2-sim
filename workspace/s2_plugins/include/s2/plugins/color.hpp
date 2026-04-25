@@ -29,10 +29,11 @@ class ColorPlugin : public IAgentPlugin
 {
 public:
     std::string type() const override { return "color"; }
+    PluginRole  role() const override  { return PluginRole::UTILITY; }
 
     std::string display_label() const override { return "Color Service"; }
 
-    std::string config_schema() const override { return "[]"; }
+    nlohmann::json config_schema() const override { return nlohmann::json::array(); }
 
     std::vector<std::string> service_names() const override
     {
@@ -66,7 +67,7 @@ public:
      * timer_ > 0: применяет configured_color_, уменьшает таймер.
      * timer_ <= 0: восстанавливает исходный цвет.
      */
-    void update(double dt, Agent& agent) override;
+    void update(double dt, Agent& agent, const PluginContext& ctx) override;
 
     /**
      * {"plugin":"color","active_color":"#FF0000","remaining":2.7}

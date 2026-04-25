@@ -16,7 +16,9 @@
  * Для простых координат — тот же Eigen::Vector3d через alias Vec3.
  */
 #include <Eigen/Dense>
+#include <nlohmann/json.hpp>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -343,5 +345,37 @@ enum class EffectType
  * или отдельную типизированную структуру.
  */
 using ActorState = std::string;
+
+// ============================================================================
+// Сигналы
+// ============================================================================
+
+/**
+ * @brief Обнаруживаемый сигнал, прикреплённый к Entity.
+ *
+ * Используется детекторами (ArucoDetector, SignalListener) через
+ * WorldQuery::find_signals_of_type().
+ *
+ * wire-сигнал — это Signal с range = std::numeric_limits<double>::infinity()
+ * и requires_los = false. Он "достигает" везде без трассировки луча.
+ *
+ * Пример YAML:
+ *   signals:
+ *     - signal_type: aruco
+ *       signal_id: marker_42
+ *       range: 5.0
+ *       requires_los: true
+ *       params: {size: 0.2}
+ */
+struct Signal
+{
+  std::string    signal_type;           ///< Тип сигнала: "aruco", "wire", "rfid", ...
+  std::string    signal_id;             ///< Уникальный идентификатор экземпляра сигнала
+  Pose3D         local_pose;            ///< Смещение от origin Entity (в локальных координатах)
+  nlohmann::json params;                ///< Произвольные параметры (размер маркера, мощность и т.п.)
+  double         range{0.0};            ///< Дальность обнаружения (0 = нет ограничений не по умолчанию)
+  bool           requires_los{false};   ///< Требует ли прямой видимости (line-of-sight)
+  bool           enabled{true};         ///< Активен ли сигнал
+};
 
 }  // namespace s2

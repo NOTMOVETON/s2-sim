@@ -46,6 +46,7 @@ struct Agent
   double max_step_height{0.0};           ///< Максимальная высота ступеньки, которую агент переезжает (м)
   CollisionShape bounding;               ///< Коллизионный bounding volume
   VisualDesc visual;                     ///< Визуальное описание
+  std::vector<Signal> signals;           ///< Обнаруживаемые сигналы агента (ArUco, wire, RFID и т.п.)
 
   /// Кинематическое дерево агента (nullptr = одиночное твёрдое тело).
   /// Описывает иерархию звеньев: base_link → arm_link → camera_link и т.д.

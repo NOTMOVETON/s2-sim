@@ -65,6 +65,7 @@ add_executable(s2_core_tests
     tests/test_battery_plugin.cpp
     tests/test_effect_mutation.cpp
     tests/test_effect_teleport.cpp
+    tests/test_signal.cpp
 )
 target_link_libraries(s2_core_tests PRIVATE s2_core s2_plugins s2_transport GTest::gtest_main)
 

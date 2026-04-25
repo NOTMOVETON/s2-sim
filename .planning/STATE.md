@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-04-25
 **Current phase:** 0 (Core Architecture Foundation)
-**Phase status:** In progress — 1/5 plans complete
+**Phase status:** In progress — 2/5 plans complete
 
 ---
 
@@ -46,6 +46,9 @@
 | Entity base inheritance vs composition | Наследование vs слои | Решено: ENTY-04 — опциональные слои |
 | SimBus backward compat | Удалить vs alias | Решено: using SimBus = EventBus в sim_bus.hpp — нулевая миграция |
 | Signal::params тип | Typed struct vs json | Решено: nlohmann::json — произвольные параметры без типизации |
+| KernelCommand тип | forward-declare vs placeholder struct | Решено: полный placeholder struct {} — std::vector требует complete type |
+| config_schema() return type | std::string vs nlohmann::json | Решено: nlohmann::json — избегает parse + JSON type safety |
+| Миграция плагинов update() | Plan 02 vs Plan 06 | Решено: Plan 02 — необходимо для компиляции Docker build (D-03) |
 
 ---
 
@@ -69,6 +72,7 @@
 | `.planning/STATE.md` | ✓ This file |
 | `.planning/codebase/` | ✓ 7 documents (map-codebase) |
 | `.planning/phases/00-core-architecture-foundation/00-01-SUMMARY.md` | ✓ Plan 00-01 complete — Signal struct + EventBus |
+| `.planning/phases/00-core-architecture-foundation/00-02-SUMMARY.md` | ✓ Plan 00-02 complete — WorldQuery + IAgentPlugin lifecycle + PluginRole + PluginContext |
 
 ---
 

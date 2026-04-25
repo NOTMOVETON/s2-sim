@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(docker compose:*)",
-      "Read(//tmp/**)",
-      "Bash(python3)"
-    ]
-  }
-}

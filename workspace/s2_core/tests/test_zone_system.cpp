@@ -381,4 +381,60 @@ TEST(ZoneSystem_CapabilitiesMatch, NoCapabilityNoEffect)
     EXPECT_EQ(raw_stub2->apply_count, 1);
 }
 
+// ─── Тест N: ZoneSystem публикует event::ZoneEntered при входе агента ────────
+
+TEST(ZoneSystem_ZoneEnteredEvent, PublishedOnAgentEnter)
+{
+    ZoneSystem zs;
+    zs.add_zone(make_sphere_zone("charging_zone", Vec3{0.0, 0.0, 0.0}, 2.0));
+
+    SimBus bus;
+    ZoneId   received_zone;
+    EntityId received_entity = 0;
+
+    bus.subscribe<event::ZoneEntered>([&](const event::ZoneEntered& e) {
+        received_zone   = e.zone_id;
+        received_entity = e.entity_id;
+    });
+
+    std::vector<Agent> agents;
+    agents.push_back(make_agent(7, 1.0, 0.0, 0.0));  // внутри зоны
+    std::vector<Actor> actors;
+    zs.tick(agents, actors, bus, 0.0, 0.01);
+
+    EXPECT_EQ(received_zone,   "charging_zone");
+    EXPECT_EQ(received_entity, 7u);
+}
+
+// ─── Тест N+1: ZoneSystem публикует event::ZoneExited при выходе агента ──────
+
+TEST(ZoneSystem_ZoneExitedEvent, PublishedOnAgentExit)
+{
+    ZoneSystem zs;
+    zs.add_zone(make_sphere_zone("charging_zone", Vec3{0.0, 0.0, 0.0}, 2.0));
+
+    SimBus bus;
+
+    // Сначала ввести агента в зону
+    std::vector<Agent> agents;
+    agents.push_back(make_agent(7, 1.0, 0.0, 0.0));
+    std::vector<Actor> actors;
+    zs.tick(agents, actors, bus, 0.0, 0.01);
+
+    ZoneId   received_zone;
+    EntityId received_entity = 0;
+
+    bus.subscribe<event::ZoneExited>([&](const event::ZoneExited& e) {
+        received_zone   = e.zone_id;
+        received_entity = e.entity_id;
+    });
+
+    // Вывести агента за пределы зоны
+    agents[0].world_pose.x = 5.0;
+    zs.tick(agents, actors, bus, 0.01, 0.01);
+
+    EXPECT_EQ(received_zone,   "charging_zone");
+    EXPECT_EQ(received_entity, 7u);
+}
+
 } // namespace s2

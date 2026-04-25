@@ -1,8 +1,8 @@
 # Project State: S2 Simulator
 
-**Last updated:** 2026-04-25
+**Last updated:** 2026-04-25 (Plan 04 complete)
 **Current phase:** 0 (Core Architecture Foundation)
-**Phase status:** In progress — 3/5 plans complete
+**Phase status:** In progress — 4/5 plans complete
 
 ---
 
@@ -14,7 +14,7 @@
 
 **Requirements:** ARCH-01, ARCH-02, ARCH-03, ARCH-04, ARCH-05, ARCH-06, ARCH-07
 
-**Status:** In progress. 3/5 планов выполнено.
+**Status:** In progress. 4/5 планов выполнено.
 
 **Context file:** `.planning/phases/00-core-architecture-foundation/00-CONTEXT.md`
 
@@ -50,6 +50,9 @@
 | KernelCommand include location | внутри namespace vs глобально | Решено: #include <s2/kernel_command.hpp> помещён в глобальную область plugin_base.hpp (до namespace s2) — иначе двойное namespace s2::s2::cmd |
 | config_schema() return type | std::string vs nlohmann::json | Решено: nlohmann::json — избегает parse + JSON type safety |
 | Миграция плагинов update() | Plan 02 vs Plan 06 | Решено: Plan 02 — необходимо для компиляции Docker build (D-03) |
+| NullWorldQuery расположение | отдельный файл vs вложенный класс | Решено: private вложенный класс в SimEngine — не загрязняет namespace s2 |
+| PluginContext хранение | поле SimEngine vs локальное в фазе | Решено: локальное в каждой фазе — разные tick_cmds буферы для phase3/phase4/phase5 |
+| command_queue_ drain pattern | lock всё время vs swap+unlock | Решено: lock-swap drain — swap под mutex, обработка без блокировки (минимальное contention) |
 
 ---
 
@@ -75,6 +78,7 @@
 | `.planning/phases/00-core-architecture-foundation/00-01-SUMMARY.md` | ✓ Plan 00-01 complete — Signal struct + EventBus |
 | `.planning/phases/00-core-architecture-foundation/00-02-SUMMARY.md` | ✓ Plan 00-02 complete — WorldQuery + IAgentPlugin lifecycle + PluginRole + PluginContext |
 | `.planning/phases/00-core-architecture-foundation/00-03-SUMMARY.md` | ✓ Plan 00-03 complete — KernelCommand variant (16 команд) + test_kernel_command.cpp |
+| `.planning/phases/00-core-architecture-foundation/00-04-SUMMARY.md` | ✓ Plan 00-04 complete — SimEngine 8-фазный tick lifecycle + command_queue_ + NullWorldQuery |
 
 ---
 

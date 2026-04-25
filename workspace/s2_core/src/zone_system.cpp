@@ -200,6 +200,7 @@ void ZoneSystem::on_agent_enter(Agent& agent, Zone& zone, SimBus& bus,
                                 double sim_time, double dt)
 {
     bus.publish(event::AgentEnteredZone{.agent = agent.id, .zone = zone.id});
+    bus.publish(event::ZoneEntered{.zone_id = zone.id, .entity_id = agent.id});  // Новый event — entity-уровень (для Phase 1+ подписчиков)
 
     // MUTATION-эффекты применяются однократно при входе
     for (auto& desc : zone.effects) {
@@ -223,6 +224,7 @@ void ZoneSystem::on_agent_enter(Agent& agent, Zone& zone, SimBus& bus,
 void ZoneSystem::on_agent_exit(Agent& agent, Zone& zone, SimBus& bus)
 {
     bus.publish(event::AgentExitedZone{.agent = agent.id, .zone = zone.id});
+    bus.publish(event::ZoneExited{.zone_id = zone.id, .entity_id = agent.id});  // Новый event — entity-уровень (для Phase 1+ подписчиков)
 
     // Уведомить плагины эффектов о выходе агента.
     // Каждый плагин сам решает что сбросить в SharedState (например charging-флаг).

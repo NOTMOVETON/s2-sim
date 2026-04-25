@@ -7,8 +7,8 @@
 
 ### Ядро архитектуры
 
-- [ ] **ARCH-01**: IAgentPlugin расширенный lifecycle — on_spawn(entity) / on_despawn(entity) / on_scene_load(world) / on_reset(); provided_capabilities() автоматически добавляются в entity; config_schema() для UI редактора; все существующие плагины реализуют on_reset() корректно (DiffDrive сбрасывает external_linear_velocity_, Battery сбрасывает заряд) — PARTIAL: lifecycle методы добавлены (Plan 02), on_reset баги и provided_capabilities auto-add — Plan 05
-- [ ] **ARCH-02**: Plugin role system — role() метод (actuation / sensor / interaction / resource / utility); матрица доступа: actuation читает SharedState, sensor читает WorldQuery, interaction публикует KernelCommand и EventBus, resource пишет в SharedState; у агента максимум один actuation-плагин — PARTIAL: role() добавлен (Plan 02), валидация — Plan 05
+- [x] **ARCH-01**: IAgentPlugin расширенный lifecycle — on_spawn(entity) / on_despawn(entity) / on_scene_load(world) / on_reset(); provided_capabilities() автоматически добавляются в entity; config_schema() для UI редактора; все существующие плагины реализуют on_reset() корректно (DiffDrive сбрасывает external_linear_velocity_, Battery сбрасывает заряд) — COMPLETE: Plans 02+05
+- [x] **ARCH-02**: Plugin role system — role() метод (actuation / sensor / interaction / resource / utility); матрица доступа: actuation читает SharedState, sensor читает WorldQuery, interaction публикует KernelCommand и EventBus, resource пишет в SharedState; у агента максимум один actuation-плагин — COMPLETE: Plans 02+05 (role() + валидация в SceneLoader)
 - [x] **ARCH-03**: Signal struct на Entity — поля: signal_type, signal_id, local_pose, params (json), range, requires_los, enabled; wire = Signal с range: infinite и requires_los: false; любая Entity (Agent/Actor/Prop) может нести список сигналов
 - [x] **ARCH-04**: EventBus typed events — EntitySpawned, EntityDespawned, ActorStateChanged, SignalActivated, SignalDeactivated, ZoneEntered, ZoneExited, GrabAttempt, GrabSucceeded, GrabFailed, DamageDealt; любой плагин/behavior может publish и subscribe
 - [ ] **ARCH-05**: WorldQuery read-only API — find_in_radius(center, r, filter), find_in_box(box, filter), find_nearest(pos, filter), find_signals_of_type(type, pos, volume), has_line_of_sight(from, to), raycast(origin, dir, max_range), zones_at(pos), is_in_zone(entity, zone), find_deformable_in_box(box, filter) — PARTIAL: интерфейс создан (Plan 02), WorldQueryImpl реализация — Plan 05
@@ -141,8 +141,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ARCH-01 | Phase 0 | Pending |
-| ARCH-02 | Phase 0 | Pending |
+| ARCH-01 | Phase 0 | Complete |
+| ARCH-02 | Phase 0 | Complete |
 | ARCH-03 | Phase 0 | Pending |
 | ARCH-04 | Phase 0 | Pending |
 | ARCH-05 | Phase 0 | Pending |

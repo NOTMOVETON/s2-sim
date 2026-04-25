@@ -1,8 +1,23 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+current_phase: 0 (Core Architecture Foundation)
+status: executing
+last_updated: "2026-04-25T20:41:50.483Z"
+progress:
+  total_phases: 1
+  completed_phases: 1
+  total_plans: 5
+  completed_plans: 5
+  percent: 100
+---
+
 # Project State: S2 Simulator
 
-**Last updated:** 2026-04-25 (Plan 04 complete)
+**Last updated:** 2026-04-25 (Plan 05 complete)
 **Current phase:** 0 (Core Architecture Foundation)
-**Phase status:** In progress — 4/5 plans complete
+**Phase status:** COMPLETE — 5/5 plans complete
 
 ---
 
@@ -14,7 +29,7 @@
 
 **Requirements:** ARCH-01, ARCH-02, ARCH-03, ARCH-04, ARCH-05, ARCH-06, ARCH-07
 
-**Status:** In progress. 4/5 планов выполнено.
+**Status:** COMPLETE. 5/5 планов выполнено.
 
 **Context file:** `.planning/phases/00-core-architecture-foundation/00-CONTEXT.md`
 
@@ -61,7 +76,7 @@
 - **Shell injection** в viz_server.cpp (popen SHA-1) — требует фикса до публичного релиза (SEC-02 в v2)
 - **Data race** HTTP thread vs sim thread на agents() — критично при Phase 5
 - **ROS2 reload bug** — транспорт не переинициализируется при смене сцены (решается в TRAN-05)
-- **on_reset bugs** — DiffDrive не сбрасывает external_linear_velocity_, Battery не сбрасывает заряд (решается в ARCH-01)
+- **on_reset bugs** — RESOLVED (Plan 00-05): DiffDrive сбрасывает external_linear_velocity_, Battery сбрасывает заряд до initial_level_
 
 ---
 
@@ -79,6 +94,7 @@
 | `.planning/phases/00-core-architecture-foundation/00-02-SUMMARY.md` | ✓ Plan 00-02 complete — WorldQuery + IAgentPlugin lifecycle + PluginRole + PluginContext |
 | `.planning/phases/00-core-architecture-foundation/00-03-SUMMARY.md` | ✓ Plan 00-03 complete — KernelCommand variant (16 команд) + test_kernel_command.cpp |
 | `.planning/phases/00-core-architecture-foundation/00-04-SUMMARY.md` | ✓ Plan 00-04 complete — SimEngine 8-фазный tick lifecycle + command_queue_ + NullWorldQuery |
+| `.planning/phases/00-core-architecture-foundation/00-05-SUMMARY.md` | ✓ Plan 00-05 complete — on_reset() для DiffDrive/Battery + SceneLoader ACTUATION validation |
 
 ---
 
@@ -86,7 +102,7 @@
 
 | Phase | Title | Req | Status |
 |-------|-------|-----|--------|
-| 0 | Core Architecture Foundation | ARCH-01–07 | Ready to execute (5 планов) |
+| 0 | Core Architecture Foundation | ARCH-01–07 | COMPLETE (5/5 планов) |
 | 1 | Zone Visual & Control Layer | ZONE-01–10 | Pending |
 | 2 | Actor & Prop Foundation | ACTR-01–02,06, PROP-01–03 | Pending |
 | 3 | Actor Ecosystem | ACTR-03–05 | Pending |

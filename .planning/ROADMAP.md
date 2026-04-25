@@ -35,7 +35,7 @@ Plans:
 - [x] 00-02-PLAN.md — WorldQuery header + IAgentPlugin: lifecycle/role/PluginContext/update()
 - [x] 00-03-PLAN.md — KernelCommand variant — полный набор 16 команд
 - [x] 00-04-PLAN.md — SimEngine tick рефакторинг — 8 именованных фаз + command_queue_
-- [ ] 00-05-PLAN.md — Обновить все 11 плагинов + on_reset баги DiffDrive/Battery + SceneLoader валидация
+- [x] 00-05-PLAN.md — Обновить все 11 плагинов + on_reset баги DiffDrive/Battery + SceneLoader валидация
 
 **Success criteria:**
 - on_reset() вызывается для всех плагинов при /sim/reset; DiffDrive и Battery корректно сбрасывают состояние

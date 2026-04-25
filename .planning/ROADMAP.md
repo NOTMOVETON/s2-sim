@@ -31,7 +31,7 @@
 **Plans:** 5 plans
 
 Plans:
-- [ ] 00-01-PLAN.md — Signal struct в types.hpp + Agent::signals + EventBus (rename + новые события)
+- [x] 00-01-PLAN.md — Signal struct в types.hpp + Agent::signals + EventBus (rename + новые события)
 - [ ] 00-02-PLAN.md — WorldQuery header + IAgentPlugin: lifecycle/role/PluginContext/update()
 - [ ] 00-03-PLAN.md — KernelCommand variant — полный набор 16 команд
 - [ ] 00-04-PLAN.md — SimEngine tick рефакторинг — 8 именованных фаз + command_queue_

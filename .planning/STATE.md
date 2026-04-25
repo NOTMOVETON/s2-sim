@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-04-25
 **Current phase:** 0 (Core Architecture Foundation)
-**Phase status:** Context gathered — ready for planning
+**Phase status:** In progress — 1/5 plans complete
 
 ---
 
@@ -14,7 +14,7 @@
 
 **Requirements:** ARCH-01, ARCH-02, ARCH-03, ARCH-04, ARCH-05, ARCH-06, ARCH-07
 
-**Status:** Context gathered. Запустить `/gsd-plan-phase 0`.
+**Status:** In progress. 1/5 планов выполнено.
 
 **Context file:** `.planning/phases/00-core-architecture-foundation/00-CONTEXT.md`
 
@@ -44,6 +44,8 @@
 | Wire signal transport | SharedState vs EventBus | Решено: ARCH-03 — wire = Signal с range:infinite |
 | HTTP SSE per-agent vs shared | Per-agent port vs multiplexed | TBD в Phase 5 |
 | Entity base inheritance vs composition | Наследование vs слои | Решено: ENTY-04 — опциональные слои |
+| SimBus backward compat | Удалить vs alias | Решено: using SimBus = EventBus в sim_bus.hpp — нулевая миграция |
+| Signal::params тип | Typed struct vs json | Решено: nlohmann::json — произвольные параметры без типизации |
 
 ---
 
@@ -66,6 +68,7 @@
 | `.planning/ROADMAP.md` | ✓ Updated — 9 phases (Phase 0 добавлена) |
 | `.planning/STATE.md` | ✓ This file |
 | `.planning/codebase/` | ✓ 7 documents (map-codebase) |
+| `.planning/phases/00-core-architecture-foundation/00-01-SUMMARY.md` | ✓ Plan 00-01 complete — Signal struct + EventBus |
 
 ---
 
@@ -73,7 +76,7 @@
 
 | Phase | Title | Req | Status |
 |-------|-------|-----|--------|
-| 0 | Core Architecture Foundation | ARCH-01–07 | Context ready |
+| 0 | Core Architecture Foundation | ARCH-01–07 | Ready to execute (5 планов) |
 | 1 | Zone Visual & Control Layer | ZONE-01–10 | Pending |
 | 2 | Actor & Prop Foundation | ACTR-01–02,06, PROP-01–03 | Pending |
 | 3 | Actor Ecosystem | ACTR-03–05 | Pending |

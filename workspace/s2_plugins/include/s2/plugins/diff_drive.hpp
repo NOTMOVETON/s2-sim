@@ -131,6 +131,16 @@ public:
 
     // ─── Методы входа (input handling) ───
 
+    void on_reset(Agent& agent) override
+    {
+      (void)agent;
+      // Сброс external команд — агент не должен продолжать движение после reset (D-13)
+      external_linear_velocity_  = 0.0;
+      external_angular_velocity_ = 0.0;
+      has_external_input_        = false;
+      time_acc_                  = 0.0;
+    }
+
     bool has_inputs() const override { return true; }
 
     // ─── Транспортные топики ───

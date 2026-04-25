@@ -1,7 +1,7 @@
 # Roadmap: S2 Simulator
 
 **Created:** 2026-04-25
-**Updated:** 2026-04-25 — добавлена Phase 0, расширены Phase 1–8 по RESULT_DISCUSS.md
+**Updated:** 2026-04-26 — Phase 0 complete (6/6 планов, gap ARCH-04 закрыт)
 **Scope:** Ядро архитектуры, Perception, Actors, Transport & Architecture — 9 фаз
 
 ---

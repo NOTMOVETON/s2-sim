@@ -1,0 +1,20 @@
+{
+  "workflow": {
+    "mode": "brownfield",
+    "granularity": "feature",
+    "parallelization": true,
+    "agents": true,
+    "language": "ru",
+    "subagent_timeout": 300000
+  },
+  "project": {
+    "code": "S2",
+    "title": "S2 Simulator — Perception, Actors, Transport & Architecture",
+    "type": "library",
+    "stack": ["C++17", "CMake", "Docker", "GTest"]
+  },
+  "phases": {
+    "current": 1,
+    "total": 8
+  }
+}

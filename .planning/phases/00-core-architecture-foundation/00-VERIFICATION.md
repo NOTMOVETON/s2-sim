@@ -1,37 +1,32 @@
 ---
 phase: "00-core-architecture-foundation"
-verified: "2026-04-26T06:30:00Z"
-status: gaps_found
-score: 3/5 must-haves verified
+verified: "2026-04-26T10:00:00Z"
+status: passed
+score: 3/3 must-haves verified (2 deferred к будущим фазам)
 overrides_applied: 0
-gaps:
-  - truth: "EventBus доставляет ZoneEntered событие подписчикам при входе агента в зону"
-    status: failed
-    reason: "event::ZoneEntered struct определён в event_bus.hpp, но нигде не публикуется в production-коде. ZoneSystem::tick() публикует только legacy event::AgentEnteredZone (строки 202, 225 в zone_system.cpp). Новый типизированный event::ZoneEntered мёртв — он никогда не попадёт к подписчикам."
-    artifacts:
-      - path: "workspace/s2_core/src/zone_system.cpp"
-        issue: "Строки 202, 225 публикуют AgentEnteredZone/AgentExitedZone. Публикация event::ZoneEntered{}/event::ZoneExited{} отсутствует."
-      - path: "workspace/s2_core/include/s2/event_bus.hpp"
-        issue: "struct ZoneEntered и ZoneExited определены (строки 57, 60) но никогда не вызываются из ZoneSystem."
-    missing:
-      - "В ZoneSystem::tick() добавить публикацию event::ZoneEntered{.zone_id = zone.id, .entity_id = agent.id} при входе агента в зону (помимо или вместо legacy AgentEnteredZone)"
-      - "Аналогично event::ZoneExited при выходе"
+re_verification:
+  previous_status: gaps_found
+  previous_score: 3/5
+  gaps_closed:
+    - "EventBus доставляет ZoneEntered событие подписчикам при входе агента в зону"
+  gaps_remaining: []
+  regressions: []
 deferred:
   - truth: "WorldQuery.raycast возвращает корректный результат через статическую геометрию"
     addressed_in: "Phase 4"
     evidence: "Phase 4 task 4.6: 'Ray-zone transit (PERC-07): WorldQuery.raycast с zone intersection; накопление attenuation по zone_type'. Phase 4 success criteria: ArucoDetector обнаруживает маркер через fog-зону. REQUIREMENTS.md: ARCH-05 — PARTIAL: интерфейс создан (Plan 02), WorldQueryImpl реализация — Plan 05+."
   - truth: "KernelCommand::Interact вызывает target.behavior.on_interact() через ядро с валидацией"
     addressed_in: "Phase 2"
-    evidence: "Phase 2 task 2.1: IActorBehavior::on_interact(source, action, params). Phase 2 task 2.2: ActorRegistry + тиковый цикл Phase 2. Phase 2 success criteria: 'Дверь создаётся в YAML сцены, открывается при приближении агента'. apply_kernel_command<Interact> явно отмечен 'TODO в следующих фазах' в sim_engine.hpp строка 911."
+    evidence: "Phase 2 task 2.1: IActorBehavior с on_interact(source, action, params). Phase 2 task 2.2: ActorRegistry + тиковый цикл Phase 2. apply_kernel_command<Interact> явно отмечен 'TODO в следующих фазах' в sim_engine.hpp строка 911."
 human_verification: []
 ---
 
 # Phase 0: Core Architecture Foundation — Verification Report
 
-**Phase Goal:** Правильный lifecycle плагинов, typed EventBus, WorldQuery API, Signal struct на Entity, 8-фазный tick lifecycle, полный набор KernelCommands.
-**Verified:** 2026-04-26T06:30:00Z
-**Status:** GAPS FOUND
-**Re-verification:** No — initial verification
+**Phase Goal:** Правильный lifecycle плагинов, typed EventBus, WorldQuery API, Signal struct на Entity, 8-фазный tick lifecycle, полный набор KernelCommands — фундамент, на котором строится всё остальное.
+**Verified:** 2026-04-26T10:00:00Z
+**Status:** PASSED
+**Re-verification:** Да — после закрытия gap ARCH-04 планом 00-06
 
 ---
 
@@ -41,15 +36,15 @@ human_verification: []
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | on_reset() вызывается для всех плагинов при /sim/reset; DiffDrive и Battery корректно сбрасывают состояние | VERIFIED | SimEngine::reset() строка 229-236 sim_engine.hpp: цикл `for agent: for plugin: plugin->on_reset(agent)`. DiffDrivePlugin::on_reset() строка 134 diff_drive.hpp: сбрасывает external_linear_velocity_=0, external_angular_velocity_=0, has_external_input_=false, time_acc_=0. BatteryPlugin::on_reset() строка 81 battery.hpp: bat->level=initial_level_, bat->charging=false. Тест PluginOnReset.DiffDriveExternalVelocityResetAfterReset и BatteryLevelRestoredAfterReset покрыты. |
-| 2 | EventBus доставляет ZoneEntered событие подписчикам при входе агента в зону | FAILED | event::ZoneEntered определён в event_bus.hpp строка 57. ZoneSystem::tick() в zone_system.cpp строки 202/225 публикует только legacy AgentEnteredZone/AgentExitedZone. Ни один production-путь не вызывает bus.publish(event::ZoneEntered{...}). |
-| 3 | WorldQuery.raycast возвращает корректный результат через статическую геометрию | DEFERRED | WorldQuery базовый класс имеет stub-реализацию raycast() возвращающую RaycastQueryResult{} (строка 206 world_query.hpp). NullWorldQuery в SimEngine наследует заглушку. WorldQueryImpl отложен на Phase 4. |
+| 1 | on_reset() вызывается для всех плагинов при /sim/reset; DiffDrive и Battery корректно сбрасывают состояние | VERIFIED | SimEngine::reset() строка 229-236 sim_engine.hpp: цикл `for agent: for plugin: plugin->on_reset(agent)`. DiffDrivePlugin::on_reset() строки 134-142: сбрасывает external_linear_velocity_=0, external_angular_velocity_=0, has_external_input_=false, time_acc_=0. BatteryPlugin::on_reset(): bat->level=initial_level_, bat->charging=false. Тесты PluginOnReset.DiffDriveExternalVelocityResetAfterReset и BatteryLevelRestoredAfterReset покрыты. |
+| 2 | EventBus доставляет ZoneEntered событие подписчикам при входе агента в зону | VERIFIED | event::ZoneEntered определён в event_bus.hpp строка 57. ZoneSystem::on_agent_enter() строка 203 zone_system.cpp: bus.publish(event::ZoneEntered{.zone_id = zone.id, .entity_id = agent.id}) — добавлено в план 00-06, коммит 11e5fd8. Аналогично event::ZoneExited строка 227. Backward compat: legacy AgentEnteredZone (строка 202) и AgentExitedZone (строка 226) сохранены. Тесты ZoneSystem_ZoneEnteredEvent.PublishedOnAgentEnter и ZoneSystem_ZoneExitedEvent.PublishedOnAgentExit добавлены в test_zone_system.cpp (строки 386, 411), коммит 7e8e9b6. |
+| 3 | WorldQuery.raycast возвращает корректный результат через статическую геометрию | DEFERRED | WorldQuery базовый класс имеет stub-реализацию raycast() возвращающую RaycastQueryResult{}. NullWorldQuery в SimEngine наследует заглушку. WorldQueryImpl отложен на Phase 4. |
 | 4 | Сенсоры (Lidar) работают из финальной позиции агента (после collision response) | VERIFIED | SimEngine::tick() строки 504-512: phase3_agents() (кинематика + коллизии) вызывается до phase4_sensors(). phase3_agents() строка 616: SENSOR плагины явно пропускаются через `continue`. phase4_sensors() строка 765: вызывает только PluginRole::SENSOR. Тест TickLifecycle.SensorCalledInPhase4 и ClearContributionsOnlyInPhase8 покрывают этот порядок. |
-| 5 | KernelCommand::Interact вызывает target.behavior.on_interact() через ядро с валидацией | DEFERRED | apply_kernel_command в sim_engine.hpp строка 909-914: Interact попадает в else-ветку `// Все остальные команды ... TODO в следующих фазах`. IActorBehavior::on_interact() ещё не существует — это задача Phase 2 (task 2.1). |
+| 5 | KernelCommand::Interact вызывает target.behavior.on_interact() через ядро с валидацией | DEFERRED | apply_kernel_command в sim_engine.hpp строка 909-914: Interact попадает в else-ветку `// Все остальные команды ... TODO в следующих фазах`. IActorBehavior::on_interact() ещё не существует — задача Phase 2 (task 2.1). |
 
-**Score:** 2/3 non-deferred truths verified (2 deferred исключаются из счёта failure)
+**Score:** 3/3 non-deferred truths verified (2 deferred исключаются из счёта)
 
-Итоговый счёт с учётом статуса: 3/5 (SC1 + SC4 = verified; SC2 = gap; SC3 + SC5 = deferred)
+Итоговый счёт с учётом всех статусов: 3/5 (SC1 + SC2 + SC4 = verified; SC3 + SC5 = deferred)
 
 ---
 
@@ -108,7 +103,9 @@ Items not yet met but explicitly addressed in later milestone phases.
 | `workspace/s2_core/include/s2/event_bus.hpp` | class EventBus + все event:: типы | VERIFIED | Строка 144: class EventBus. Event types: EntitySpawned (65), EntityDespawned (68), ZoneEntered (57), ZoneExited (60), ActorStateChanged (73), SignalActivated (78), SignalDeactivated (81), GrabAttempt (86), GrabSucceeded (89), GrabFailed (92), DamageDealt (97). Все 11 новых event-типов присутствуют. |
 | `workspace/s2_core/include/s2/sim_bus.hpp` | using SimBus = EventBus | VERIFIED | Строка 19. |
 | `workspace/s2_core/tests/test_event_bus.cpp` | Тесты новых event-типов | VERIFIED | Файл существует. |
-| **event::ZoneEntered публикуется при входе агента** | ZoneSystem публикует ZoneEntered | FAILED | zone_system.cpp публикует только AgentEnteredZone (legacy). event::ZoneEntered не публикуется нигде. |
+| `workspace/s2_core/src/zone_system.cpp` | event::ZoneEntered публикуется при входе агента | VERIFIED | Строка 203: bus.publish(event::ZoneEntered{.zone_id = zone.id, .entity_id = agent.id}). Добавлено планом 00-06, коммит 11e5fd8. |
+| `workspace/s2_core/src/zone_system.cpp` | event::ZoneExited публикуется при выходе агента | VERIFIED | Строка 227: bus.publish(event::ZoneExited{.zone_id = zone.id, .entity_id = agent.id}). |
+| `workspace/s2_core/tests/test_zone_system.cpp` | Тесты ZoneEntered/ZoneExited | VERIFIED | Строки 386-437: TEST(ZoneSystem_ZoneEnteredEvent, PublishedOnAgentEnter) и TEST(ZoneSystem_ZoneExitedEvent, PublishedOnAgentExit). Проверяют zone_id и entity_id. Коммит 7e8e9b6. |
 
 ### ARCH-05 (WorldQuery API)
 
@@ -153,7 +150,7 @@ Items not yet met but explicitly addressed in later milestone phases.
 | `plugin_base.hpp` | `event_bus.hpp` | `#include` (строка 11) | VERIFIED | PluginContext::bus = EventBus&. |
 | `diff_drive.hpp` | `plugin_base.hpp` | update() сигнатура + role() | VERIFIED | update(double, Agent&, const PluginContext&) + PluginRole::ACTUATION. |
 | `scene_loader.hpp` | `plugin_base.hpp` | PluginRole::ACTUATION валидация | VERIFIED | Строка 220 scene_loader.hpp: plugin->role() == PluginRole::ACTUATION. |
-| `zone_system.cpp` | `event_bus.hpp` | ZoneEntered публикация | FAILED | Публикует только AgentEnteredZone (legacy), не event::ZoneEntered. |
+| `zone_system.cpp` | `event_bus.hpp` | ZoneEntered/ZoneExited публикация | VERIFIED | Строки 203, 227: bus.publish(event::ZoneEntered) и bus.publish(event::ZoneExited). Оба с корректными полями zone_id и entity_id. Gap закрыт планом 00-06. |
 
 ---
 
@@ -164,13 +161,14 @@ Items not yet met but explicitly addressed in later milestone phases.
 | `sim_engine.hpp` phase0 | command_queue_ | push_command() (HTTP thread) | Да — реальные команды из REST API | FLOWING |
 | `sim_engine.hpp` phase3 | agent.world_velocity | DiffDrivePlugin via update() | Да — через SharedState contributions | FLOWING |
 | `sim_engine.hpp` phase4 | sensor data | SENSOR plugins via update() | Да — реальные плагины (Lidar, GNSS, IMU) | FLOWING |
+| `zone_system.cpp` on_agent_enter | event::ZoneEntered | agent.id, zone.id | Да — реальные значения из AgentId/ZoneId | FLOWING |
 | `world_query.hpp` raycast | RaycastQueryResult | NullWorldQuery stub | Нет — всегда возвращает {} | STATIC (deferred Phase 4) |
 
 ---
 
 ## Behavioral Spot-Checks
 
-Step 7b: SKIPPED — проверка требует запуска Docker (внешний сервис). Все SUMMARYs подтверждают `100% tests passed` после каждого плана.
+Step 7b: SKIPPED — проверка требует запуска Docker (внешний сервис). SUMMARYs 00-05 и 00-06 подтверждают `100% tests passed` после каждого плана. Коммиты 11e5fd8 и 7e8e9b6 верифицированы в git log.
 
 ---
 
@@ -181,10 +179,10 @@ Step 7b: SKIPPED — проверка требует запуска Docker (вн
 | ARCH-01 | Plans 02, 05 | IAgentPlugin lifecycle + on_reset bugfixes | SATISFIED | on_spawn/on_despawn/on_scene_load/on_reset в plugin_base.hpp; DiffDrive + Battery on_reset корректны; SimEngine::reset() вызывает их. |
 | ARCH-02 | Plans 02, 05 | PluginRole + max 1 ACTUATION | SATISFIED | enum class PluginRole (5 значений); все 11 плагинов реализуют role(); SceneLoader::load() throws runtime_error. |
 | ARCH-03 | Plan 01 | Signal struct на Entity | SATISFIED | struct Signal в types.hpp с 7 полями; Agent::signals в agent.hpp. |
-| ARCH-04 | Plan 01 | EventBus typed events | PARTIAL | Все 11 event-типов определены в event_bus.hpp. Но event::ZoneEntered никогда не публикуется — только legacy AgentEnteredZone. |
+| ARCH-04 | Plans 01, 06 | EventBus typed events + ZoneEntered публикация | SATISFIED | Все 11 event-типов определены в event_bus.hpp. event::ZoneEntered публикуется в ZoneSystem::on_agent_enter() (строка 203), event::ZoneExited в on_agent_exit() (строка 227). Backward compat с legacy AgentEnteredZone/AgentExitedZone сохранён. Тесты ZoneSystem_ZoneEnteredEvent и ZoneSystem_ZoneExitedEvent подтверждают корректность zone_id и entity_id. Gap закрыт планом 00-06. |
 | ARCH-05 | Plan 02 | WorldQuery read-only API | PARTIAL | Интерфейс (10 методов) создан в world_query.hpp. WorldQueryImpl отложен на Phase 4. |
 | ARCH-06 | Plan 04 | 8-phase tick lifecycle | SATISFIED | tick() содержит все 9 фаз в порядке; phase0 дренирует очередь; phase3 пропускает SENSOR/INTERACTION; phase8 единственное место clear_contributions(). |
-| ARCH-07 | Plan 03 | KernelCommand полный набор | PARTIAL | Все 16 команд определены как std::variant. cmd::SetPose обрабатывается в apply_kernel_command. Остальные (SpawnEntity, DespawnEntity, Interact, Zones, Scene) — заглушки с TODO комментариями. |
+| ARCH-07 | Plan 03 | KernelCommand полный набор | PARTIAL | Все 16 команд определены как std::variant. cmd::SetPose обрабатывается в apply_kernel_command. Остальные (SpawnEntity, DespawnEntity, Interact, Zones, Scene) — заглушки с TODO. Interact реализация — Phase 2. |
 
 ---
 
@@ -208,19 +206,18 @@ Step 7b: SKIPPED — проверка требует запуска Docker (вн
 
 ---
 
-## Gaps Summary
+## Re-verification Summary
 
-**1 gap найден** (2 деферреда в будущие фазы):
+**Gap закрыт:** 1/1
 
-### Gap: event::ZoneEntered не публикуется при входе агента в зону
+- ARCH-04 (ZoneEntered не публиковался): CLOSED — коммит 11e5fd8 добавил bus.publish(event::ZoneEntered) в ZoneSystem::on_agent_enter() строка 203 и bus.publish(event::ZoneExited) в on_agent_exit() строка 227. Legacy события AgentEnteredZone/AgentExitedZone сохранены. Коммит 7e8e9b6 добавил 2 интеграционных теста подтверждающих zone_id и entity_id.
 
-**Корень проблемы:** ZoneSystem был написан с legacy `event::AgentEnteredZone`. После создания нового `event::ZoneEntered` в Plan 01 обновление ZoneSystem не было выполнено. Новый event определён, но мёртв — ни один подписчик не получит его при входе агента в зону.
+**Регрессии:** 0
 
-**Влияние:** ARCH-04 частично не выполнен. Любой код Phase 1+ подписавшийся на `event::ZoneEntered` (а не на legacy `AgentEnteredZone`) не получит событий. Это заблокирует ToggleZone ON_ENTER/ON_EXIT (Phase 1 task 1.5) и EventReactor (Phase 2 task 2.5).
-
-**Минимальное исправление:** В `workspace/s2_core/src/zone_system.cpp` строки 202 и 225 добавить публикацию `event::ZoneEntered{.zone_id = zone.id, .entity_id = agent.id}` и `event::ZoneExited{...}` в дополнение к legacy событиям.
+**Итог:** Phase 0 goal достигнут. Все 3 non-deferred truths верифицированы. 2 deferred задачи явно закреплены за Phase 2 (Interact) и Phase 4 (WorldQueryImpl).
 
 ---
 
-_Verified: 2026-04-26T06:30:00Z_
+_Verified: 2026-04-26T10:00:00Z_
 _Verifier: Claude (gsd-verifier)_
+_Re-verification: Plan 00-06 gap closure_

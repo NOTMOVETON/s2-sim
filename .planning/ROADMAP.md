@@ -55,6 +55,16 @@ Plans:
 
 **Requirements:** ZONE-01, ZONE-02, ZONE-03, ZONE-04, ZONE-05, ZONE-06, ZONE-07, ZONE-08, ZONE-09, ZONE-10
 
+**Plans:** 6 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Zone struct расширение: DetectionMode, ZoneLifecycle, SelfDestructPolicy + ZoneSnapshot.strength/visual_hints
+- [ ] 01-02-PLAN.md — FogEffect + EMIEffect сенсорные плагины + регистрация в effect_factory
+- [ ] 01-03-PLAN.md — ZoneSystem: BOUNDING/PER_LINK detection, lifecycle, self_destruct, remove_zone, owned_zones
+- [ ] 01-04-PLAN.md — KernelCommands SpawnZone/DespawnZone/ToggleZone + ZoneSpawnSystem (4 триггера)
+- [ ] 01-05-PLAN.md — SceneLoader: owned_zones, lifecycle, zone_templates + SimEngine build_snapshot
+- [ ] 01-06-PLAN.md — UI Zone Inspector (вкладка Зоны) + VisualHint рендеринг (glow/arrows/particles/grid)
+
 **Tasks:**
 - [ ] **1.1** — Zone inspector в UI редакторе (ZONE-01): форма создания/редактирования зоны, параметры эффекта, тип зоны; использует /api/effects/registry (Phase 5)
 - [ ] **1.2** — VisualHint pipeline для зон (ZONE-02): цветовая индикация типа зоны, прозрачность, анимация активации агента внутри

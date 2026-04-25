@@ -70,6 +70,7 @@ add_executable(s2_core_tests
     tests/test_plugin_lifecycle.cpp
     tests/test_plugin_roles.cpp
     tests/test_kernel_command.cpp
+    tests/test_tick_lifecycle.cpp
 )
 target_link_libraries(s2_core_tests PRIVATE s2_core s2_plugins s2_transport GTest::gtest_main)
 

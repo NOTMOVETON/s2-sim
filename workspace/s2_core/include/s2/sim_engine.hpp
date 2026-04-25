@@ -223,13 +223,18 @@ public:
    * @brief Сбросить симуляцию к начальному состоянию.
    *
    * Восстанавливает все world_pose и world_velocity агентов из начальных значений,
+   * вызывает on_reset() для всех плагинов всех агентов (D-12),
    * сбрасывает sim_time в 0 и ставит симуляцию на паузу.
    */
   void reset()
   {
     restore_initial_states();
+    // Вызвать on_reset() для всех плагинов всех агентов (D-12)
+    for (auto& agent : world_.agents())
+      for (auto& plugin : agent.plugins)
+        plugin->on_reset(agent);
     sim_time_ = 0.0;
-    paused_ = true;
+    paused_   = true;
   }
 
   /**

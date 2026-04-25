@@ -213,6 +213,20 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
                 }
             }
 
+            // Валидация: не более одного ACTUATION-плагина на агента (D-11)
+            {
+                int actuation_count = 0;
+                for (const auto& plugin : agent.plugins)
+                    if (plugin->role() == PluginRole::ACTUATION)
+                        actuation_count++;
+                if (actuation_count > 1) {
+                    throw std::runtime_error(
+                        "Агент '" + agent.name + "' имеет " +
+                        std::to_string(actuation_count) +
+                        " ACTUATION-плагина. Допустим только один.");
+                }
+            }
+
             // Кинематическое дерево из URDF (имеет приоритет над links:)
             if (agent_node["urdf"]) {
                 std::string urdf_rel = agent_node["urdf"].as<std::string>();

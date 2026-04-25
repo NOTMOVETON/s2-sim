@@ -5,16 +5,21 @@
  * SimEngine — главный цикл симуляции.
  *
  * Управляет тиковой петлёй с фиксированным шагом dt.
- * Каждый тик:
- *  1. Обновляет симуляционное время (sim_time += dt)
- *  2. Проходит по фазам: акторы, зоны, агенты, attachments
- *  3. Для каждого агента: resolver → actuation → kinematics → clear_contributions
- *
- * Пока большинство фаз пустые — будут заполняться в следующих задачах.
+ * Каждый тик состоит из 9 именованных фаз:
+ *  Phase 0: Обработка KernelCommands из очереди (HTTP-тред + плагины)
+ *  Phase 1: Входящие команды транспорта (пусто — Phase 5)
+ *  Phase 2: Акторы (FSM-переходы, поведения) (пусто — Phase 2)
+ *  Phase 3: Агенты — ресурсы, resolve, актуация, кинематика, коллизии
+ *  Phase 4: Сенсоры (строго после кинематики в Phase 3)
+ *  Phase 5: Interaction-плагины (Grabber, DoorOpener)
+ *  Phase 6: Обновление attachments (пусто — Phase 2)
+ *  Phase 7: Публикация снапшота и транспорт
+ *  Phase 8: Очистка (clear_contributions только здесь)
  */
 
 #include <s2/collision_system.hpp>
 #include <s2/components/pending_teleport.hpp>
+#include <s2/kernel_command.hpp>
 #include <s2/plugin_base.hpp>
 #include <s2/raycast_engine.hpp>
 #include <s2/sim_bus.hpp>
@@ -28,6 +33,7 @@
 #include <atomic>
 #include <chrono>
 #include <map>
+#include <mutex>
 #include <iostream>
 
 namespace s2
@@ -41,8 +47,9 @@ class VizServer;
  *
  * Отвечает за:
  *  - Тиковую петлю с фиксированным шагом (update_rate Hz)
- *  - Вызов resolve() и clear_contributions() для каждого агента
- *  - Синхронизацию через SimBus
+ *  - 9-фазный lifecycle: phase0..phase8
+ *  - Очередь KernelCommands с mutex-защитой (HTTP thread → sim thread)
+ *  - Синхронизацию через EventBus
  *
  * Два режима работы:
  *  - step(n) — для тестов, вызывает tick() n раз
@@ -132,6 +139,23 @@ public:
    */
   using PostTickCallback = std::function<void(const SimWorld&, double /*sim_time*/)>;
   void set_post_tick_callback(PostTickCallback cb) { post_tick_cb_ = std::move(cb); }
+
+  /**
+   * @brief Добавить команду в очередь ядра.
+   *
+   * Потокобезопасно — вызывается из HTTP-треда (REST API, VizServer).
+   * Команда применяется в Phase 0 следующего тика.
+   *
+   * Безопасность: mutex защищает от data race между HTTP-тредом (push_command)
+   * и sim-тредом (phase0_kernel_commands drain). Соответствует T-00-09.
+   *
+   * @param cmd Команда ядра (SetPose, SpawnEntity, и т.п.)
+   */
+  void push_command(KernelCommand cmd)
+  {
+    std::lock_guard<std::mutex> lock(command_queue_mutex_);
+    command_queue_.push_back(std::move(cmd));
+  }
 
   /**
    * @brief Выполнить n тиков (для тестов).
@@ -271,22 +295,17 @@ public:
    * @param plugin_type Тип плагина (напр. "diff_drive")
    * @param json_input JSON-строка с входными данными
    * @return true если агент и плагин найдены и плагин принял вход
-   *
-   * Единая точка входа для любых транспортов (VizUI, ROS2, MQTT).
-   * Транспорт конвертирует свои сообщения в JSON и вызывает этот метод.
    */
   bool handle_plugin_input(AgentId agent_id, const std::string& plugin_type, const std::string& json_input)
   {
     for (auto& agent : world_.agents()) {
       if (agent.id == agent_id) {
         for (auto& plugin : agent.plugins) {
-          // Матчим по типу ("lidar") ИЛИ по полному ключу ("lidar_front_lidar")
           if (plugin->type() == plugin_type || plugin_key(*plugin) == plugin_type) {
             plugin->handle_input(json_input);
             return true;
           }
         }
-        // Агент найден, но плагин не найден
         return false;
       }
     }
@@ -341,15 +360,12 @@ public:
       as.effective_speed_scale = agent.state.effective().speed_scale;
       as.motion_locked = agent.state.effective().motion_locked;
 
-      // Плагины добавляют свои доменные поля (battery_level, held_objects и т.п.)
       for (const auto& plugin : agent.plugins)
         plugin->contribute_snapshot(as.extra, agent);
 
-      // Состояние шин из SharedState (заполняется TirePunctureEffect при входе в зону)
       const auto* tire = agent.state.get<TirePunctureData>();
       if (tire) as.tire_punctured = tire->punctured;
 
-      // Коллизионный шейп для визуализации
       as.has_collision = agent.has_collision;
       if (agent.has_collision) {
         if (agent.bounding.type == ShapeType::SPHERE) {
@@ -357,11 +373,10 @@ public:
           as.bounding_radius = agent.bounding.radius;
         } else {
           as.bounding_type = "box";
-          as.bounding_size = agent.bounding.size * 2.0;  // half-extents → full extents
+          as.bounding_size = agent.bounding.size * 2.0;
         }
       }
 
-      // Позы всех звеньев кинематического дерева (включая корень)
       if (agent.kinematic_tree) {
           for (const auto& link : agent.kinematic_tree->links()) {
               LinkFrameSnapshot lfs;
@@ -439,36 +454,36 @@ public:
   }
 
 private:
+  // ─── Заглушка WorldQuery ──────────────────────────────────────────────────
+  //
+  // Передаётся в PluginContext пока WorldQueryImpl не реализован (Plan 05+).
+  // Базовый класс WorldQuery — все методы возвращают пустые результаты.
+
+  // NullWorldQuery — вложенный класс в private-секции SimEngine.
+  // Использует методы WorldQuery по умолчанию (заглушки).
+  class NullWorldQuery : public WorldQuery {};
+
+  // ─── Тиковый цикл ─────────────────────────────────────────────────────────
+
   /**
-   * @brief Один тик симуляции.
+   * @brief Один тик симуляции — 9 именованных фаз.
    *
-   * Порядок фаз (как определено в архитектуре):
-   *  1. Акторы (FSM transitions)
-   *  2. Зоны (проверка входов/выходов)
-   *  3. Для каждого агента:
-   *     - Resource modules
-   *     - Own effects (CONTINUOUS)
-   *     - Zone effects (CONTINUOUS)
-   *     - RESOLVER (вычисление effective constraints)
-   *     - Actuation
-   *     - Kinematics
-   *     - Surface snap
-   *     - Collision detection
-   *     - Joints
-   *     - Kinematic tree update
-   *     - Sensors
-   *     - Interactions
-   *     - Clear contributions
-   *  4. Attachments
-   *  5. Snapshot
-   *  6. Viz publish
-   *
-   * Пока большинство фаз пустые — заглушки для будущих задач.
+   * Порядок фаз:
+   *  0. Kernel commands (command_queue_ drain)
+   *  1. Transport input (пусто — Phase 5 транспортного рефакторинга)
+   *  2. Actors (FSM transitions) (пусто — Phase 2 Actor Foundation)
+   *  3. Agents (ресурсы, resolve, актуация, кинематика, коллизии)
+   *     — SENSOR и INTERACTION плагины пропускаются
+   *  4. Sensors (update только для PluginRole::SENSOR)
+   *  5. Interactions (update только для PluginRole::INTERACTION)
+   *  6. Attachments (обновление поз привязанных объектов) (пусто — Phase 2)
+   *  7. Snapshot + Viz + Transport publish
+   *  8. Cleanup: clear_contributions() для всех агентов
    */
   void tick()
   {
-    // Если на паузе — не обновляем время и не двигаем агентов
-    // Но всё равно отправляем снапшоты (визуализатор должен видеть paused)
+    // Если на паузе — не обновляем время и не двигаем агентов.
+    // Но всё равно отправляем снапшоты (визуализатор должен видеть paused).
     if (paused_) {
       viz_timer_ += dt_;
       double viz_interval = config_.viz_rate > 0 ? 1.0 / config_.viz_rate : 0.0;
@@ -479,40 +494,96 @@ private:
       return;
     }
 
-    // Обновляем симуляционное время
     sim_time_ += dt_;
 
-    // === Фаза 1: Акторы (FSM transitions) ===
-    // Пока пусто — будет в задаче 07
+    phase0_kernel_commands();
+    phase1_transport_input();
+    phase2_actors();
+    phase3_agents();
+    phase4_sensors();
+    phase5_interactions();
+    phase6_attachments();
+    phase7_snapshot_publish();
+    phase8_cleanup();
+  }
 
-    // === Фаза 2: Зоны (проверка входов/выходов и применение эффектов) ===
+  // ─── Фазы тика ────────────────────────────────────────────────────────────
+
+  /**
+   * @brief Phase 0: Обработка накопленных KernelCommands.
+   *
+   * Дренирует command_queue_ атомарно (swap под mutex), применяет каждую команду
+   * через std::visit. Вызывается первой — гарантирует атомарное применение
+   * изменений мира до обновления агентов.
+   *
+   * Безопасность: swap под mutex защищает от data race (T-00-09).
+   */
+  void phase0_kernel_commands()
+  {
+    KernelCommandQueue local_queue;
+    {
+      std::lock_guard<std::mutex> lock(command_queue_mutex_);
+      local_queue.swap(command_queue_);
+    }
+
+    for (const auto& cmd : local_queue)
+    {
+      std::visit([this](const auto& c) { apply_kernel_command(c); }, cmd);
+    }
+  }
+
+  /**
+   * @brief Phase 1: Входящие команды транспорта.
+   * Транспорт читает входящие сообщения и распределяет по плагинам.
+   * Пока пусто — будет заполнено в Phase 5 (Transport Refactoring).
+   */
+  void phase1_transport_input()
+  {
+    // TODO Phase 5: transport.read_input() → handle_input() для каждого плагина
+  }
+
+  /**
+   * @brief Phase 2: Обновление акторов (FSM-переходы, поведения).
+   * Пока пусто — будет заполнено в Phase 2 (Actor Foundation).
+   */
+  void phase2_actors()
+  {
+    // TODO Phase 2: ActorRegistry → actor.behavior.update(dt, world_query_)
+  }
+
+  /**
+   * @brief Phase 3: Обработка агентов — ресурсы, resolve, актуация, кинематика, коллизии.
+   *
+   * Порядок для каждого агента:
+   *  3a. pre_resolve() для всех плагинов (Resource modules)
+   *  3d. agent.state.resolve() (вычисление effective constraints)
+   *  3e. update() для ACTUATION/UTILITY/RESOURCE плагинов (НЕ SENSOR, НЕ INTERACTION)
+   *  3f. Кинематика (pose += velocity * dt)
+   *  3h. Collision detection
+   *  3m. PendingTeleport
+   *
+   * ВАЖНО: SENSOR и INTERACTION плагины пропускаются в этой фазе.
+   * Сенсоры вызываются в Phase 4 (строго после кинематики, D-19).
+   * clear_contributions() НЕ вызывается здесь (D-20) — только в Phase 8.
+   */
+  void phase3_agents()
+  {
     zone_system_.tick(world_.agents(), world_.actors(), bus_, sim_time_, dt_);
 
-    // === Фаза 3: Для каждого агента ===
     for (auto& agent : world_.agents())
     {
-      // 3a. Resource modules — плагины публикуют contributions до resolve().
-      // Плагины переопределяют pre_resolve() если им нужна ранняя фаза.
-      // Пример: BatteryPlugin разряжает батарею и добавляет add_scale/add_lock.
+      // 3a. Resource modules — плагины публикуют contributions до resolve()
       for (auto& plugin : agent.plugins)
           plugin->pre_resolve(dt_, agent);
-
-      // 3b. Own effects CONTINUOUS — пока пусто
-      // 3c. Zone effects CONTINUOUS — пока пусто
 
       // 3d. RESOLVER — вычисляем effective constraints из contributions
       agent.state.resolve();
 
-      // 3e. плагины (DiffDrive, GNSS, IMU, Lidar и т.д.)
-      // вызываются до кинематики, чтобы они могли установить velocity.
-      // Перед update() передаём CollisionSystem и RaycastEngine;
-      // плагины, которым они не нужны, игнорируют вызовы.
-
-      // Собрать bounding-примитивы всех других агентов для LidarPlugin
+      // Собрать bounding-примитивы других агентов для RaycastEngine
       {
         std::vector<WorldPrimitive> agent_bounds;
         for (const auto& other : world_.agents()) {
-          if (&other == &agent) continue;  // исключить владельца лидара
+          if (&other == &agent) continue;
           if (!other.has_collision) continue;
           WorldPrimitive wp;
           wp.pose = other.world_pose;
@@ -521,54 +592,60 @@ private:
             wp.radius = other.bounding.radius;
           } else {
             wp.type = "box";
-            wp.size = other.bounding.size * 2.0;  // half-extents → full extents
+            wp.size = other.bounding.size * 2.0;
           }
           agent_bounds.push_back(wp);
         }
         raycast_engine_.set_dynamic_agents(agent_bounds);
       }
 
-      for (auto& plugin : agent.plugins)
+      // 3e. ACTUATION, UTILITY, RESOURCE плагины
+      // SENSOR и INTERACTION пропускаются — они вызываются в Phase 4 и Phase 5.
       {
+        KernelCommandQueue tick_cmds;
+        PluginContext ctx{null_world_query_, bus_, tick_cmds};
+
+        for (auto& plugin : agent.plugins)
+        {
+          auto r = plugin->role();
+          if (r == PluginRole::SENSOR || r == PluginRole::INTERACTION)
+            continue;  // Сенсоры — в Phase 4, Interaction — в Phase 5
+
           plugin->set_collision_system(&collision_system_);
           plugin->set_raycast_engine(&raycast_engine_);
-          // Plan 05 заменит null_query_ на WorldQueryImpl.
-          // Пока используем базовый WorldQuery (заглушки).
-          plugin->update(dt_, agent, plugin_ctx_);
+          plugin->update(dt_, agent, ctx);
+        }
+
+        // Применить команды, выданные плагинами этой фазы
+        for (auto& cmd : tick_cmds)
+          std::visit([this](const auto& c) { apply_kernel_command(c); }, cmd);
       }
 
-      // 3f. Kinematics — обновляем позу на основе скорости
+      // 3f. Кинематика — обновляем позу на основе скорости
       // world_velocity хранится в локальных координатах корпуса.
-      // Для дифф драйва: linear.x = скорость вперёд, linear.y = боковая
-      // Преобразуем body velocity в мировые координаты с учётом полной
-      // ориентации (yaw + pitch + roll). На плоском полу (pitch=roll=0)
-      // результат идентичен прежней yaw-only ротации.
-      double local_vx = agent.world_velocity.linear.x();
-      double local_vy = agent.world_velocity.linear.y();
-      double wz = agent.world_velocity.angular.z();
+      {
+        double local_vx = agent.world_velocity.linear.x();
+        double local_vy = agent.world_velocity.linear.y();
+        double wz = agent.world_velocity.angular.z();
 
-      Eigen::Matrix3d R = CollisionSystem::rotation_from_pose(agent.world_pose);
-      Vec3 body_vel{local_vx, local_vy, 0.0};
-      Vec3 world_vel = R * body_vel;
+        Eigen::Matrix3d R = CollisionSystem::rotation_from_pose(agent.world_pose);
+        Vec3 body_vel{local_vx, local_vy, 0.0};
+        Vec3 world_vel = R * body_vel;
 
-      // Применяем аддитивную скорость от зон (конвейер, ветер и т.п.).
-      // Задаётся в мировых координатах и суммируется поверх actuation.
-      const Vec3& additive = agent.state.effective().velocity_addition;
+        // Аддитивная скорость от зон (конвейер, ветер и т.п.)
+        const Vec3& additive = agent.state.effective().velocity_addition;
 
-      agent.world_pose.x += (world_vel.x() + additive.x()) * dt_;
-      agent.world_pose.y += (world_vel.y() + additive.y()) * dt_;
-      // Z управляется GravityPlugin (позиционный контроль), не кинематикой;
-      // additive.z() добавляется для воздушных зон
-      agent.world_pose.z += (agent.world_velocity.linear.z() + additive.z()) * dt_;
-      agent.world_pose.yaw += wz * dt_;
+        agent.world_pose.x += (world_vel.x() + additive.x()) * dt_;
+        agent.world_pose.y += (world_vel.y() + additive.y()) * dt_;
+        agent.world_pose.z += (agent.world_velocity.linear.z() + additive.z()) * dt_;
+        agent.world_pose.yaw += wz * dt_;
 
-      // Нормализация yaw в диапазон [0, 2π)
-      agent.world_pose.yaw = std::fmod(agent.world_pose.yaw, 2.0 * 3.14159265358979323846);
-      if (agent.world_pose.yaw < 0) {
-        agent.world_pose.yaw += 2.0 * 3.14159265358979323846;
+        // Нормализация yaw в диапазон [0, 2π)
+        agent.world_pose.yaw = std::fmod(agent.world_pose.yaw, 2.0 * 3.14159265358979323846);
+        if (agent.world_pose.yaw < 0) {
+          agent.world_pose.yaw += 2.0 * 3.14159265358979323846;
+        }
       }
-
-      // 3g. Surface snap — пока пусто
 
       // 3h. Collision detection
       if (agent.has_collision && agent.bounding.type == ShapeType::SPHERE)
@@ -576,7 +653,6 @@ private:
         Vec3 pos = agent.world_pose.position();
         double agent_bottom = pos.z() - agent.bounding.radius;
 
-        // Собираем все контакты, сортированные по убыванию penetration
         auto contacts = collision_system_.check_sphere_all(
             pos, agent.bounding.radius);
 
@@ -587,9 +663,6 @@ private:
 
           if (!walkable)
           {
-            // Проверяем порог ступеньки: если верхняя грань примитива
-            // не выше нижней точки агента более чем на max_step_height,
-            // агент просто переезжает (игнорируем коллизию).
             if (contact.obstacle_top_z - agent_bottom <=
                 agent.max_step_height)
             {
@@ -599,30 +672,14 @@ private:
 
           if (walkable)
           {
-            // Walkable поверхность (пандус/пол): только Z push-out, XY — нет.
-            // XY push-out мешает заезду на рампу (отталкивает назад вдоль склона).
-            //
-            // Правильная формула Z-только push-out:
-            //   Чтобы при фиксированных X,Y вывести сферу ровно на поверхность
-            //   нужно дельта_z = penetration / nz, а не nz * penetration.
-            //
-            //   Доказательство: плоскость n·x = D, центр сферы (x, y, z).
-            //   Текущая дистанция = r - p (проникновение p).
-            //   Хотим дистанцию = r при том же X,Y:
-            //     nz * z' = D + r - nx*x - ny*y  =>  delta_z = p / nz
-            //
-            //   При nz = 1 (плоский пол): p / 1 = p  (совпадает с nz*p).
-            //   При nz = 0.95 (рампа 18°): p / 0.95 > p * 0.95 — полное снятие.
-            //
-            // Без этого сфера оставалась внутри рампы на p*sin²(θ) каждый тик,
-            // создавая осцилляцию с GravityPlugin.
+            // Walkable поверхность: только Z push-out
             if (contact.contact_normal.z() > 1e-4)
               agent.world_pose.z += contact.penetration / contact.contact_normal.z();
             continue;
           }
           else
           {
-            // Стена / крутой склон: только горизонтальный slide и push-out
+            // Стена / крутой склон: горизонтальный slide и push-out
             Vec3 normal_h{contact.contact_normal.x(),
                           contact.contact_normal.y(), 0.0};
             double nlen = normal_h.norm();
@@ -641,56 +698,39 @@ private:
                   contact.contact_normal.x() * contact.penetration;
               agent.world_pose.y +=
                   contact.contact_normal.y() * contact.penetration;
-              // Z не изменяем
             }
           }
 
-          // Обновляем agent_bottom после push-out для следующего контакта
           agent_bottom = agent.world_pose.z - agent.bounding.radius;
         }
 
-        // Выравнивание ориентации агента по нормали опорной поверхности (задача 20.1).
-        //
-        // ВАЖНО: нельзя полагаться на collision contacts для получения нормали.
-        // GravityPlugin снапит z точно на поверхность (penetration ≈ 0), поэтому
-        // check_sphere_all() часто возвращает пустой список — и нормаль не попадает
-        // в контакты. Это вызывало фликер pitch/roll между нормалью рампы и (0,0).
-        //
-        // Решение: использовать find_support_surface(), который надёжно находит
-        // нормаль через down-raycast без зависимости от проникновения.
+        // Выравнивание ориентации агента по нормали опорной поверхности.
+        // Используем find_support_surface() (надёжнее collision contacts при penetration ≈ 0).
         {
-            auto support = collision_system_.find_support_surface(
-                agent.world_pose.position(), agent.bounding.radius);
-            bool surface_found = false;
-            if (support) {
-                // Считаем агента «стоящим», если он в пределах небольшого допуска
-                // над поверхностью (0.05 м — чуть больше grounded_epsilon гравитации).
-                const double surface_z = support->ground_z + agent.bounding.radius;
-                if (agent.world_pose.z <= surface_z + 0.05) {
-                    const Vec3& n = support->normal;
-                    const double yaw = agent.world_pose.yaw;
-                    const double nx_body =  std::cos(yaw) * n.x() + std::sin(yaw) * n.y();
-                    const double ny_body = -std::sin(yaw) * n.x() + std::cos(yaw) * n.y();
-                    agent.world_pose.pitch = std::atan2( nx_body, n.z());
-                    agent.world_pose.roll  = std::atan2(-ny_body, n.z());
-                    surface_found = true;
-                }
+          auto support = collision_system_.find_support_surface(
+              agent.world_pose.position(), agent.bounding.radius);
+          bool surface_found = false;
+          if (support) {
+            const double surface_z = support->ground_z + agent.bounding.radius;
+            if (agent.world_pose.z <= surface_z + 0.05) {
+              const Vec3& n = support->normal;
+              const double yaw = agent.world_pose.yaw;
+              const double nx_body =  std::cos(yaw) * n.x() + std::sin(yaw) * n.y();
+              const double ny_body = -std::sin(yaw) * n.x() + std::cos(yaw) * n.y();
+              agent.world_pose.pitch = std::atan2( nx_body, n.z());
+              agent.world_pose.roll  = std::atan2(-ny_body, n.z());
+              surface_found = true;
             }
-            if (!surface_found) {
-                agent.world_pose.roll  = 0.0;
-                agent.world_pose.pitch = 0.0;
-            }
+          }
+          if (!surface_found) {
+            agent.world_pose.roll  = 0.0;
+            agent.world_pose.pitch = 0.0;
+          }
         }
       }
 
-      // 3i. Joints — пока пусто
-      // 3j. Kinematic tree update — пока пусто
-      // 3k. Sensors — пока пусто
-      // 3l. Interactions — пока пусто
-
       // 3m. Телепорт — применяем отложенные телепорты (устанавливаются TeleportEffect).
-      // Выполняется после коллизий (3h), чтобы телепорт не отменялся push-out.
-      // Сброс скорости гарантирует, что агент не улетит на первом тике после телепорта.
+      // Выполняется после коллизий (3h) — телепорт не отменяется push-out.
       {
         auto* pt = agent.state.get<PendingTeleport>();
         if (pt && pt->pending) {
@@ -704,14 +744,83 @@ private:
         }
       }
 
-      // Очищаем contributions для следующего тика
-      agent.state.clear_contributions();
+      // ВАЖНО: clear_contributions() НЕ здесь (D-20) — только в Phase 8.
     }
+  }
 
-    // === Фаза 4: Attachments ===
-    // Пока пусто
+  /**
+   * @brief Phase 4: Сенсорные плагины.
+   *
+   * ВАЖНО: строго после Phase 3 (кинематика + коллизии) — сенсоры видят ФИНАЛЬНУЮ позицию.
+   * Lidar бросает лучи из финальной позиции агента.
+   * GNSS/IMU читают финальную скорость.
+   *
+   * Вызывает update() только для плагинов с role() == PluginRole::SENSOR.
+   */
+  void phase4_sensors()
+  {
+    for (auto& agent : world_.agents())
+    {
+      KernelCommandQueue tick_cmds;
+      PluginContext ctx{null_world_query_, bus_, tick_cmds};
 
-    // === Фаза 5: Snapshot + Viz publish ===
+      for (auto& plugin : agent.plugins)
+      {
+        if (plugin->role() != PluginRole::SENSOR)
+          continue;
+
+        plugin->set_collision_system(&collision_system_);
+        plugin->set_raycast_engine(&raycast_engine_);
+        plugin->update(dt_, agent, ctx);
+      }
+
+      for (auto& cmd : tick_cmds)
+        std::visit([this](const auto& c) { apply_kernel_command(c); }, cmd);
+    }
+  }
+
+  /**
+   * @brief Phase 5: Interaction-плагины (Grabber, DoorOpener).
+   *
+   * После сенсоров: Grabber/DoorOpener читают актуальные данные сенсоров из SharedState.
+   * Вызывает update() только для плагинов с role() == PluginRole::INTERACTION.
+   */
+  void phase5_interactions()
+  {
+    for (auto& agent : world_.agents())
+    {
+      KernelCommandQueue tick_cmds;
+      PluginContext ctx{null_world_query_, bus_, tick_cmds};
+
+      for (auto& plugin : agent.plugins)
+      {
+        if (plugin->role() != PluginRole::INTERACTION)
+          continue;
+
+        plugin->set_collision_system(&collision_system_);
+        plugin->set_raycast_engine(&raycast_engine_);
+        plugin->update(dt_, agent, ctx);
+      }
+
+      for (auto& cmd : tick_cmds)
+        std::visit([this](const auto& c) { apply_kernel_command(c); }, cmd);
+    }
+  }
+
+  /**
+   * @brief Phase 6: Обновление attachments (позы привязанных объектов).
+   * Пока пусто — будет заполнено в Phase 2 (Prop Foundation).
+   */
+  void phase6_attachments()
+  {
+    // TODO Phase 2: обновить позы props, привязанных к агентам/акторам
+  }
+
+  /**
+   * @brief Phase 7: Публикация снапшота и данных транспорта.
+   */
+  void phase7_snapshot_publish()
+  {
     viz_timer_ += dt_;
     double viz_interval = config_.viz_rate > 0 ? 1.0 / config_.viz_rate : 0.0;
     if (viz_server_ && viz_interval > 0 && viz_timer_ >= viz_interval) {
@@ -719,7 +828,6 @@ private:
       publish_viz();
     }
 
-    // === Фаза 6: Transport publish ===
     transport_timer_ += dt_;
     double transport_interval = config_.transport_rate > 0
         ? 1.0 / config_.transport_rate : 0.0;
@@ -731,46 +839,84 @@ private:
   }
 
   /**
+   * @brief Phase 8: Очистка состояния для следующего тика.
+   *
+   * ВАЖНО: clear_contributions() только здесь (D-20).
+   * Contributions публикуются в Phase 3 (pre_resolve), разрешаются в Phase 3 (resolve),
+   * читаются сенсорами в Phase 4 — и только потом очищаются.
+   */
+  void phase8_cleanup()
+  {
+    for (auto& agent : world_.agents())
+      agent.state.clear_contributions();
+
+    // TODO Phase 1: удалить зоны с истёкшим lifecycle
+  }
+
+  // ─── Обработчик KernelCommand ─────────────────────────────────────────────
+
+  /**
+   * @brief Применить одну команду ядра.
+   *
+   * Вызывается из phase0_kernel_commands() для каждой команды из очереди.
+   * Также вызывается из phase3/4/5 для inline-команд плагинов.
+   *
+   * Безопасность: SetPose с неизвестным id молча игнорируется (T-00-11, нет panic).
+   */
+  template <typename T>
+  void apply_kernel_command(const T& cmd)
+  {
+    if constexpr (std::is_same_v<T, cmd::SetPose>)
+    {
+      for (auto& agent : world_.agents())
+        if (agent.id == cmd.id) { agent.world_pose = cmd.pose; break; }
+    }
+    else if constexpr (std::is_same_v<T, cmd::SetEnabled>)
+    {
+      // TODO Phase 6 (Entity Model): добавить поле enabled в EntityBase.
+      // Пока заглушка — ядро получит enabled через EntityBase в Phase 6.
+    }
+    else if constexpr (std::is_same_v<T, cmd::SpawnEntity>)
+    {
+      // TODO Phase 0: базовый SpawnEntity через SceneLoader
+      std::cout << "[SimEngine] SpawnEntity: " << cmd.entity_type << " (TODO)\n";
+    }
+    else if constexpr (std::is_same_v<T, cmd::DespawnEntity>)
+    {
+      // TODO Phase 6: удалить агента/актора/проп по id
+      std::cout << "[SimEngine] DespawnEntity: " << cmd.id << " (TODO)\n";
+    }
+    else if constexpr (std::is_same_v<T, cmd::AddPlugin>)
+    {
+      // DEFERRED Phase 5 (TRAN-07): динамическое добавление плагина через REST Hot Patch API.
+      (void)cmd;
+    }
+    else if constexpr (std::is_same_v<T, cmd::RemovePlugin>)
+    {
+      // DEFERRED Phase 5 (TRAN-07): динамическое удаление плагина через REST Hot Patch API.
+      (void)cmd;
+    }
+    else if constexpr (std::is_same_v<T, cmd::ConfigPlugin>)
+    {
+      // DEFERRED Phase 5 (TRAN-07): обновление конфигурации плагина в рантайме.
+      (void)cmd;
+    }
+    else
+    {
+      // Все остальные команды (ZoneCommands, Interact, Attach, Scene) — TODO в следующих фазах.
+      // Не падаем — молча игнорируем неизвестные команды.
+      (void)cmd;
+    }
+  }
+
+  // ─── Вспомогательные методы ───────────────────────────────────────────────
+
+  /**
    * @brief Опубликовать снапшот визуализатору (вызывается из tick).
-   *   Определён в .cpp файле s2_visualizer для доступа к полному типу VizServer.
+   * Определён в s2_visualizer/src для доступа к полному типу VizServer.
    */
   void publish_viz();
 
-  Config config_;
-  SimWorld world_;
-  SimBus bus_;
-
-  double sim_time_{0.0};
-  double dt_{0.0};
-  std::atomic<bool> running_{false};
-  bool paused_{false};
-
-  // Начальные состояния агентов для reset()
-  struct AgentInitialState {
-    Pose3D pose;
-    Velocity velocity;
-  };
-  std::map<AgentId, AgentInitialState> initial_states_;
-
-  CollisionSystem       collision_system_;  ///< Система коллизий (инициализируется при load_world)
-  RaycastEngine         raycast_engine_;   ///< Движок лучей (инициализируется при load_world)
-  ZoneSystem            zone_system_;      ///< Система зон и эффектов (инициализируется при load_world)
-  EffectFactory             effect_factory_;  ///< Фабрика плагинов эффектов (задаётся до load_world)
-
-  // ─── PluginContext (Plan 02) ────────────────────────────────────────────────
-  // Базовый WorldQuery — заглушки. В Plan 05 заменяется на WorldQueryImpl.
-  WorldQuery            null_world_query_;
-  EventBus              plugin_bus_;       ///< Шина для плагинов (отдельная от bus_)
-  KernelCommandQueue    plugin_cmds_;      ///< Однотиковый буфер команд ядра (очищается в phase 0)
-  PluginContext         plugin_ctx_{null_world_query_, plugin_bus_, plugin_cmds_}; ///< Передаётся в update()
-
-  VizServer* viz_server_ = nullptr;
-  double viz_timer_{0.0};
-
-  PostTickCallback post_tick_cb_;
-  double transport_timer_{0.0};
-
-private:
   /**
    * @brief Сохранить начальные позы и скорости всех агентов.
    * Вызывается из load_world().
@@ -804,7 +950,6 @@ private:
   /**
    * @brief Ключ плагина в карте данных/схем.
    * Если задан sensor_name — "type_name", иначе "type".
-   * Позволяет иметь несколько плагинов одного типа с разными именами.
    */
   static std::string plugin_key(const plugins::IAgentPlugin& p)
   {
@@ -813,7 +958,6 @@ private:
 
   /**
    * @brief Собрать данные плагинов для снапшота.
-   * Формат: agent_id -> { plugin_key -> json_string }
    */
   std::map<std::string, std::map<std::string, std::string>> build_plugins_data() const
   {
@@ -829,7 +973,6 @@ private:
 
   /**
    * @brief Собрать схемы входных данных плагинов для снапшота.
-   * Формат: agent_id -> JSON-string { plugin_key -> schema }
    */
   std::map<std::string, std::string> build_plugin_inputs_schemas() const
   {
@@ -851,6 +994,45 @@ private:
     }
     return result;
   }
+
+  // ─── Поля ─────────────────────────────────────────────────────────────────
+
+  Config   config_;
+  SimWorld world_;
+  SimBus   bus_;  ///< EventBus (using SimBus = EventBus в sim_bus.hpp)
+
+  double sim_time_{0.0};
+  double dt_{0.0};
+  std::atomic<bool> running_{false};
+  bool paused_{false};
+
+  // Начальные состояния агентов для reset()
+  struct AgentInitialState {
+    Pose3D    pose;
+    Velocity  velocity;
+  };
+  std::map<AgentId, AgentInitialState> initial_states_;
+
+  CollisionSystem  collision_system_;  ///< Система коллизий
+  RaycastEngine    raycast_engine_;    ///< Движок лучей
+  ZoneSystem       zone_system_;       ///< Система зон и эффектов
+  EffectFactory    effect_factory_;    ///< Фабрика плагинов эффектов
+
+  // ─── Команды ядра (D-05) ──────────────────────────────────────────────────
+
+  KernelCommandQueue command_queue_;        ///< Очередь команд (HTTP-тред + плагины)
+  std::mutex         command_queue_mutex_;  ///< Защита от data race (HTTP vs sim thread)
+
+  // ─── WorldQuery + PluginContext ────────────────────────────────────────────
+
+  NullWorldQuery null_world_query_;  ///< Заглушка WorldQuery для PluginContext (Plan 05+)
+  EventBus       plugin_bus_;        ///< Шина для плагинов (отдельная от bus_)
+
+  VizServer* viz_server_ = nullptr;
+  double viz_timer_{0.0};
+
+  PostTickCallback post_tick_cb_;
+  double transport_timer_{0.0};
 };
 
 } // namespace s2

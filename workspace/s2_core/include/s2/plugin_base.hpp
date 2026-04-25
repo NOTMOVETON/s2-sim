@@ -10,6 +10,7 @@
  */
 
 #include <s2/event_bus.hpp>
+#include <s2/kernel_command.hpp>
 #include <s2/transport_adapter.hpp>
 #include <s2/world_query.hpp>
 #include <yaml-cpp/yaml.h>
@@ -28,25 +29,6 @@ struct Agent;
 class CollisionSystem;
 class RaycastEngine;
 class SimWorld;
-
-/**
- * @brief Команда ядра симуляции.
- *
- * Placeholder-определение для Plan 02. Полный вариант с std::variant<...>
- * будет добавлен в kernel_command.hpp (Plan 04).
- *
- * Позволяет PlaginContext::commands передавать очередь команд без
- * полного определения всех типов команд.
- */
-struct KernelCommand
-{
-  // TODO(Plan04): заменить на std::variant<cmd::SpawnEntity, cmd::DespawnEntity, ...>
-  // Пока — пустой тип для compileability PluginContext.
-};
-
-/// Очередь команд ядра — однотиковый локальный буфер плагина.
-/// Плагин добавляет команды, SimEngine применяет их в Phase 0 следующего тика.
-using KernelCommandQueue = std::vector<KernelCommand>;
 
 /**
  * @brief Роль плагина агента в системе.

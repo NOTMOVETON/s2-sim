@@ -28,7 +28,7 @@
 
 **Requirements:** ARCH-01, ARCH-02, ARCH-03, ARCH-04, ARCH-05, ARCH-06, ARCH-07
 
-**Plans:** 5 plans
+**Plans:** 6 plans
 
 Plans:
 - [x] 00-01-PLAN.md — Signal struct в types.hpp + Agent::signals + EventBus (rename + новые события)
@@ -36,6 +36,7 @@ Plans:
 - [x] 00-03-PLAN.md — KernelCommand variant — полный набор 16 команд
 - [x] 00-04-PLAN.md — SimEngine tick рефакторинг — 8 именованных фаз + command_queue_
 - [x] 00-05-PLAN.md — Обновить все 11 плагинов + on_reset баги DiffDrive/Battery + SceneLoader валидация
+- [x] 00-06-PLAN.md — Gap ARCH-04 closure: ZoneSystem публикует event::ZoneEntered / ZoneExited
 
 **Success criteria:**
 - on_reset() вызывается для всех плагинов при /sim/reset; DiffDrive и Battery корректно сбрасывают состояние

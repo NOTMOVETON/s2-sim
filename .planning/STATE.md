@@ -15,9 +15,9 @@ progress:
 
 # Project State: S2 Simulator
 
-**Last updated:** 2026-04-25 (Plan 05 complete)
+**Last updated:** 2026-04-26 (Plan 06 complete)
 **Current phase:** 0 (Core Architecture Foundation)
-**Phase status:** COMPLETE — 5/5 plans complete
+**Phase status:** COMPLETE — 6/6 plans complete (включая gap-closure 00-06)
 
 ---
 
@@ -29,7 +29,7 @@ progress:
 
 **Requirements:** ARCH-01, ARCH-02, ARCH-03, ARCH-04, ARCH-05, ARCH-06, ARCH-07
 
-**Status:** COMPLETE. 5/5 планов выполнено.
+**Status:** COMPLETE. 6/6 планов выполнено (включая gap-closure Plan 06 — ARCH-04).
 
 **Context file:** `.planning/phases/00-core-architecture-foundation/00-CONTEXT.md`
 
@@ -56,6 +56,7 @@ progress:
 
 | Decision | Options | Status |
 |----------|---------|--------|
+| Gap ARCH-04 closure | Публиковать новые события после legacy vs переписать | Решено: двойная публикация — backward compat нулевой |
 | Wire signal transport | SharedState vs EventBus | Решено: ARCH-03 — wire = Signal с range:infinite |
 | HTTP SSE per-agent vs shared | Per-agent port vs multiplexed | TBD в Phase 5 |
 | Entity base inheritance vs composition | Наследование vs слои | Решено: ENTY-04 — опциональные слои |
@@ -95,6 +96,7 @@ progress:
 | `.planning/phases/00-core-architecture-foundation/00-03-SUMMARY.md` | ✓ Plan 00-03 complete — KernelCommand variant (16 команд) + test_kernel_command.cpp |
 | `.planning/phases/00-core-architecture-foundation/00-04-SUMMARY.md` | ✓ Plan 00-04 complete — SimEngine 8-фазный tick lifecycle + command_queue_ + NullWorldQuery |
 | `.planning/phases/00-core-architecture-foundation/00-05-SUMMARY.md` | ✓ Plan 00-05 complete — on_reset() для DiffDrive/Battery + SceneLoader ACTUATION validation |
+| `.planning/phases/00-core-architecture-foundation/00-06-SUMMARY.md` | ✓ Plan 00-06 complete — Gap ARCH-04 закрыт: ZoneEntered/ZoneExited публикуются ZoneSystem |
 
 ---
 

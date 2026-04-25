@@ -14,6 +14,7 @@
  */
 
 #include <s2/collision_system.hpp>
+#include <s2/components/pending_teleport.hpp>
 #include <s2/raycast_engine.hpp>
 #include <s2/sim_bus.hpp>
 #include <s2/world.hpp>
@@ -682,6 +683,22 @@ private:
       // 3j. Kinematic tree update — пока пусто
       // 3k. Sensors — пока пусто
       // 3l. Interactions — пока пусто
+
+      // 3m. Телепорт — применяем отложенные телепорты (устанавливаются TeleportEffect).
+      // Выполняется после коллизий (3h), чтобы телепорт не отменялся push-out.
+      // Сброс скорости гарантирует, что агент не улетит на первом тике после телепорта.
+      {
+        auto* pt = agent.state.get<PendingTeleport>();
+        if (pt && pt->pending) {
+          agent.world_pose.x   = pt->destination.x();
+          agent.world_pose.y   = pt->destination.y();
+          agent.world_pose.z   = pt->destination.z();
+          agent.world_pose.yaw = pt->yaw;
+          agent.world_velocity.linear  = Vec3::Zero();
+          agent.world_velocity.angular = Vec3::Zero();
+          pt->pending = false;
+        }
+      }
 
       // Очищаем contributions для следующего тика
       agent.state.clear_contributions();

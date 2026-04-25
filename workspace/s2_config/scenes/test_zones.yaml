@@ -23,6 +23,8 @@ s2:
     #   реагирует на все зоны, батарея 50% → заряжается на станции.
     #   battery_level и battery_charging доступны в AgentSnapshot.extra (фронтенд).
     - name: "robot_0"
+      id: 0
+      domain_id: 0
       pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
       capabilities:
         - "surface_contact"
@@ -54,6 +56,8 @@ s2:
     #   лёд/буст/конвейер не действуют, ветер и стоп — да.
     #   battery_level = -1.0 (нет BatteryComponent).
     - name: "robot_1"
+      id: 1
+      domain_id: 1
       pose: {x: 0.0, y: -3.0, z: 0.0, yaw: 0.0}
       capabilities:
         - "wheeled"
@@ -185,3 +189,39 @@ s2:
           required_capabilities: ["has_battery"]
           params:
             charge_rate: 0.05
+
+    # Портал: немедленный телепорт к противоположной стороне карты
+    - id: "portal_in"
+      shape:
+        type: cylinder
+        center: {x: 8.0, y: 0.0, z: 0.5}
+        radius: 0.8
+        half_height: 1.0
+      color: "#CC44FF"
+      opacity: 0.5
+      label: "Портал →"
+      effects:
+        - type: teleport
+          params:
+            trigger_mode: immediate
+            target_mode: fixed
+            target_entity: agent
+            destination: {x: -8.0, y: 0.0, z: 0.0, yaw: 3.14}
+
+    # Медленный портал: телепортирует через 3 секунды нахождения внутри
+    - id: "slow_portal"
+      shape:
+        type: sphere
+        center: {x: 0.0, y: 8.0, z: 0.0}
+        radius: 1.5
+      color: "#8844FF"
+      opacity: 0.4
+      label: "Медл. портал (3с)"
+      effects:
+        - type: teleport
+          params:
+            trigger_mode: after_seconds
+            after_seconds: 3.0
+            target_mode: fixed
+            target_entity: agent
+            destination: {x: 0.0, y: -8.0, z: 0.0, yaw: 0.0}

@@ -6,6 +6,7 @@
 #include <s2/effects/wind_effect.hpp>
 #include <s2/effects/charging_effect.hpp>
 #include <s2/effects/tire_puncture.hpp>
+#include <s2/effects/teleport_effect.hpp>
 
 namespace s2 {
 
@@ -21,7 +22,8 @@ std::unique_ptr<EffectPlugin> create_effect(
     else if (type == "wind")         plugin = std::make_unique<effects::WindEffect>();
     else if (type == "charging")      plugin = std::make_unique<effects::ChargingEffect>();
     else if (type == "tire_puncture") plugin = std::make_unique<effects::TirePunctureEffect>();
-    // Новые эффекты добавляются здесь по мере реализации задач 28–29.
+    else if (type == "teleport")      plugin = std::make_unique<effects::TeleportEffect>();
+    // Новые эффекты добавляются здесь по мере реализации задач 29+.
 
     if (plugin) {
         plugin->on_init(params);

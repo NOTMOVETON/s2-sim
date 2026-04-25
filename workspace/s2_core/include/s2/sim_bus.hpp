@@ -123,6 +123,27 @@ struct AgentCollision
   Vec3 point;        ///< Точка столкновения в мировых координатах
 };
 
+/**
+ * @brief Команда: телепортировать агента в точку.
+ * Публикуется внешними системами (например, TeleportEffect через EffectContext).
+ * Обрабатывается SimEngine (задача 28+).
+ */
+struct TeleportAgentCommand {
+    AgentId agent_id;
+    Vec3 destination;
+    double yaw{0.0};
+};
+
+/**
+ * @brief Команда: установить runtime-точку назначения зоны телепорта.
+ * Позволяет менять destination зоны-телепорта в рантайме без перезагрузки сцены.
+ */
+struct SetZoneTeleportTargetCommand {
+    ZoneId zone_id;
+    Vec3 destination;
+    double yaw{0.0};
+};
+
 }  // namespace event
 
 // ============================================================================

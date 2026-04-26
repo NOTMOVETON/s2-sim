@@ -931,9 +931,46 @@ private:
       // DEFERRED Phase 5 (TRAN-07): обновление конфигурации плагина в рантайме.
       (void)cmd;
     }
+    else if constexpr (std::is_same_v<T, cmd::SpawnZone>)
+    {
+      // ZONE-05: Создать зону из SpawnZone команды
+      Zone z;
+      z.id = cmd.id_hint.empty()
+          ? "zone_" + std::to_string(next_zone_id_++)
+          : cmd.id_hint;
+      z.shape   = cmd.shape;
+      z.visible = cmd.visible;
+      z.color   = cmd.color;
+      z.opacity = cmd.opacity;
+      z.label   = cmd.label;
+
+      // Создать EffectDesc для каждого типа эффекта
+      for (const auto& eff_type : cmd.effects) {
+          Zone::EffectDesc desc;
+          desc.type = eff_type;
+          z.effects.push_back(std::move(desc));
+      }
+
+      // Привязка к entity (ZONE-09, ZONE-10)
+      if (cmd.attached_to.has_value()) {
+          z.attached_to_entity_id = std::to_string(cmd.attached_to.value());
+      }
+
+      zone_system_.add_zone(std::move(z));
+    }
+    else if constexpr (std::is_same_v<T, cmd::DespawnZone>)
+    {
+      // ZONE-05: Удалить зону, отправив ZoneExited агентам внутри
+      zone_system_.remove_zone(cmd.id, world_.agents(), bus_);
+    }
+    else if constexpr (std::is_same_v<T, cmd::ToggleZone>)
+    {
+      // ZONE-05: Включить/выключить зону с enter/exit событиями
+      zone_system_.toggle_zone_with_events(cmd.id, cmd.enabled, world_.agents(), bus_);
+    }
     else
     {
-      // Все остальные команды (ZoneCommands, Interact, Attach, Scene) — TODO в следующих фазах.
+      // Все остальные команды (Interact, Attach, Scene) — TODO в следующих фазах.
       // Не падаем — молча игнорируем неизвестные команды.
       (void)cmd;
     }
@@ -1047,6 +1084,7 @@ private:
   RaycastEngine    raycast_engine_;    ///< Движок лучей
   ZoneSystem       zone_system_;       ///< Система зон и эффектов
   EffectFactory    effect_factory_;    ///< Фабрика плагинов эффектов
+  int              next_zone_id_{0};  ///< Счётчик для auto-generated ZoneId
 
   // ─── Команды ядра (D-05) ──────────────────────────────────────────────────
 

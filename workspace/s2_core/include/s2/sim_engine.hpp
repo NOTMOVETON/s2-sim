@@ -27,6 +27,7 @@
 #include <s2/world_query.hpp>
 #include <s2/world_snapshot.hpp>
 #include <s2/zone_system.hpp>
+#include <s2/zone_spawn_system.hpp>
 #include <nlohmann/json.hpp>
 
 #include <thread>
@@ -97,6 +98,23 @@ public:
     for (auto& zone : world_.zones())
       zone_system_.add_zone(std::move(zone));
     world_.zones().clear();
+
+    // Инициализация ZoneSpawnSystem (ZONE-08): подписки на EventBus, command_queue_
+    zone_spawn_system_.clear();
+    zone_spawn_system_.init(bus_, command_queue_, sim_time_);
+  }
+
+  /**
+   * @brief Загрузить шаблоны зон для ZoneSpawnSystem.
+   *
+   * Вызывается после load_world() — передаёт шаблоны из SceneData.zone_templates.
+   * @param templates Шаблоны для декларативного спавна зон (ZONE-08)
+   */
+  void load_zone_templates(std::vector<ZoneSpawnSystem::ZoneTemplate> templates)
+  {
+    for (auto& tmpl : templates) {
+      zone_spawn_system_.add_template(std::move(tmpl), sim_time_);
+    }
   }
 
   /**
@@ -432,6 +450,23 @@ public:
       zs.opacity     = zone.opacity;
       zs.visible     = zone.visible;
       zs.label       = zone.label;
+
+      // Lifecycle strength (ZONE-04, per Plan 01)
+      zs.strength = zone.strength;
+
+      // VisualHints (ZONE-02) — собрать из всех эффектов зоны
+      for (const auto& eff_desc : zone.effects) {
+          if (eff_desc.plugin) {
+              auto hint = eff_desc.plugin->visual_hint();
+              if (hint.has_value()) {
+                  ZoneSnapshot::Hint h;
+                  h.type   = hint->type;
+                  h.params = hint->params;
+                  zs.visual_hints.push_back(std::move(h));
+              }
+          }
+      }
+
       zs.agents_inside.assign(zone.inside_agents.begin(), zone.inside_agents.end());
       snap.zones.push_back(std::move(zs));
     }
@@ -535,6 +570,9 @@ private:
     {
       std::visit([this](const auto& c) { apply_kernel_command(c); }, cmd);
     }
+
+    // Проверить timer-триггеры ZoneSpawnSystem (ZONE-08)
+    zone_spawn_system_.tick(sim_time_);
   }
 
   /**
@@ -1083,6 +1121,7 @@ private:
   CollisionSystem  collision_system_;  ///< Система коллизий
   RaycastEngine    raycast_engine_;    ///< Движок лучей
   ZoneSystem       zone_system_;       ///< Система зон и эффектов
+  ZoneSpawnSystem  zone_spawn_system_; ///< Система спавна зон по триггерам (ZONE-08)
   EffectFactory    effect_factory_;    ///< Фабрика плагинов эффектов
   int              next_zone_id_{0};  ///< Счётчик для auto-generated ZoneId
 

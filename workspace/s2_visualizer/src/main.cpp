@@ -297,6 +297,7 @@ public:
             for (auto& z  : new_data.zones)     new_world.add_zone(std::move(z));
 
             engine_->load_world(std::move(new_world));
+            engine_->load_zone_templates(std::move(new_data.zone_templates));
             scene_path_ = full_path;
             scenes_dir_ = std::filesystem::path(scene_path_).parent_path().string();
 
@@ -455,6 +456,7 @@ int main(int argc, char* argv[]) {
     s2::SimEngine engine(scene_data.engine_config);
     engine.set_effect_factory(s2::create_effect);
     engine.load_world(std::move(world));
+    engine.load_zone_templates(std::move(scene_data.zone_templates));
     engine.set_viz_server(g_viz);
     g_engine = &engine;
 

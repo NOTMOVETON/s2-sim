@@ -23,6 +23,7 @@ add_library(s2_core STATIC
     src/kinematic_tree.cpp
     src/urdf_loader.cpp
     src/zone_system.cpp
+    src/zone_spawn_system.cpp
 )
 
 target_include_directories(s2_core PUBLIC
@@ -77,6 +78,7 @@ add_executable(s2_core_tests
     tests/test_zone_self_destruct.cpp
     tests/test_zone_owned.cpp
     tests/test_zone_commands.cpp
+    tests/test_zone_spawn_triggers.cpp
 )
 target_link_libraries(s2_core_tests PRIVATE s2_core s2_plugins s2_transport GTest::gtest_main)
 

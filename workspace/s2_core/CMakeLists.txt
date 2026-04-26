@@ -72,6 +72,9 @@ add_executable(s2_core_tests
     tests/test_kernel_command.cpp
     tests/test_tick_lifecycle.cpp
     tests/test_plugin_on_reset.cpp
+    tests/test_zone_lifecycle.cpp
+    tests/test_zone_detection_mode.cpp
+    tests/test_zone_self_destruct.cpp
 )
 target_link_libraries(s2_core_tests PRIVATE s2_core s2_plugins s2_transport GTest::gtest_main)
 

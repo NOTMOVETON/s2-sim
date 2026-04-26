@@ -23,6 +23,9 @@ struct EffectContext
 
     AgentId agent_id{0};               ///< ID агента
     Vec3 agent_position{Vec3::Zero()}; ///< Текущая позиция агента
+
+    double zone_strength{1.0};         ///< Текущая сила зоны (0.0–1.0)
+    std::string contact_link;          ///< Имя линка при PER_LINK detection (пусто = CENTER/BOUNDING)
 };
 
 } // namespace s2

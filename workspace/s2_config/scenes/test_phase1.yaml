@@ -1,0 +1,271 @@
+s2:
+  update_rate: 100
+  viz_rate: 30
+  transport_rate: 100
+
+  # Phase 1: Zone Visual & Control Layer — тестовая сцена
+  #
+  # Что тестируется сейчас (после 01-01 + 01-02):
+  #   fog и emi эффекты зарегистрированы, зоны загружаются
+  #   (sensor_mods() не вызывается до задачи 31 — визуально без эффекта на сенсоры)
+  #
+  # Что будет работать после 01-03/01-05:
+  #   lifecycle, detection_mode, self_destruct_policy, owned_zones
+  #
+  # Что будет видно после 01-06:
+  #   вкладка "Зоны" в редакторе, glow/arrows/particles/grid VisualHints
+
+  transport:
+    type: stub
+
+  visualizer:
+    enabled: true
+    port: 1937
+
+  world:
+    surface: "flat"
+    geometry:
+      - type: "box"
+        pose: {x: 0, y: 0, z: -0.025}
+        size: {x: 50.0, y: 50.0, z: 0.05}
+        color: "#1A1A2E"
+
+  agents:
+    # ── robot_0: сенсорный робот (optical_sensor + gnss + imu) ─────────────────
+    # Проходит через туман (FogEffect) и ЭМ-помехи (EMIEffect).
+    # После задачи 31: max_range лидара снижается в тумане,
+    # GNSS/IMU шум растёт в зоне помех.
+    - name: "robot_sensor"
+      id: 0
+      domain_id: 0
+      pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
+      capabilities:
+        - "wheeled"
+        - "surface_contact"
+        - "optical_sensor"    # требуется FogEffect
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#FF6B35"
+      plugins:
+        - type: "diff_drive"
+          max_linear_vel: 2.5
+          max_angular_vel: 2.0
+        - type: "gnss"
+          noise_std: 0.1
+          publish_rate_hz: 10
+        - type: "imu"
+          publish_rate_hz: 50
+        - type: "lidar"
+          max_range: 10.0
+          num_rays: 360
+          publish_rate_hz: 10
+        - type: "trajectory_recorder"
+          record_interval_s: 0.1
+          max_points: 500
+          color: "#FF6B35"
+
+    # ── robot_1: колёсный без сенсоров (для тестирования зон движения) ─────────
+    - name: "robot_simple"
+      id: 1
+      domain_id: 1
+      pose: {x: 4.0, y: -4.0, z: 0.0, yaw: 1.5708}
+      capabilities:
+        - "wheeled"
+        - "surface_contact"
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#44AAFF"
+      plugins:
+        - type: "diff_drive"
+          max_linear_vel: 2.0
+          max_angular_vel: 1.5
+        - type: "trajectory_recorder"
+          record_interval_s: 0.1
+          max_points: 300
+          color: "#44AAFF"
+
+  zones:
+    # ── Туман (FogEffect) ────────────────────────────────────────────────────
+    # Эффект: ухудшает max_range оптического сенсора пропорционально strength.
+    # Сейчас: зона загружается, эффект зарегистрирован (sensor_mods — задача 31).
+    # VisualHint glow (#AADDFF) появится в 01-06.
+    - id: "fog_zone"
+      shape:
+        type: aabb
+        center: {x: 6.0, y: 0.0, z: 0.5}
+        half_size: {x: 3.5, y: 3.5, z: 1.0}
+      color: "#AADDFF"
+      opacity: 0.35
+      label: "Туман (FogEffect)"
+      effects:
+        - type: fog
+          required_capabilities: ["optical_sensor"]
+          params:
+            range_multiplier: 0.25   # max_range × 0.25 при strength=1.0
+
+    # ── ЭМ-помехи (EMIEffect) ────────────────────────────────────────────────
+    # Эффект: добавляет шум к GNSS и IMU сенсорам.
+    # Сейчас: зона загружается, эффект зарегистрирован (sensor_mods — задача 31).
+    # VisualHint glow (#FFAA22) появится в 01-06.
+    - id: "emi_zone"
+      shape:
+        type: sphere
+        center: {x: -6.0, y: 0.0, z: 0.0}
+        radius: 3.5
+      color: "#FFAA22"
+      opacity: 0.3
+      label: "ЭМ-помехи (EMIEffect)"
+      effects:
+        - type: emi
+          params:
+            noise_addend: 1.5   # +1.5 к noise_std GNSS/IMU при strength=1.0
+
+    # ── Зона льда ────────────────────────────────────────────────────────────
+    # Классический эффект — тормозит колёсных.
+    - id: "ice_patch"
+      shape:
+        type: aabb
+        center: {x: 0.0, y: 8.0, z: 0.5}
+        half_size: {x: 4.0, y: 2.5, z: 1.0}
+      color: "#88CCFF"
+      opacity: 0.25
+      label: "Лёд (×0.3)"
+      effects:
+        - type: ice_modifier
+          required_capabilities: ["surface_contact"]
+          params:
+            traction_coefficient: 0.3
+            noise_amplitude: 0.0
+
+    # ── Ускорение ─────────────────────────────────────────────────────────────
+    - id: "boost_lane"
+      shape:
+        type: aabb
+        center: {x: 0.0, y: -8.0, z: 0.5}
+        half_size: {x: 2.5, y: 3.0, z: 1.0}
+      color: "#44FF88"
+      opacity: 0.3
+      label: "Ускорение (×2.0)"
+      effects:
+        - type: boost_zone
+          required_capabilities: ["surface_contact"]
+          params:
+            speed_multiplier: 2.0
+
+    # ── Запретная зона ────────────────────────────────────────────────────────
+    - id: "stop_zone"
+      shape:
+        type: sphere
+        center: {x: 10.0, y: 0.0, z: 0.0}
+        radius: 2.5
+      color: "#FF2222"
+      opacity: 0.4
+      label: "Стоп"
+      effects:
+        - type: motion_lock
+          params:
+            source_label: "restricted"
+
+    # ── Ветер ─────────────────────────────────────────────────────────────────
+    - id: "wind_field"
+      shape:
+        type: aabb
+        center: {x: -10.0, y: 0.0, z: 0.5}
+        half_size: {x: 3.0, y: 6.0, z: 1.0}
+      color: "#DDEEFF"
+      opacity: 0.2
+      label: "Ветер (→Y)"
+      effects:
+        - type: wind
+          params:
+            wind_vector: {x: 0.0, y: 1.0, z: 0.0}
+            gust_amplitude: 0.3
+            gust_frequency: 0.5
+
+    # ── Телепорт ──────────────────────────────────────────────────────────────
+    - id: "portal"
+      shape:
+        type: cylinder
+        center: {x: 0.0, y: 12.0, z: 0.5}
+        radius: 1.2
+        half_height: 1.0
+      color: "#CC44FF"
+      opacity: 0.5
+      label: "Портал"
+      effects:
+        - type: teleport
+          params:
+            trigger_mode: immediate
+            target_mode: fixed
+            target_entity: agent
+            destination: {x: 0.0, y: -12.0, z: 0.0, yaw: 3.14}
+
+    # ── Будущие зоны (Phase 1: 01-03/01-05) ──────────────────────────────────
+    # Следующие зоны используют поля, которые SceneLoader начнёт парсить в 01-05.
+    # Сейчас загружаются без новых полей (игнорируются YAML-cpp).
+
+    # Lifecycle: зона нарастает 10с (growth_rate=0.1/сек), затем затухает.
+    # Раскомментировать после 01-05.
+    # - id: "lifecycle_fog"
+    #   shape:
+    #     type: sphere
+    #     center: {x: 6.0, y: 6.0, z: 0.0}
+    #     radius: 3.0
+    #   color: "#AADDFF"
+    #   opacity: 0.3
+    #   label: "Туман (lifecycle)"
+    #   lifecycle:
+    #     initial_strength: 0.0
+    #     growth_rate: 0.1       # +0.1/сек → 100% за 10 сек
+    #     max_strength: 1.0
+    #     decay_delay: 15.0      # начать затухание через 15 сек
+    #     decay_rate: 0.05       # -0.05/сек
+    #     remove_threshold: 0.05
+    #   effects:
+    #     - type: fog
+    #       required_capabilities: ["optical_sensor"]
+    #       params:
+    #         range_multiplier: 0.3
+
+    # DetectionMode: BOUNDING — зона срабатывает при касании bounding sphere.
+    # Раскомментировать после 01-03.
+    # - id: "bounding_zone"
+    #   shape:
+    #     type: sphere
+    #     center: {x: -6.0, y: 6.0, z: 0.0}
+    #     radius: 2.0
+    #   color: "#FFDD44"
+    #   opacity: 0.35
+    #   label: "Bounding mode"
+    #   detection_mode: "bounding"   # будет поддержано в 01-03
+    #   effects:
+    #     - type: boost_zone
+    #       required_capabilities: ["surface_contact"]
+    #       params:
+    #         speed_multiplier: 1.5
+
+    # SelfDestruct: исчезает после первого контакта.
+    # Раскомментировать после 01-03.
+    # - id: "burst_zone"
+    #   shape:
+    #     type: sphere
+    #     center: {x: 0.0, y: -14.0, z: 0.0}
+    #     radius: 1.5
+    #   color: "#FF8844"
+    #   opacity: 0.6
+    #   label: "Самоуничтожение"
+    #   self_destruct_policy: "on_any_contact"  # будет поддержано в 01-03
+    #   effects:
+    #     - type: boost_zone
+    #       params:
+    #         speed_multiplier: 3.0

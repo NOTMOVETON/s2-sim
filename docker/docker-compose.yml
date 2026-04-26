@@ -67,7 +67,7 @@ services:
       && cd /workspace && mkdir -p build && cd build
       && cmake .. -DCMAKE_BUILD_TYPE=Debug -DS2_WITH_ROS2=ON
       && make -j$(nproc)
-      && ./s2_visualizer/s2_sim /workspace/s2_config/scenes/test_two_robots.yaml"
+      && ./s2_visualizer/s2_sim /workspace/s2_config/scenes/test_phase1.yaml"
 
   sim_ros2:
     build:
@@ -91,4 +91,4 @@ services:
       && cd /workspace && mkdir -p build && cd build
       && cmake .. -DCMAKE_BUILD_TYPE=Debug -DS2_WITH_ROS2=ON
       && make -j$(nproc)
-      && ./s2_visualizer/s2_sim /workspace/s2_config/scenes/test_zones.yaml"
+      && ./s2_visualizer/s2_sim /workspace/s2_config/scenes/test_phase1.yaml"

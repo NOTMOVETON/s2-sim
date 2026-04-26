@@ -13,6 +13,7 @@
 #include <s2/geo_origin.hpp>
 #include <s2/agent.hpp>
 #include <s2/zone.hpp>
+#include <s2/zone_spawn_system.hpp>
 #include <s2/urdf_loader.hpp>
 #include <yaml-cpp/yaml.h>
 
@@ -50,6 +51,7 @@ struct SceneData {
     std::vector<Prop> props;
     std::vector<Actor> actors;
     std::vector<Zone> zones;
+    std::vector<ZoneSpawnSystem::ZoneTemplate> zone_templates;  ///< Шаблоны для ZoneSpawnSystem (ZONE-08)
 };
 
 /// Загрузчик сцены из YAML.
@@ -295,6 +297,32 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
                     agent.kinematic_tree = std::move(tree);
             }
 
+            // owned_zones — спавнить как зоны с attached_to_entity_id = agent.id (ZONE-09, D-17)
+            if (const auto& owned = agent_node["owned_zones"]) {
+                for (const auto& zn_owned : owned) {
+                    Zone oz;
+                    oz.id = zn_owned["id"].as<std::string>(
+                        agent.name + "_zone_" + std::to_string(scene.zones.size()));
+                    oz.color   = zn_owned["color"].as<std::string>("#4488FF");
+                    oz.opacity = zn_owned["opacity"].as<double>(0.3);
+                    oz.visible = zn_owned["visible"].as<bool>(true);
+                    if (zn_owned["shape"]) oz.shape = parse_zone_shape(zn_owned["shape"]);
+                    oz.attached_to_entity_id = std::to_string(agent.id);
+                    if (zn_owned["attached_to_link"])
+                        oz.attached_to_link = zn_owned["attached_to_link"].as<std::string>();
+                    // Эффекты — по тому же паттерну что и zone.effects
+                    if (zn_owned["effects"]) {
+                        for (const auto& en : zn_owned["effects"]) {
+                            Zone::EffectDesc desc;
+                            desc.type   = en["type"].as<std::string>("");
+                            desc.params = en["params"] ? en["params"] : YAML::Node{};
+                            oz.effects.push_back(std::move(desc));
+                        }
+                    }
+                    scene.zones.push_back(std::move(oz));
+                }
+            }
+
             scene.agents.push_back(std::move(agent));
         }
     }
@@ -365,6 +393,36 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
             z.label          = zn["label"].as<std::string>("");
             z.detection_mode = zn["detection_mode"].as<std::string>("center");
 
+            // Конвертировать строку detection_mode в enum (per D-12)
+            {
+                const std::string& dm_str = z.detection_mode;
+                if (dm_str == "bounding")        z.detection_mode_enum = DetectionMode::BOUNDING;
+                else if (dm_str == "per_link")   z.detection_mode_enum = DetectionMode::PER_LINK;
+                else                              z.detection_mode_enum = DetectionMode::CENTER;
+            }
+
+            // Lifecycle секция (ZONE-04)
+            if (const auto& lc = zn["lifecycle"]) {
+                z.lifecycle.initial_strength  = lc["initial_strength"].as<double>(1.0);
+                z.lifecycle.growth_rate       = lc["growth_rate"].as<double>(0.0);
+                z.lifecycle.max_strength      = lc["max_strength"].as<double>(1.0);
+                z.lifecycle.decay_delay       = lc["decay_delay"].as<double>(0.0);
+                z.lifecycle.decay_rate        = lc["decay_rate"].as<double>(0.0);
+                z.lifecycle.remove_threshold  = lc["remove_threshold"].as<double>(0.05);
+                z.strength = z.lifecycle.initial_strength;  // Установить начальную силу
+            }
+
+            // Self-destruct policy (ZONE-07)
+            if (const auto& sd = zn["self_destruct_policy"]) {
+                std::string sdt = sd.as<std::string>("none");
+                if (sdt == "on_any_contact")
+                    z.self_destruct.type = SelfDestructPolicy::Type::ON_ANY_CONTACT;
+                else if (sdt == "on_effect_applied")
+                    z.self_destruct.type = SelfDestructPolicy::Type::ON_EFFECT_APPLIED;
+                else
+                    z.self_destruct.type = SelfDestructPolicy::Type::NONE;
+            }
+
             if (zn["shape"]) {
                 z.shape = parse_zone_shape(zn["shape"]);
             }
@@ -409,6 +467,50 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
             }
 
             scene.zones.push_back(std::move(z));
+        }
+    }
+
+    // ── Zone Templates для ZoneSpawnSystem (ZONE-08, D-14) ──
+    if (const auto& templates_node = root["s2"]["zone_templates"]) {
+        for (const auto& tmpl_kv : templates_node) {
+            std::string tmpl_name = tmpl_kv.first.as<std::string>();
+            const auto& tmpl_node = tmpl_kv.second;
+
+            ZoneSpawnSystem::ZoneTemplate tmpl;
+            tmpl.name = tmpl_name;
+
+            // Парсить spawn_cmd (shape + effects + color + ...)
+            if (tmpl_node["shape"])
+                tmpl.spawn_cmd.shape = parse_zone_shape(tmpl_node["shape"]);
+            tmpl.spawn_cmd.color   = tmpl_node["color"].as<std::string>("#4488FF");
+            tmpl.spawn_cmd.opacity = tmpl_node["opacity"].as<double>(0.3);
+            tmpl.spawn_cmd.visible = tmpl_node["visible"].as<bool>(true);
+            if (tmpl_node["label"])
+                tmpl.spawn_cmd.label = tmpl_node["label"].as<std::string>("");
+            if (tmpl_node["effects"]) {
+                for (const auto& en : tmpl_node["effects"]) {
+                    tmpl.spawn_cmd.effects.push_back(en["type"].as<std::string>(""));
+                }
+            }
+
+            // Парсить spawn_trigger
+            if (const auto& st = tmpl_node["spawn_trigger"]) {
+                std::string tt = st["type"].as<std::string>("timer");
+                if (tt == "timer") {
+                    tmpl.trigger_type = ZoneSpawnSystem::ZoneTemplate::TriggerType::TIMER;
+                    tmpl.timer.delay_seconds = st["delay"].as<double>(0.0);
+                } else if (tt == "event") {
+                    tmpl.trigger_type = ZoneSpawnSystem::ZoneTemplate::TriggerType::EVENT;
+                    tmpl.event.event_type    = st["event_type"].as<std::string>("");
+                    tmpl.event.source_entity = st["source_entity"].as<std::string>("");
+                } else if (tt == "state_change") {
+                    tmpl.trigger_type = ZoneSpawnSystem::ZoneTemplate::TriggerType::STATE_CHANGE;
+                    tmpl.state_change.actor_id    = st["actor_id"].as<uint32_t>(0);
+                    tmpl.state_change.target_state = st["state_value"].as<std::string>("");
+                }
+            }
+
+            scene.zone_templates.push_back(std::move(tmpl));
         }
     }
 

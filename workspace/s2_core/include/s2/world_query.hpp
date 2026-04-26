@@ -234,6 +234,27 @@ public:
     return false;
   }
 
+  // ─── Пропы ─────────────────────────────────────────────────────────────────
+
+  /**
+   * @brief Найти ближайший movable Prop в радиусе от точки.
+   *
+   * Используется GrabberPlugin для поиска захватываемого объекта.
+   * Возвращает ObjectId ближайшего movable пропа или nullopt.
+   *
+   * Заглушка — реализация в Phase 5 (WorldQueryImpl).
+   *
+   * @param pos    Центр поиска (мировые координаты)
+   * @param radius Радиус поиска (метры)
+   * @return ObjectId или nullopt если ничего не найдено
+   */
+  virtual std::optional<ObjectId> find_nearest_movable_prop(Vec3 pos, double radius) const
+  {
+    (void)pos;
+    (void)radius;
+    return std::nullopt;
+  }
+
   // ─── Деформируемые объекты ─────────────────────────────────────────────────
 
   /**

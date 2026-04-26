@@ -64,6 +64,7 @@ struct Zone
 
     // ── Lifecycle (ZONE-04) ──────────────────────────────────────────────────
     double strength{1.0};              ///< Текущая сила зоны (0.0–1.0)
+    double spawn_time{0.0};            ///< Время спавна (sim_time) для decay_delay
     ZoneLifecycle lifecycle;           ///< Параметры роста/затухания
 
     // ── Detection mode (ZONE-06) ─────────────────────────────────────────────

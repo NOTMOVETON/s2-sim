@@ -17,7 +17,7 @@
 
 ### Зоны — визуал и управление
 
-- [ ] **ZONE-01**: Редактор зон в UI с инспектором (форма, параметры, эффекты)
+- [x] **ZONE-01**: Редактор зон в UI с инспектором (форма, параметры, эффекты)
 - [ ] **ZONE-02**: VisualHint pipeline для зон (цвет, прозрачность, анимация въезда/выезда)
 - [ ] **ZONE-03**: Сенсорные эффекты: туман (ухудшение видимости), ЭМ помехи (деградация GNSS/IMU)
 - [x] **ZONE-04**: Lifecycle зон: zone.strength (0–1), рост/затухание, auto-remove при strength=0, drift (движение)
@@ -148,7 +148,7 @@
 | ARCH-05 | Phase 0 | Pending |
 | ARCH-06 | Phase 0 | Pending |
 | ARCH-07 | Phase 0 | Pending |
-| ZONE-01 | Phase 1 | Pending |
+| ZONE-01 | Phase 1 | Complete (Plan 01-06, 01-07) |
 | ZONE-02 | Phase 1 | Pending |
 | ZONE-03 | Phase 1 | Pending |
 | ZONE-04 | Phase 1 | Complete (Plan 01-03) |

@@ -1,7 +1,7 @@
 # Roadmap: S2 Simulator
 
 **Created:** 2026-04-25
-**Updated:** 2026-04-26 — Phase 1 gap closure plan 01-07 added
+**Updated:** 2026-04-26 — Phase 1 plan 01-07 complete (gap closure)
 **Scope:** Ядро архитектуры, Perception, Actors, Transport & Architecture — 9 фаз
 
 ---
@@ -64,7 +64,7 @@ Plans:
 - [x] 01-04-PLAN.md — KernelCommands SpawnZone/DespawnZone/ToggleZone + ZoneSpawnSystem (4 триггера)
 - [x] 01-05-PLAN.md — SceneLoader: owned_zones, lifecycle, zone_templates + SimEngine build_snapshot
 - [x] 01-06-PLAN.md — UI Zone Inspector (вкладка Зоны) + VisualHint рендеринг (glow/arrows/particles/grid)
-- [ ] 01-07-PLAN.md — Gap closure: REST routes spawn_zone/despawn_zone + UI fetch + ctx.contact_link
+- [x] 01-07-PLAN.md — Gap closure: REST routes spawn_zone/despawn_zone + UI fetch + ctx.contact_link
 
 **Tasks:**
 - [ ] **1.1** — Zone inspector в UI редакторе (ZONE-01): форма создания/редактирования зоны, параметры эффекта, тип зоны; использует /api/effects/registry (Phase 5)

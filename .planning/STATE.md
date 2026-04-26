@@ -4,12 +4,12 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 1 (Zone Visual & Control Layer)
 status: executing
-last_updated: "2026-04-26T16:03:06Z"
+last_updated: "2026-04-26T16:41:28Z"
 progress:
   total_phases: 9
   completed_phases: 1
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 7
+  completed_plans: 7
   percent: 100
 ---
 
@@ -17,7 +17,7 @@ progress:
 
 **Last updated:** 2026-04-26 (Phase 1 executing)
 **Current phase:** 1 (Zone Visual & Control Layer)
-**Phase status:** EXECUTING — 6/6 plans complete (Wave 1 done, Wave 2: 01-03, 01-04, 01-05 complete)
+**Phase status:** EXECUTING — 7/7 plans complete (Wave 1 done, Wave 2: 01-03–01-05 complete, Gap closure: 01-07 complete)
 
 ---
 
@@ -74,6 +74,7 @@ progress:
 | ZoneSpawnSystem EventBus подписки | Все события vs только нужные | Решено: 6 типов (ZoneEntered/Exited, SignalActivated, GrabSucceeded/Failed, ActorStateChanged) |
 | StateChangeTrigger id тип | string vs ActorId (uint32_t) | Решено: ActorId — точно соответствует event::ActorStateChanged.actor |
 | zones_to_destroy pattern | Удаление inline vs post-iteration | Решено: zones_to_destroy set, удаление после итерации — безопасно (Pitfall 4) |
+| InZoneResult vs bool | agent_in_zone bool vs расширенный результат | Решено: InZoneResult struct + inline делегат agent_in_zone() — backward compat нулевой |
 | Zone.spawn_time хранение | В Zone struct vs computed | Решено: поле spawn_time в Zone struct, заполняется при add_zone() |
 | load_zone_templates API | Параметр load_world() vs отдельный метод | Решено: отдельный метод load_zone_templates() — backward compat с существующими тестами |
 
@@ -109,6 +110,8 @@ progress:
 | `.planning/phases/01-zone-visual-control-layer/01-03-SUMMARY.md` | ✓ Plan 01-03 complete — ZoneSystem lifecycle, detection mode, self_destruct, owned_zones |
 | `.planning/phases/01-zone-visual-control-layer/01-04-SUMMARY.md` | ✓ Plan 01-04 complete — Zone KernelCommands (SpawnZone/DespawnZone/ToggleZone) + ZoneSpawnSystem |
 | `.planning/phases/01-zone-visual-control-layer/01-05-SUMMARY.md` | ✓ Plan 01-05 complete — SceneLoader YAML extensions + SimEngine snapshot/ZoneSpawnSystem integration |
+| `.planning/phases/01-zone-visual-control-layer/01-06-SUMMARY.md` | ✓ Plan 01-06 complete — Zone Inspector UI + VisualHint рендеринг |
+| `.planning/phases/01-zone-visual-control-layer/01-07-SUMMARY.md` | ✓ Plan 01-07 complete — Gap closure: REST spawn/despawn + UI fetch + contact_link |
 
 ---
 
@@ -139,6 +142,6 @@ progress:
 
 ---
 
-**Last activity:** 2026-04-26 — Completed Plan 01-05: SceneLoader YAML extensions + SimEngine build_snapshot strength/visual_hints + ZoneSpawnSystem integration
+**Last activity:** 2026-04-26 — Completed Plan 01-07: Gap closure -- REST SpawnZone/DespawnZone + UI fetch + contact_link
 
 *To start executing: `/gsd-plan-phase 0`*

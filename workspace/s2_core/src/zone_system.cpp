@@ -59,6 +59,11 @@ void ZoneSystem::tick(
         }
     }
 
+    // === Шаг 1.5: Сбросить SENSOR-моды прошлого тика ===
+    for (auto& agent : agents) {
+        agent.active_sensor_mods.clear();
+    }
+
     // === Шаг 2: Проверить enter/exit для каждой зоны ===
     for (auto& zone : zones_) {
         // Если зона выключена — выгнать всех агентов из inside_agents
@@ -259,6 +264,7 @@ void ZoneSystem::apply_active_effects(Agent& agent, Zone& zone,
         ctx.zone_id        = zone.id;
         ctx.zone_center    = zone.shape.center;
         ctx.zone_half_size = zone.shape.half_size;
+        ctx.zone_strength  = zone.strength;
         ctx.agent_id       = agent.id;
         ctx.agent_position = agent.world_pose.position();
 
@@ -272,9 +278,13 @@ void ZoneSystem::apply_active_effects(Agent& agent, Zone& zone,
             case EffectType::MUTATION:
                 // MUTATION не применяется повторно — только при входе
                 break;
-            case EffectType::SENSOR:
-                // SENSOR-модификации запрашиваются вне этого метода (задача 31)
+            case EffectType::SENSOR: {
+                // Собрать SENSOR-моды в agent.active_sensor_mods — применяются в phase4.
+                auto mods = desc.plugin->sensor_mods(ctx);
+                for (auto& m : mods)
+                    agent.active_sensor_mods.push_back(m);
                 break;
+            }
         }
     }
 }

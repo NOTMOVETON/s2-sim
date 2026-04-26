@@ -118,6 +118,15 @@ public:
             mount_pose = agent.kinematic_tree->compute_world_pose(mount_link_, agent.world_pose);
         }
 
+        // Вычислить эффективный max_range с учётом SENSOR-модов активных зон.
+        // FogEffect возвращает multiplier для "max_range"; несколько зон: перемножаем.
+        double effective_max_range = max_range_;
+        for (const auto& mod : agent.active_sensor_mods) {
+            if (mod.param == "max_range") {
+                effective_max_range = effective_max_range * mod.multiplier + mod.addend;
+            }
+        }
+
         // Сформировать лучи
         const int n = num_rays_;
         if (n <= 0) return;
@@ -149,7 +158,7 @@ public:
             ray.direction = Vec3{r00 * lx + r01 * ly,
                                  r10 * lx + r11 * ly,
                                  r20 * lx + r21 * ly};
-            ray.max_range = max_range_;
+            ray.max_range = effective_max_range;
             rays.push_back(ray);
         }
 
@@ -165,7 +174,7 @@ public:
         data.time_increment = 0.0f;
         data.scan_time      = (rate > 0.0f) ? static_cast<float>(1.0 / rate) : 0.1f;
         data.range_min      = static_cast<float>(min_range_);
-        data.range_max      = static_cast<float>(max_range_);
+        data.range_max      = static_cast<float>(effective_max_range);
         data.ranges.resize(n);
 
         scan_points_.clear();

@@ -13,6 +13,7 @@
 #include <s2/shared_state.hpp>
 #include <s2/types.hpp>
 #include <s2/plugin_base.hpp>
+#include <s2/interfaces/effect_plugin.hpp>
 
 #include <memory>
 #include <string>
@@ -47,6 +48,10 @@ struct Agent
   CollisionShape bounding;               ///< Коллизионный bounding volume
   VisualDesc visual;                     ///< Визуальное описание
   std::vector<Signal> signals;           ///< Обнаруживаемые сигналы агента (ArUco, wire, RFID и т.п.)
+
+  /// Сенсорные модификации от активных зон (SENSOR-эффекты).
+  /// Заполняются ZoneSystem::tick() каждый тик; сенсоры читают в phase4.
+  std::vector<EffectPlugin::SensorMod> active_sensor_mods;
 
   /// Кинематическое дерево агента (nullptr = одиночное твёрдое тело).
   /// Описывает иерархию звеньев: base_link → arm_link → camera_link и т.д.

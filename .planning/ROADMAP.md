@@ -62,7 +62,7 @@ Plans:
 - [x] 01-02-PLAN.md — FogEffect + EMIEffect сенсорные плагины + регистрация в effect_factory
 - [x] 01-03-PLAN.md — ZoneSystem: BOUNDING/PER_LINK detection, lifecycle, self_destruct, remove_zone, owned_zones
 - [x] 01-04-PLAN.md — KernelCommands SpawnZone/DespawnZone/ToggleZone + ZoneSpawnSystem (4 триггера)
-- [ ] 01-05-PLAN.md — SceneLoader: owned_zones, lifecycle, zone_templates + SimEngine build_snapshot
+- [x] 01-05-PLAN.md — SceneLoader: owned_zones, lifecycle, zone_templates + SimEngine build_snapshot
 - [ ] 01-06-PLAN.md — UI Zone Inspector (вкладка Зоны) + VisualHint рендеринг (glow/arrows/particles/grid)
 
 **Tasks:**

@@ -153,6 +153,12 @@ nlohmann::json zone_snapshot_to_json(const ZoneSnapshot& zone) {
     j["visible"]     = zone.visible;
     j["label"]       = zone.label;
     j["agents_inside"] = zone.agents_inside;
+    j["strength"] = zone.strength;
+    nlohmann::json hints_arr = nlohmann::json::array();
+    for (const auto& h : zone.visual_hints) {
+        hints_arr.push_back({{"type", h.type}, {"params", h.params}});
+    }
+    j["visual_hints"] = hints_arr;
     return j;
 }
 

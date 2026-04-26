@@ -87,6 +87,16 @@ struct ZoneSnapshot {
     std::string label;
 
     std::vector<AgentId> agents_inside;
+
+    // ── Lifecycle (ZONE-04) ──────────────────────────────────────────────────
+    double strength{1.0};          ///< Текущая сила зоны (0.0–1.0)
+
+    // ── VisualHint (ZONE-02) ─────────────────────────────────────────────────
+    struct Hint {
+        std::string type;          ///< "glow", "arrows", "particles", "grid"
+        nlohmann::json params;     ///< {"color":"#F00", "intensity":0.5, ...}
+    };
+    std::vector<Hint> visual_hints; ///< Подсказки для рендеринга в Three.js
 };
 
 /** Статический примитив для визуализатора (упрощённая версия WorldPrimitive) */

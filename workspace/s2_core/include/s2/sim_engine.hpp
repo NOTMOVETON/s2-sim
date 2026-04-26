@@ -766,6 +766,28 @@ private:
   {
     for (auto& agent : world_.agents())
     {
+      // Пересчитать dynamic_prims без текущего агента (D-19: сенсор не видит себя).
+      // phase3 оставляет dynamic_prims от последнего обработанного агента —
+      // без этого пересчёта лидар видит собственный bounding-примитив.
+      {
+        std::vector<WorldPrimitive> agent_bounds;
+        for (const auto& other : world_.agents()) {
+          if (&other == &agent) continue;
+          if (!other.has_collision) continue;
+          WorldPrimitive wp;
+          wp.pose = other.world_pose;
+          if (other.bounding.type == ShapeType::SPHERE) {
+            wp.type   = "sphere";
+            wp.radius = other.bounding.radius;
+          } else {
+            wp.type = "box";
+            wp.size = other.bounding.size * 2.0;
+          }
+          agent_bounds.push_back(wp);
+        }
+        raycast_engine_.set_dynamic_agents(agent_bounds);
+      }
+
       KernelCommandQueue tick_cmds;
       PluginContext ctx{null_world_query_, bus_, tick_cmds};
 

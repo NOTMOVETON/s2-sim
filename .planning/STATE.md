@@ -9,15 +9,15 @@ progress:
   total_phases: 9
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
-  percent: 67
+  completed_plans: 5
+  percent: 83
 ---
 
 # Project State: S2 Simulator
 
 **Last updated:** 2026-04-26 (Phase 1 executing)
 **Current phase:** 1 (Zone Visual & Control Layer)
-**Phase status:** EXECUTING — 4/6 plans complete (Wave 1 done, Wave 2: 01-03 complete)
+**Phase status:** EXECUTING — 5/6 plans complete (Wave 1 done, Wave 2: 01-03, 01-04 complete)
 
 ---
 
@@ -70,6 +70,9 @@ progress:
 | PluginContext хранение | поле SimEngine vs локальное в фазе | Решено: локальное в каждой фазе — разные tick_cmds буферы для phase3/phase4/phase5 |
 | command_queue_ drain pattern | lock всё время vs swap+unlock | Решено: lock-swap drain — swap под mutex, обработка без блокировки (минимальное contention) |
 | BOUNDING detection расширение | Только sphere vs все формы | Решено: расширять все формы (sphere/AABB/cylinder) на agent.bounding.radius |
+| SpawnZone attached_to конвертация | string vs uint32_t | Решено: std::to_string(EntityId) — соответствует update_owned_zones_positions() |
+| ZoneSpawnSystem EventBus подписки | Все события vs только нужные | Решено: 6 типов (ZoneEntered/Exited, SignalActivated, GrabSucceeded/Failed, ActorStateChanged) |
+| StateChangeTrigger id тип | string vs ActorId (uint32_t) | Решено: ActorId — точно соответствует event::ActorStateChanged.actor |
 | zones_to_destroy pattern | Удаление inline vs post-iteration | Решено: zones_to_destroy set, удаление после итерации — безопасно (Pitfall 4) |
 | Zone.spawn_time хранение | В Zone struct vs computed | Решено: поле spawn_time в Zone struct, заполняется при add_zone() |
 
@@ -103,6 +106,7 @@ progress:
 | `.planning/phases/01-zone-visual-control-layer/01-01-SUMMARY.md` | ✓ Plan 01-01 complete — Zone data types: DetectionMode, ZoneLifecycle, SelfDestructPolicy, ZoneSnapshot strength/visual_hints |
 | `.planning/phases/01-zone-visual-control-layer/01-02-SUMMARY.md` | ✓ Plan 01-02 complete — FogEffect + EMIEffect сенсорные эффекты |
 | `.planning/phases/01-zone-visual-control-layer/01-03-SUMMARY.md` | ✓ Plan 01-03 complete — ZoneSystem lifecycle, detection mode, self_destruct, owned_zones |
+| `.planning/phases/01-zone-visual-control-layer/01-04-SUMMARY.md` | ✓ Plan 01-04 complete — Zone KernelCommands (SpawnZone/DespawnZone/ToggleZone) + ZoneSpawnSystem |
 
 ---
 
@@ -133,6 +137,6 @@ progress:
 
 ---
 
-**Last activity:** 2026-04-26 — Completed Plan 01-03: ZoneSystem lifecycle, detection mode, self_destruct, owned_zones
+**Last activity:** 2026-04-26 — Completed Plan 01-04: Zone KernelCommands (SpawnZone/DespawnZone/ToggleZone) + ZoneSpawnSystem с триггерами
 
 *To start executing: `/gsd-plan-phase 0`*

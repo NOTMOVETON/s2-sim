@@ -41,7 +41,7 @@
 
 - [x] **PROP-01**: Prop структура: movable (да/нет), signals (список Signal), collision (shape), capabilities, tags; без SharedState по умолчанию
 - [x] **PROP-02**: AttachObject / DetachObject KernelCommands (приклеить prop к entity/link, следует за ней)
-- [ ] **PROP-03**: GrabberPlugin для агентов (взять/положить prop через KernelCommand::Interact, ограничения веса/дальности, SharedState contribution)
+- [x] **PROP-03**: GrabberPlugin для агентов (взять/положить prop через KernelCommand::Interact, ограничения веса/дальности, SharedState contribution)
 
 ### Восприятие
 
@@ -163,7 +163,7 @@
 | ACTR-06 | Phase 2 | Complete (Plan 02-04) |
 | PROP-01 | Phase 2 | Complete (Plan 02-01) |
 | PROP-02 | Phase 2 | Complete (Plan 02-02) |
-| PROP-03 | Phase 2 | Pending |
+| PROP-03 | Phase 2 | Complete (Plan 02-05) |
 | ACTR-03 | Phase 3 | Pending |
 | ACTR-04 | Phase 3 | Pending |
 | ACTR-05 | Phase 3 | Pending |

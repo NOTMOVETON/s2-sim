@@ -3,22 +3,22 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 2 (Actor & Prop Foundation)
-status: executing
-last_updated: "2026-04-26T19:41:00.000Z"
-last_activity: "2026-04-26 — Completed Plan 02-04: Wire Controllers (SignalListenerBase + DoorWireController + ConveyorWireController + EventReactor)"
+status: phase_complete
+last_updated: "2026-04-26T19:56:31.000Z"
+last_activity: "2026-04-26 — Completed Plan 02-05: GrabberPlugin + Integration Tests (Phase 2 COMPLETE)"
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 18
-  completed_plans: 17
-  percent: 94
+  completed_plans: 18
+  percent: 100
 ---
 
 # Project State: S2 Simulator
 
-**Last updated:** 2026-04-26 (Phase 2 executing)
+**Last updated:** 2026-04-26 (Phase 2 complete)
 **Current phase:** 2 (Actor & Prop Foundation)
-**Phase status:** EXECUTING — 4/5 plans complete, Wave 2 complete
+**Phase status:** COMPLETE — 5/5 plans complete, all 3 waves done
 
 ---
 
@@ -87,6 +87,8 @@ progress:
 | SignalListenerBase подписка | on_spawn vs first update | Решено: subscribe_once(ctx.bus) при первом update() — on_spawn не имеет доступа к EventBus |
 | pending_signals_ лимит | Без лимита vs фиксированный | Решено: 100 событий за тик (T-02-13) — защита от DoS |
 | EventReactor event types | Произвольные vs whitelist | Решено: только signal_activated (T-02-11) — расширение в Phase 5 |
+| manipulation_locked тип | Отдельный struct vs LockContribution | Решено: add_lock(true, "grabber") — существующий LockContribution паттерн, OR resolver |
+| SimEngine в тестах | По значению vs unique_ptr | Решено: unique_ptr<SimEngine> — mutex/atomic не movable, прямая переменная где возможно |
 
 ---
 
@@ -126,6 +128,7 @@ progress:
 | `.planning/phases/02-actor-prop-foundation/02-02-SUMMARY.md` | ✓ Plan 02-02 complete — Engine Integration (phase2_actors, phase6_attachments, KernelCommands, SceneLoader) |
 | `.planning/phases/02-actor-prop-foundation/02-03-SUMMARY.md` | ✓ Plan 02-03 complete — DoorBehavior FSM + DoorOpenerPlugin |
 | `.planning/phases/02-actor-prop-foundation/02-04-SUMMARY.md` | ✓ Plan 02-04 complete — Wire Controllers (SignalListenerBase + DoorWireController + ConveyorWireController + EventReactor) |
+| `.planning/phases/02-actor-prop-foundation/02-05-SUMMARY.md` | ✓ Plan 02-05 complete — GrabberPlugin + Integration Tests (Phase 2 COMPLETE) |
 
 ---
 
@@ -156,6 +159,6 @@ progress:
 
 ---
 
-**Last activity:** 2026-04-26 — Completed Plan 02-04: Wire Controllers (SignalListenerBase + DoorWireController + ConveyorWireController + EventReactor)
+**Last activity:** 2026-04-26 — Completed Plan 02-05: GrabberPlugin + Integration Tests (Phase 2 COMPLETE)
 
-**Executing Phase:** 2 (Actor & Prop Foundation) -- 5 plans, 3 waves -- 4/5 complete
+**Completed Phase:** 2 (Actor & Prop Foundation) -- 5 plans, 3 waves -- 5/5 complete

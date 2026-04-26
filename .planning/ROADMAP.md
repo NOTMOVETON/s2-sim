@@ -1,7 +1,7 @@
 # Roadmap: S2 Simulator
 
 **Created:** 2026-04-25
-**Updated:** 2026-04-26 — Phase 1 plan 01-07 complete (gap closure)
+**Updated:** 2026-04-26 — Phase 2 complete (5/5 plans)
 **Scope:** Ядро архитектуры, Perception, Actors, Transport & Architecture — 9 фаз
 
 ---
@@ -103,7 +103,7 @@ Plans:
 - [x] 02-02-PLAN.md — SimEngine Phase 2 (actors tick) + Phase 6 (attachments) + Interact/Attach/Detach handlers + SceneLoader
 - [x] 02-03-PLAN.md — DoorBehavior FSM (CLOSED/OPENING/OPEN/CLOSING) + DoorOpenerPlugin + behaviors_registry
 - [x] 02-04-PLAN.md — SignalListenerBase + DoorWireController + ConveyorWireController + EventReactor
-- [ ] 02-05-PLAN.md — GrabberPlugin (grab/release/manipulation_locked) + интеграционные тесты
+- [x] 02-05-PLAN.md — GrabberPlugin (grab/release/manipulation_locked) + интеграционные тесты
 
 **Tasks:**
 - [ ] **2.1** — IActorBehavior расширенный (ACTR-01): on_init(yaml) / on_spawn(entity) / on_reset() / update(dt, entity, WorldContext) / on_signal(SignalEvent) / on_interact(source, action, params) / current_state() / to_json(); ActorFSM утилита (add_state/add_transition/fire/update)

@@ -2425,6 +2425,7 @@ window.switchEditorTab = function(tab) {
         });
         fetchUrdfList();
     } else if (tab === 'zones') {
+        transformControls.detach();
         renderZoneList();
     } else {
         closeAgentForm();

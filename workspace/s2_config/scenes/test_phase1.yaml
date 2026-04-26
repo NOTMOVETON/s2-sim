@@ -137,6 +137,8 @@ s2:
         - "wheeled"
         - "surface_contact"
         - "optical_sensor"
+        - "gnss_sensor"
+        - "imu_sensor"
       collision:
         bounding:
           type: "sphere"

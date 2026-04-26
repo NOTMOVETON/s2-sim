@@ -83,7 +83,7 @@ TEST(EMIEffect, SensorModFullStrength) {
     s2::EffectContext ctx;
     ctx.zone_strength = 1.0;
     auto mods = emi.sensor_mods(ctx);
-    ASSERT_EQ(mods.size(), 2u);
+    ASSERT_EQ(mods.size(), 1u);
     EXPECT_EQ(mods[0].param, "noise_std");
     EXPECT_NEAR(mods[0].addend, 0.5, 1e-9);
 }
@@ -96,7 +96,7 @@ TEST(EMIEffect, SensorModHalfStrength) {
     s2::EffectContext ctx;
     ctx.zone_strength = 0.5;
     auto mods = emi.sensor_mods(ctx);
-    ASSERT_EQ(mods.size(), 2u);
+    ASSERT_EQ(mods.size(), 1u);
     EXPECT_NEAR(mods[0].addend, 0.25, 1e-9);
 }
 

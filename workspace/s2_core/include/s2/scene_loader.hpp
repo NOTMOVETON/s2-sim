@@ -512,7 +512,12 @@ inline std::vector<WorldPrimitive> SceneLoader::parse_geometry(const YAML::Node&
         }
 
         if (geom["radius"]) prim.radius = geom["radius"].as<double>(0.5);
-        if (geom["height"]) prim.height = geom["height"].as<double>(1.0);
+        if (geom["height"]) {
+            prim.height = geom["height"].as<double>(1.0);
+        } else if (prim.type == "cylinder" && prim.size.z() > 0.0) {
+            // Обратная совместимость: если height не задан явно — берём size.z
+            prim.height = prim.size.z();
+        }
         if (geom["color"]) prim.color = geom["color"].as<std::string>("#808080");
 
         prims.push_back(std::move(prim));

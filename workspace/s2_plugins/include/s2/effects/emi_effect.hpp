@@ -32,11 +32,7 @@ public:
     std::vector<SensorMod> sensor_mods(const EffectContext& ctx) const override
     {
         double scaled = noise_addend_ * ctx.zone_strength;
-        // Два мода — один для gnss_sensor, один для imu_sensor
-        return {
-            {.param = "noise_std", .multiplier = 1.0, .addend = scaled},
-            {.param = "noise_std", .multiplier = 1.0, .addend = scaled}
-        };
+        return {{.param = "noise_std", .multiplier = 1.0, .addend = scaled}};
     }
 
     std::optional<VisualHint> visual_hint() const override

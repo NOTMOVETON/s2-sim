@@ -56,9 +56,18 @@ public:
         double lat, lon, alt;
         converter_.Reverse(y, x, z, lat, lon, alt);
 
-        std::normal_distribution<double> lat_noise(0.0, noise_std_ / 111320.0);
-        std::normal_distribution<double> lon_noise(0.0, noise_std_ / (111320.0 * std::cos(geo_origin_.lat * M_PI / 180.0)));
-        std::normal_distribution<double> alt_noise(0.0, noise_std_);
+        // Вычислить эффективный noise_std с учётом SENSOR-модов зон (EMI-эффект)
+        double effective_noise_std = noise_std_;
+        for (const auto& mod : agent.active_sensor_mods) {
+            if (mod.param == "noise_std") {
+                effective_noise_std = effective_noise_std * mod.multiplier + mod.addend;
+            }
+        }
+        current_effective_noise_std_ = effective_noise_std;
+
+        std::normal_distribution<double> lat_noise(0.0, effective_noise_std / 111320.0);
+        std::normal_distribution<double> lon_noise(0.0, effective_noise_std / (111320.0 * std::cos(geo_origin_.lat * M_PI / 180.0)));
+        std::normal_distribution<double> alt_noise(0.0, effective_noise_std);
 
         current_lat_ = lat + lat_noise(rng_);
         current_lon_ = lon + lon_noise(rng_);
@@ -75,7 +84,7 @@ public:
         data.lon      = current_lon_;
         data.alt      = current_alt_;
         data.azimuth  = current_azimuth_;
-        data.accuracy = noise_std_;
+        data.accuracy = effective_noise_std;
         agent.state.emplace<GnssData>(data);
     }
 
@@ -102,7 +111,7 @@ public:
                "\"lon\":" + std::to_string(current_lon_) + ","
                "\"alt\":" + std::to_string(current_alt_) + ","
                "\"azimuth\":" + std::to_string(current_azimuth_) + ","
-               "\"accuracy\":" + std::to_string(noise_std_) + "}";
+               "\"accuracy\":" + std::to_string(current_effective_noise_std_) + "}";
     }
 
 private:
@@ -116,6 +125,7 @@ private:
     double current_lon_{0.0};
     double current_alt_{0.0};
     double current_azimuth_{0.0};
+    double current_effective_noise_std_{0.5};  ///< Эффективный noise_std с учётом зон
     std::mt19937 rng_{42};
 };
 

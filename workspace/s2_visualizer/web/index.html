@@ -458,16 +458,16 @@
         .agent-list-item button.danger { background: #5a1515; border-color: #8a2222; }
         .agent-list-item button.danger:hover { background: #7a2020; }
 
-        /* Форма агента */
-        #agent-form-view {
+        /* Форма агента + форма зоны (общий стиль) */
+        #agent-form-view, #zone-form-view {
             overflow-y: auto;
         }
-        #agent-form-view h5 {
+        #agent-form-view h5, #zone-form-view h5 {
             color: #4caf50;
             margin: 0 0 8px 0;
             font-size: 13px;
         }
-        #agent-form-view label {
+        #agent-form-view label, #zone-form-view label {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -477,7 +477,10 @@
         }
         #agent-form-view input[type="text"],
         #agent-form-view input[type="number"],
-        #agent-form-view select {
+        #agent-form-view select,
+        #zone-form-view input[type="text"],
+        #zone-form-view input[type="number"],
+        #zone-form-view select {
             background: #2a2a3e;
             border: 1px solid #444;
             color: #fff;
@@ -487,7 +490,8 @@
             font-size: 11px;
             width: 110px;
         }
-        #agent-form-view input[type="color"] {
+        #agent-form-view input[type="color"],
+        #zone-form-view input[type="color"] {
             width: 50px;
             height: 22px;
             padding: 1px;
@@ -496,11 +500,20 @@
             border-radius: 3px;
             cursor: pointer;
         }
-        #agent-form-view h6 {
+        #zone-form-view input[type="range"] {
+            width: 110px;
+            cursor: pointer;
+        }
+        #agent-form-view h6, #zone-form-view h6 {
             color: #888;
             font-size: 11px;
             text-transform: uppercase;
             margin: 8px 0 4px 0;
+        }
+        #zone-list {
+            margin-top: 8px;
+            max-height: 200px;
+            overflow-y: auto;
         }
         .af-plugin-row {
             border: 1px solid #2a2a3e;
@@ -731,6 +744,7 @@
             <div id="zones-list-view">
                 <button class="save" onclick="startAddZone()" style="width:100%;margin-bottom:6px;">+ Добавить зону</button>
                 <div id="zone-list"></div>
+                <p class="editor-hint">Зоны из сцены отображены выше. Создание/удаление зон в рантайме — Wave 2.</p>
             </div>
 
             <!-- Форма создания/редактирования зоны -->
@@ -760,8 +774,8 @@
                 <label>Y: <input type="number" id="zf-y" step="0.1" value="0" style="width:70px;"></label>
                 <label>Цвет: <input type="color" id="zf-color" value="#4488FF"></label>
                 <label>Прозрачность: <input type="range" id="zf-opacity" min="0" max="1" step="0.05" value="0.3"></label>
-                <label>Эффекты:<br>
-                    <select id="zf-effects" multiple size="5" style="width:100%;">
+                <label style="flex-direction:column;align-items:flex-start;">Эффекты:
+                    <select id="zf-effects" multiple size="5" style="width:100%;margin-top:3px;">
                         <option value="ice">ice</option>
                         <option value="boost">boost</option>
                         <option value="lock">lock</option>

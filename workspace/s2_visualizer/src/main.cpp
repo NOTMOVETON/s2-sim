@@ -139,9 +139,9 @@ public:
         }
     }
 
-    bool on_move_zone(const std::string& zone_id, double x, double y) override {
+    bool on_move_zone(const std::string& zone_id, double x, double y, double z) override {
         if (!engine_) return false;
-        return engine_->zone_system().move_zone(zone_id, s2::Vec3{x, y, 0.0});
+        return engine_->zone_system().move_zone(zone_id, s2::Vec3{x, y, z});
     }
 
     bool on_toggle_zone(const std::string& zone_id, bool enabled) override {
@@ -201,6 +201,30 @@ public:
         engine_->push_command(s2::KernelCommand{despawn});
         broadcast_snapshot();
         return true;
+    }
+
+    bool on_resize_zone(const std::string& zone_id,
+                        const std::string& shape_type,
+                        double radius, double hx, double hy, double hz,
+                        double cyl_r, double cyl_h) override {
+        if (!engine_) return false;
+        s2::ZoneShape new_shape;
+        if (shape_type == "sphere") {
+            new_shape.type = s2::ZoneShapeType::SPHERE;
+            new_shape.radius = radius;
+        } else if (shape_type == "box") {
+            new_shape.type = s2::ZoneShapeType::AABB;
+            new_shape.half_size = {hx, hy, hz};
+        } else if (shape_type == "cylinder") {
+            new_shape.type = s2::ZoneShapeType::CYLINDER;
+            new_shape.radius = cyl_r;
+            new_shape.half_height = cyl_h / 2.0;
+        } else {
+            return false;
+        }
+        bool ok = engine_->zone_system().resize_zone(zone_id, new_shape);
+        if (ok) broadcast_snapshot();
+        return ok;
     }
 
     void on_update_geometry(const std::vector<s2::WorldPrimitive>& prims) override {

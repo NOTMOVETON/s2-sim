@@ -430,12 +430,13 @@ static void handle_command(int client_fd, VizCommandHandler* handler, const std:
             }
         } else if (cmd == "move_zone") {
             std::string zone_id;
-            double x = 0, y = 0;
+            double x = 0, y = 0, z = 0;
             if (params.count("id")) zone_id = url_decode(params["id"]);
             if (params.count("x")) try { x = std::stod(params["x"]); } catch (...) {}
             if (params.count("y")) try { y = std::stod(params["y"]); } catch (...) {}
+            if (params.count("z")) try { z = std::stod(params["z"]); } catch (...) {}
             if (!zone_id.empty()) {
-                handler->on_move_zone(zone_id, x, y);
+                handler->on_move_zone(zone_id, x, y, z);
                 cmd_handled = true;
             }
         } else if (cmd == "toggle_zone") {
@@ -499,6 +500,22 @@ static void handle_command(int client_fd, VizCommandHandler* handler, const std:
             if (params.count("id")) zone_id = url_decode(params["id"]);
             if (!zone_id.empty()) {
                 handler->on_despawn_zone(zone_id);
+                cmd_handled = true;
+            }
+        } else if (cmd == "resize_zone") {
+            std::string zone_id;
+            std::string shape = "sphere";
+            double radius = 2.0, hx = 1.0, hy = 1.0, hz = 1.0, cyl_r = 2.0, cyl_h = 1.0;
+            if (params.count("id")) zone_id = url_decode(params["id"]);
+            if (params.count("shape")) shape = url_decode(params["shape"]);
+            if (params.count("radius")) try { radius = std::stod(params["radius"]); } catch (...) {}
+            if (params.count("hx")) try { hx = std::stod(params["hx"]); } catch (...) {}
+            if (params.count("hy")) try { hy = std::stod(params["hy"]); } catch (...) {}
+            if (params.count("hz")) try { hz = std::stod(params["hz"]); } catch (...) {}
+            if (params.count("cyl_r")) try { cyl_r = std::stod(params["cyl_r"]); } catch (...) {}
+            if (params.count("cyl_h")) try { cyl_h = std::stod(params["cyl_h"]); } catch (...) {}
+            if (!zone_id.empty()) {
+                handler->on_resize_zone(zone_id, shape, radius, hx, hy, hz, cyl_r, cyl_h);
                 cmd_handled = true;
             }
         }

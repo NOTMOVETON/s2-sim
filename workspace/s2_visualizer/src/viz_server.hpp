@@ -29,8 +29,8 @@ struct VizCommandHandler {
     /** Обновить статическую геометрию мира (заменяет текущий список примитивов). */
     virtual void on_update_geometry(const std::vector<WorldPrimitive>& prims) = 0;
 
-    /** Переместить центр зоны по id. */
-    virtual bool on_move_zone(const std::string& zone_id, double x, double y) { (void)zone_id; (void)x; (void)y; return false; }
+    /** Переместить центр зоны по id (x, y, z — sim-координаты). */
+    virtual bool on_move_zone(const std::string& zone_id, double x, double y, double z) { (void)zone_id; (void)x; (void)y; (void)z; return false; }
 
     /** Включить/выключить зону. */
     virtual bool on_toggle_zone(const std::string& zone_id, bool enabled) { (void)zone_id; (void)enabled; return false; }
@@ -48,6 +48,16 @@ struct VizCommandHandler {
         (void)shape_type; (void)cx; (void)cy; (void)radius;
         (void)hx; (void)hy; (void)hz; (void)cyl_r; (void)cyl_h;
         (void)effects; (void)color; (void)opacity; (void)id_hint;
+        return false;
+    }
+
+    /** Изменить форму существующей зоны (resize_zone). */
+    virtual bool on_resize_zone(const std::string& zone_id,
+                                const std::string& shape_type,
+                                double radius, double hx, double hy, double hz,
+                                double cyl_r, double cyl_h) {
+        (void)zone_id; (void)shape_type; (void)radius;
+        (void)hx; (void)hy; (void)hz; (void)cyl_r; (void)cyl_h;
         return false;
     }
 

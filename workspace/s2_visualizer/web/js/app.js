@@ -116,9 +116,10 @@ transformControls.addEventListener('mouseUp', function () {
         const m = transformControls.object;
         const simX = m.position.x;
         const simY = -m.position.z;
+        const simZ = m.position.y; // Three.js Y → sim Z (высота)
         const host = window.location.hostname || 'localhost';
         const port = window.location.port || '1937';
-        fetch(`http://${host}:${port}/command?cmd=move_zone&id=${encodeURIComponent(editingZoneId)}&x=${simX}&y=${simY}`, { method: 'POST' })
+        fetch(`http://${host}:${port}/command?cmd=move_zone&id=${encodeURIComponent(editingZoneId)}&x=${simX}&y=${simY}&z=${simZ}`, { method: 'POST' })
             .catch(e => console.error('[MoveZone gizmo]', e));
         // Обновить поля формы
         document.getElementById('zf-x').value = simX.toFixed(1);
@@ -1581,6 +1582,11 @@ function updateScene(data) {
     const zoneDragGrace = isDragging || (Date.now() - dragReleaseTime < DRAG_GRACE_MS);
     if (data.zones) {
         editorZones = data.zones;
+        // Автоматически обновлять список зон, если вкладка зон активна
+        const zonesListView = document.getElementById('zones-list-view');
+        if (zonesListView && zonesListView.style.display !== 'none') {
+            renderZoneList();
+        }
         data.zones.forEach(z => {
             const key = `zone_${z.id}`;
             currentZoneKeys.add(key);
@@ -1754,11 +1760,32 @@ window.confirmZoneForm = function() {
     const opacity = parseFloat(document.getElementById('zf-opacity').value);
 
     if (editingZoneId) {
-        // Редактирование существующей зоны — move + update visual
-        fetch(`http://${host}:${port}/command?cmd=move_zone&id=${encodeURIComponent(editingZoneId)}&x=${x}&y=${y}`, { method: 'POST' })
+        // Редактирование существующей зоны — move + update visual + resize shape
+        const z = editorZones.find(zone => zone.id === editingZoneId);
+        const currentZ = (z && Array.isArray(z.center) && z.center[2]) ? z.center[2] : 0;
+        fetch(`http://${host}:${port}/command?cmd=move_zone&id=${encodeURIComponent(editingZoneId)}&x=${x}&y=${y}&z=${currentZ}`, { method: 'POST' })
             .catch(e => console.error('[MoveZone]', e));
         fetch(`http://${host}:${port}/command?cmd=update_zone_visual&id=${encodeURIComponent(editingZoneId)}&color=${color}&opacity=${opacity}`, { method: 'POST' })
             .catch(e => console.error('[UpdateZoneVisual]', e));
+
+        // Обновить форму зоны (resize)
+        const shape = document.getElementById('zf-shape').value;
+        let resizeParams = `cmd=resize_zone&id=${encodeURIComponent(editingZoneId)}&shape=${shape}`;
+        if (shape === 'sphere') {
+            const r = parseFloat(document.getElementById('zf-radius').value) || 2.0;
+            resizeParams += `&radius=${r}`;
+        } else if (shape === 'box') {
+            const bx = parseFloat(document.getElementById('zf-bx').value) || 2.0;
+            const by = parseFloat(document.getElementById('zf-by').value) || 2.0;
+            const bz = parseFloat(document.getElementById('zf-bz').value) || 2.0;
+            resizeParams += `&hx=${bx / 2}&hy=${by / 2}&hz=${bz / 2}`;
+        } else if (shape === 'cylinder') {
+            const cr = parseFloat(document.getElementById('zf-cr').value) || 2.0;
+            const ch = parseFloat(document.getElementById('zf-ch').value) || 1.0;
+            resizeParams += `&cyl_r=${cr}&cyl_h=${ch}`;
+        }
+        fetch(`http://${host}:${port}/command?${resizeParams}`, { method: 'POST' })
+            .catch(e => console.error('[ResizeZone]', e));
     } else {
         // Создание новой зоны -- собираем все параметры формы
         const shape = document.getElementById('zf-shape').value;

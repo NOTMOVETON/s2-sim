@@ -154,6 +154,55 @@ public:
         return engine_->zone_system().update_zone_visual(zone_id, color, opacity);
     }
 
+    bool on_spawn_zone(const std::string& shape_type, double cx, double cy,
+                       double radius, double hx, double hy, double hz,
+                       double cyl_r, double cyl_h,
+                       const std::vector<std::string>& effects,
+                       const std::string& color, double opacity,
+                       const std::string& id_hint) override {
+        if (!engine_) return false;
+        s2::cmd::SpawnZone spawn;
+        spawn.effects = effects;
+        spawn.color = color;
+        spawn.opacity = opacity;
+        spawn.id_hint = id_hint;
+        spawn.visible = true;
+
+        // Заполнить shape по типу
+        if (shape_type == "sphere") {
+            spawn.shape.type = s2::ZoneShapeType::SPHERE;
+            spawn.shape.center = {cx, cy, 0.0};
+            spawn.shape.radius = radius;
+        } else if (shape_type == "box") {
+            spawn.shape.type = s2::ZoneShapeType::AABB;
+            spawn.shape.center = {cx, cy, 0.0};
+            spawn.shape.half_size = {hx, hy, hz};
+        } else if (shape_type == "cylinder") {
+            spawn.shape.type = s2::ZoneShapeType::CYLINDER;
+            spawn.shape.center = {cx, cy, 0.0};
+            spawn.shape.radius = cyl_r;
+            spawn.shape.half_height = cyl_h / 2.0;
+        } else {
+            // Fallback на sphere
+            spawn.shape.type = s2::ZoneShapeType::SPHERE;
+            spawn.shape.center = {cx, cy, 0.0};
+            spawn.shape.radius = radius;
+        }
+
+        engine_->push_command(s2::KernelCommand{spawn});
+        broadcast_snapshot();
+        return true;
+    }
+
+    bool on_despawn_zone(const std::string& zone_id) override {
+        if (!engine_) return false;
+        s2::cmd::DespawnZone despawn;
+        despawn.id = zone_id;
+        engine_->push_command(s2::KernelCommand{despawn});
+        broadcast_snapshot();
+        return true;
+    }
+
     void on_update_geometry(const std::vector<s2::WorldPrimitive>& prims) override {
         if (!engine_) return;
         // Обновляем геометрию в SimWorld И синхронизируем систему коллизий

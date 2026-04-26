@@ -38,6 +38,24 @@ struct VizCommandHandler {
     /** Обновить визуальные свойства зоны (цвет, прозрачность). */
     virtual bool on_update_zone_visual(const std::string& zone_id, const std::string& color, double opacity) { (void)zone_id; (void)color; (void)opacity; return false; }
 
+    /** Создать новую зону (SpawnZone). */
+    virtual bool on_spawn_zone(const std::string& shape_type, double cx, double cy,
+                               double radius, double hx, double hy, double hz,
+                               double cyl_r, double cyl_h,
+                               const std::vector<std::string>& effects,
+                               const std::string& color, double opacity,
+                               const std::string& id_hint) {
+        (void)shape_type; (void)cx; (void)cy; (void)radius;
+        (void)hx; (void)hy; (void)hz; (void)cyl_r; (void)cyl_h;
+        (void)effects; (void)color; (void)opacity; (void)id_hint;
+        return false;
+    }
+
+    /** Удалить зону (DespawnZone). */
+    virtual bool on_despawn_zone(const std::string& zone_id) {
+        (void)zone_id; return false;
+    }
+
     /** Результат сохранения сцены в YAML. */
     struct SaveSceneResult {
         bool ok = false;

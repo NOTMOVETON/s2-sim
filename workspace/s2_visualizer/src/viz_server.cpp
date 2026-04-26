@@ -458,6 +458,49 @@ static void handle_command(int client_fd, VizCommandHandler* handler, const std:
                 handler->on_update_zone_visual(zone_id, color, opacity);
                 cmd_handled = true;
             }
+        } else if (cmd == "spawn_zone") {
+            // Парсинг параметров для создания новой зоны
+            std::string shape = params.count("shape") ? url_decode(params["shape"]) : "sphere";
+            double cx = 0, cy = 0, radius = 2.0;
+            double hx = 1.0, hy = 1.0, hz = 1.0;
+            double cyl_r = 2.0, cyl_h = 1.0;
+            double opacity = 0.3;
+            std::string color = "#FFFFFF";
+            std::string id_hint;
+
+            if (params.count("cx")) try { cx = std::stod(params["cx"]); } catch (...) {}
+            if (params.count("cy")) try { cy = std::stod(params["cy"]); } catch (...) {}
+            if (params.count("radius")) try { radius = std::stod(params["radius"]); } catch (...) {}
+            if (params.count("hx")) try { hx = std::stod(params["hx"]); } catch (...) {}
+            if (params.count("hy")) try { hy = std::stod(params["hy"]); } catch (...) {}
+            if (params.count("hz")) try { hz = std::stod(params["hz"]); } catch (...) {}
+            if (params.count("cyl_r")) try { cyl_r = std::stod(params["cyl_r"]); } catch (...) {}
+            if (params.count("cyl_h")) try { cyl_h = std::stod(params["cyl_h"]); } catch (...) {}
+            if (params.count("color")) color = url_decode(params["color"]);
+            if (params.count("opacity")) try { opacity = std::stod(params["opacity"]); } catch (...) {}
+            if (params.count("id_hint")) id_hint = url_decode(params["id_hint"]);
+
+            // Парсинг effects: comma-separated строка -> vector<string>
+            std::vector<std::string> effects;
+            if (params.count("effects")) {
+                std::string effects_str = url_decode(params["effects"]);
+                std::istringstream ess(effects_str);
+                std::string eff;
+                while (std::getline(ess, eff, ',')) {
+                    if (!eff.empty()) effects.push_back(eff);
+                }
+            }
+
+            handler->on_spawn_zone(shape, cx, cy, radius, hx, hy, hz, cyl_r, cyl_h,
+                                   effects, color, opacity, id_hint);
+            cmd_handled = true;
+        } else if (cmd == "despawn_zone") {
+            std::string zone_id;
+            if (params.count("id")) zone_id = url_decode(params["id"]);
+            if (!zone_id.empty()) {
+                handler->on_despawn_zone(zone_id);
+                cmd_handled = true;
+            }
         }
 
         if (cmd_handled && g_broadcast_server) {

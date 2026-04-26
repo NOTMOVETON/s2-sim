@@ -156,19 +156,24 @@ TEST_F(DoorBehaviorTest, PublishesActorStateChangedOnTransitions)
             last_new = e.new_state;
         });
 
-    // CLOSED -> OPENING
-    door_->on_interact(42, "open", nlohmann::json::object());
+    // Первый update устанавливает bus_ внутри behavior
     {
         s2::WorldContext ctx{world_, bus_, commands_, sim_time_};
         door_->update(0.01, actor_, ctx);
+        sim_time_ += 0.01;
     }
+
+    // CLOSED -> OPENING (bus_ уже установлен — событие публикуется)
+    door_->on_interact(42, "open", nlohmann::json::object());
     EXPECT_GE(event_count, 1);
-    // Проверить что было CLOSED -> OPENING
-    // (событие публикуется либо в on_interact, либо в первом update)
+    EXPECT_EQ(last_old, "CLOSED");
+    EXPECT_EQ(last_new, "OPENING");
 
     // OPENING -> OPEN (после таймера)
     advance(0.6);
     EXPECT_GE(event_count, 2);
+    EXPECT_EQ(last_old, "OPENING");
+    EXPECT_EQ(last_new, "OPEN");
 }
 
 // ============================================================================
@@ -247,7 +252,7 @@ TEST_F(DoorBehaviorTest, AutoCloseAfterTimeout)
     auto auto_door = std::make_unique<s2::DoorBehavior>();
     YAML::Node cfg;
     cfg["open_duration"]   = 0.2;
-    cfg["close_duration"]  = 0.2;
+    cfg["close_duration"]  = 0.5;  // достаточно долго чтобы не завершиться
     cfg["auto_close_secs"] = 0.3;
     auto_door->on_init(cfg);
     auto_door->on_spawn(2);
@@ -258,7 +263,7 @@ TEST_F(DoorBehaviorTest, AutoCloseAfterTimeout)
 
     auto_door->on_interact(42, "open", nlohmann::json::object());
 
-    // Пройти open_duration
+    // Пройти open_duration (0.2с) + немного = 0.3с
     double t = 0.0;
     for (int i = 0; i < 30; ++i) { // 0.3 секунды
         s2::WorldContext ctx{world_, bus_, commands_, t};
@@ -267,8 +272,10 @@ TEST_F(DoorBehaviorTest, AutoCloseAfterTimeout)
     }
     EXPECT_EQ(auto_door->current_state(), "OPEN");
 
-    // Пройти auto_close_secs
-    for (int i = 0; i < 40; ++i) { // 0.4 секунды
+    // Пройти auto_close_secs (0.3с). В OPEN state_timer_ уже ~0.1 после перехода.
+    // Нужно ещё ~0.2с чтобы достичь 0.3.
+    // Проходим 0.25с — auto_close сработает, но close_duration (0.5) не пройдёт
+    for (int i = 0; i < 25; ++i) {
         s2::WorldContext ctx{world_, bus_, commands_, t};
         auto_door->update(0.01, actor2, ctx);
         t += 0.01;

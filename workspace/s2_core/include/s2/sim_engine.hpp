@@ -8,11 +8,11 @@
  * Каждый тик состоит из 9 именованных фаз:
  *  Phase 0: Обработка KernelCommands из очереди (HTTP-тред + плагины)
  *  Phase 1: Входящие команды транспорта (пусто — Phase 5)
- *  Phase 2: Акторы (FSM-переходы, поведения) (пусто — Phase 2)
+ *  Phase 2: Акторы (pre_resolve → resolve → behavior.update → plugins.update)
  *  Phase 3: Агенты — ресурсы, resolve, актуация, кинематика, коллизии
  *  Phase 4: Сенсоры (строго после кинематики в Phase 3)
  *  Phase 5: Interaction-плагины (Grabber, DoorOpener)
- *  Phase 6: Обновление attachments (пусто — Phase 2)
+ *  Phase 6: Обновление attachments (owned_zones + attached props)
  *  Phase 7: Публикация снапшота и транспорт
  *  Phase 8: Очистка (clear_contributions только здесь)
  */
@@ -421,6 +421,7 @@ public:
       ps.pose = prop.world_pose;
       ps.visual = prop.visual;
       ps.movable = prop.movable;
+      ps.attached_to_agent = prop.attached_to_agent;
       snap.props.push_back(ps);
     }
 
@@ -511,12 +512,12 @@ private:
    * Порядок фаз:
    *  0. Kernel commands (command_queue_ drain)
    *  1. Transport input (пусто — Phase 5 транспортного рефакторинга)
-   *  2. Actors (FSM transitions) (пусто — Phase 2 Actor Foundation)
+   *  2. Actors (pre_resolve → resolve → behavior.update → plugins.update)
    *  3. Agents (ресурсы, resolve, актуация, кинематика, коллизии)
    *     — SENSOR и INTERACTION плагины пропускаются
    *  4. Sensors (update только для PluginRole::SENSOR)
    *  5. Interactions (update только для PluginRole::INTERACTION)
-   *  6. Attachments (обновление поз привязанных объектов) (пусто — Phase 2)
+   *  6. Attachments (owned_zones + attached props позиции)
    *  7. Snapshot + Viz + Transport publish
    *  8. Cleanup: clear_contributions() для всех агентов
    */
@@ -587,11 +588,58 @@ private:
 
   /**
    * @brief Phase 2: Обновление акторов (FSM-переходы, поведения).
-   * Пока пусто — будет заполнено в Phase 2 (Actor Foundation).
+   *
+   * Порядок для каждого актора (D-06):
+   *  2a. plugins.pre_resolve(dt) — controller-плагины публикуют contributions
+   *  2b. state.resolve() — вычисление effective constraints из contributions
+   *  2c. behavior.update(dt, actor, ctx) — основная логика (двигает геометрию, FSM)
+   *  2d. plugins.update(dt) — controller-плагины после behavior
+   *
+   * Для плагинов актора используется Agent-прокси (actor → Agent),
+   * так как IAgentPlugin::update() принимает Agent&.
+   * В Phase 6 (Entity Model) будет унифицировано через EntityBase.
    */
   void phase2_actors()
   {
-    // TODO Phase 2: ActorRegistry → actor.behavior.update(dt, world_query_)
+    for (auto& actor : world_.actors())
+    {
+      // Агент-прокси для плагинов актора (IAgentPlugin::update принимает Agent&)
+      Agent actor_agent_proxy;
+      actor_agent_proxy.id = actor.id;
+      actor_agent_proxy.world_pose = actor.world_pose;
+
+      // 2a. Плагины актора: pre_resolve (controller-плагины публикуют contributions)
+      for (auto& plugin : actor.plugins)
+        plugin->pre_resolve(dt_, actor_agent_proxy);
+
+      // 2b. Resolver — вычисляем effective constraints из contributions
+      actor.state.resolve();
+
+      // 2c. Behavior update (D-06: behavior читает effective из state и действует)
+      if (actor.behavior)
+      {
+        KernelCommandQueue tick_cmds;
+        WorldContext ctx{null_world_query_, bus_, tick_cmds, sim_time_};
+        actor.behavior->update(dt_, actor, ctx);
+
+        for (auto& cmd : tick_cmds)
+          std::visit([this](const auto& c) { apply_kernel_command(c); }, cmd);
+      }
+
+      // 2d. Плагины актора: update (controller-плагины после behavior)
+      {
+        KernelCommandQueue tick_cmds;
+        PluginContext ctx{null_world_query_, bus_, tick_cmds};
+        for (auto& plugin : actor.plugins)
+          plugin->update(dt_, actor_agent_proxy, ctx);
+
+        for (auto& cmd : tick_cmds)
+          std::visit([this](const auto& c) { apply_kernel_command(c); }, cmd);
+      }
+
+      // Синхронизировать позу обратно из proxy (плагин мог изменить)
+      actor.world_pose = actor_agent_proxy.world_pose;
+    }
   }
 
   /**
@@ -874,14 +922,61 @@ private:
 
   /**
    * @brief Phase 6: Обновление attachments (позы привязанных объектов).
-   * Пока пусто — будет заполнено в Phase 2 (Prop Foundation).
+   *
+   * Обновляет world_pose пропов, привязанных к агентам или акторам (D-20).
+   * Для агентов с kinematic_tree: link_world_pose = compute_world_pose(attach_link).
+   * Для актора или base_link: link_world_pose = entity.world_pose.
+   * Итоговая поза пропа = link_pose + attach_offset (упрощённое сложение).
    */
   void phase6_attachments()
   {
     // Обновить позиции owned_zones по позициям агентов-владельцев.
     zone_system_.update_owned_zones_positions(world_.agents());
 
-    // TODO Phase 2: обновить позы props, при��язанных к агентам/а��торам
+    // Обновить позиции пропов, привязанных к агентам или акторам (D-20)
+    for (auto& prop : world_.props())
+    {
+      if (!prop.attached_to_agent.has_value()) continue;
+
+      EntityId parent_id = prop.attached_to_agent.value();
+      bool found = false;
+
+      // Поиск среди агентов
+      for (const auto& agent : world_.agents())
+      {
+        if (agent.id != parent_id) continue;
+
+        // Если attach_link пуст — привязываем к base_link (world_pose агента)
+        Pose3D link_world_pose = agent.world_pose;
+        if (!prop.attach_link.empty() && agent.kinematic_tree) {
+          link_world_pose = agent.kinematic_tree->compute_world_pose(
+              prop.attach_link, agent.world_pose);
+        }
+
+        // world_pose пропа = link_pose + offset
+        // Упрощённо: сложение позиций + yaw (Phase 6 ENTY унифицирует через Transform3D)
+        prop.world_pose.x   = link_world_pose.x   + prop.attach_offset.x;
+        prop.world_pose.y   = link_world_pose.y   + prop.attach_offset.y;
+        prop.world_pose.z   = link_world_pose.z   + prop.attach_offset.z;
+        prop.world_pose.yaw = link_world_pose.yaw + prop.attach_offset.yaw;
+        found = true;
+        break;
+      }
+
+      if (found) continue;
+
+      // Поиск среди акторов (для attach prop к актору)
+      for (const auto& actor : world_.actors())
+      {
+        if (actor.id != parent_id) continue;
+        prop.world_pose.x   = actor.world_pose.x   + prop.attach_offset.x;
+        prop.world_pose.y   = actor.world_pose.y   + prop.attach_offset.y;
+        prop.world_pose.z   = actor.world_pose.z   + prop.attach_offset.z;
+        prop.world_pose.yaw = actor.world_pose.yaw + prop.attach_offset.yaw;
+        break;
+      }
+    }
+
   }
 
   /**
@@ -917,6 +1012,10 @@ private:
   {
     for (auto& agent : world_.agents())
       agent.state.clear_contributions();
+
+    // Очистка contributions акторов (аналогично агентам)
+    for (auto& actor : world_.actors())
+      actor.state.clear_contributions();
 
     // TODO Phase 1: удалить зоны с истёкшим lifecycle
   }
@@ -1006,9 +1105,51 @@ private:
       // ZONE-05: Включить/выключить зону с enter/exit событиями
       zone_system_.toggle_zone_with_events(cmd.id, cmd.enabled, world_.agents(), bus_);
     }
+    else if constexpr (std::is_same_v<T, cmd::Interact>)
+    {
+      // Маршрутизация Interact к actor.behavior.on_interact() (D-19)
+      auto* actor = world_.get_actor(cmd.target_id);
+      if (actor && actor->behavior) {
+        actor->behavior->on_interact(cmd.source_id, cmd.action, cmd.params);
+      }
+      // Если target — агент с behavior (Phase 3): пока не реализуем
+    }
+    else if constexpr (std::is_same_v<T, cmd::AttachObject>)
+    {
+      // Привязать проп к родительской Entity (D-19)
+      auto* prop = world_.get_prop(static_cast<ObjectId>(cmd.child_id));
+      if (prop) {
+        prop->attached_to_agent = cmd.parent_id;
+        prop->attach_link       = cmd.link;
+        prop->attach_offset     = cmd.local_pose;
+        bus_.publish(event::ObjectAttached{
+            .obj   = static_cast<ObjectId>(cmd.child_id),
+            .agent = cmd.parent_id,
+            .link  = cmd.link
+        });
+      }
+    }
+    else if constexpr (std::is_same_v<T, cmd::DetachObject>)
+    {
+      // Отсоединить проп от родителя (D-19)
+      auto* prop = world_.get_prop(static_cast<ObjectId>(cmd.child_id));
+      if (prop) {
+        EntityId parent = prop->attached_to_agent.value_or(0);
+        if (cmd.drop_pose.has_value()) {
+          prop->world_pose = cmd.drop_pose.value();
+        }
+        prop->attached_to_agent = std::nullopt;
+        prop->attach_link.clear();
+        prop->attach_offset = Pose3D{};
+        bus_.publish(event::ObjectReleased{
+            .obj   = static_cast<ObjectId>(cmd.child_id),
+            .agent = parent
+        });
+      }
+    }
     else
     {
-      // Все остальные команды (Interact, Attach, Scene) — TODO в следующих фазах.
+      // Все остальные команды (Scene) — TODO в следующих фазах.
       // Не падаем — молча игнорируем неизвестные команды.
       (void)cmd;
     }

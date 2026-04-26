@@ -1,0 +1,303 @@
+s2:
+  update_rate: 100
+  viz_rate: 30
+  transport_rate: 100
+
+  # Phase 0: Core Architecture Foundation — тестовая сцена
+  # Демонстрирует изменения, реализованные в plans 00-01 – 00-06:
+  #
+  #  ARCH-01  Signal struct на Entity (signals: — раздел, SceneLoader парсит в Phase 4)
+  #  ARCH-02  IAgentPlugin lifecycle: on_init/on_reset/on_spawn/on_despawn
+  #  ARCH-03  8-фазный tick lifecycle (прозрачен для конфига)
+  #  ARCH-04  ZoneSystem публикует event::ZoneEntered / event::ZoneExited (требует зон!)
+  #  ARCH-05  WorldQuery header (доступен плагинам через PluginContext)
+  #  ARCH-06  KernelCommand variant, 16 команд (runtime, не конфиг)
+  #  ARCH-07  SceneLoader валидирует: max 1 ACTUATION-плагин на агента
+  #
+  # Ключевое правило ARCH-07:
+  #   diff_drive  → PluginRole::ACTUATION
+  #   gravity     → PluginRole::ACTUATION   (!)
+  #   battery     → PluginRole::RESOURCE
+  #   gnss/imu    → PluginRole::SENSOR
+  #   joint_vel   → PluginRole::UTILITY
+  #
+  # Два ACTUATION-плагина на одном агенте вызывают ошибку при загрузке сцены.
+  # В этом конфиге каждый агент имеет ровно один ACTUATION-плагин.
+
+  transport:
+    type: stub
+
+  visualizer:
+    enabled: true
+    port: 1937
+
+  world:
+    surface: "flat"
+    geometry:
+      - type: "box"
+        pose: {x: 0, y: 0, z: -0.025}
+        size: {x: 30.0, y: 30.0, z: 0.05}
+        color: "#1A1A2E"
+
+  agents:
+
+    # ── robot_0: колёсный робот с батареей ──────────────────────────────────────
+    # ACTUATION: diff_drive (единственный)
+    # RESOURCE:  battery — initial_level восстанавливается при on_reset() (Plan 00-05)
+    # SENSOR:    gnss, imu
+    #
+    # signals: (ARCH-01 — парсинг в Phase 4, здесь документация формата)
+    #   - signal_type: aruco
+    #     signal_id: marker_0
+    #     range: 5.0
+    #     requires_los: true
+    #     params: {size: 0.2}
+    - name: "robot_0"
+      id: 0
+      domain_id: 0
+      pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
+      capabilities:
+        - "wheeled"
+        - "has_battery"
+        - "surface_contact"
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#FF6B35"
+      plugins:
+        # ACTUATION (ровно один)
+        - type: "diff_drive"
+          max_linear_vel: 2.0
+          max_angular_vel: 1.5
+
+        # RESOURCE — on_reset() сбрасывает level до initial_level (Plan 00-05)
+        - type: "battery"
+          initial_level: 0.8
+          nominal_voltage: 24.0
+          capacity_ah: 10.0
+          design_capacity_ah: 10.0
+          technology: lion
+          location: "main"
+          publish_rate_hz: 1.0
+
+        # SENSOR
+        - type: "gnss"
+          noise_std: 0.3
+          publish_rate_hz: 10
+
+        - type: "imu"
+          publish_rate_hz: 50
+
+        # UTILITY
+        - type: "trajectory_recorder"
+          record_interval_s: 0.2
+          max_points: 500
+          color: "#FF6B35"
+
+    # ── robot_1: робот без батареи, другое capability-множество ─────────────────
+    # ACTUATION: diff_drive (единственный)
+    # Демонстрирует: zone events (ZoneEntered/ZoneExited) при прохождении через зоны
+    - name: "robot_1"
+      id: 1
+      domain_id: 1
+      pose: {x: 5.0, y: 0.0, z: 0.0, yaw: 3.14159}
+      capabilities:
+        - "wheeled"
+        - "surface_contact"
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#4ECDC4"
+      plugins:
+        # ACTUATION (ровно один)
+        - type: "diff_drive"
+          max_linear_vel: 1.5
+          max_angular_vel: 2.0
+
+        # SENSOR
+        - type: "gnss"
+          noise_std: 0.5
+          publish_rate_hz: 5
+
+        # UTILITY
+        - type: "trajectory_recorder"
+          record_interval_s: 0.2
+          max_points: 300
+          color: "#4ECDC4"
+    
+    - name: "robot_3"
+      id: 3
+      domain_id: 3
+      pose: {x: 10.0, y: 0.0, z: 0.0, yaw: 3.14159}
+      capabilities:
+        # - "wheeled"
+        # - "surface_contact"
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#88BBFF"
+      plugins:
+        # ACTUATION (ровно один)
+        - type: "diff_drive"
+          max_linear_vel: 1.5
+          max_angular_vel: 2.0
+
+        # SENSOR
+        - type: "gnss"
+          noise_std: 0.5
+          publish_rate_hz: 5
+
+        # UTILITY
+        - type: "trajectory_recorder"
+          record_interval_s: 0.2
+          max_points: 300
+          color: "#4ECDC4"
+    
+    - name: "robot_4"
+      id: 4
+      domain_id: 4
+      pose: {x: 15.0, y: 0.0, z: 0.0, yaw: 3.14159}
+      capabilities:
+        - "wheeled"
+        - "surface_contact"
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#1A1A2E"
+      plugins:
+        # ACTUATION (ровно один)
+        - type: "diff_drive"
+          max_linear_vel: 1.5
+          max_angular_vel: 2.0
+
+        # SENSOR
+        - type: "gnss"
+          noise_std: 0.5
+          publish_rate_hz: 5
+
+        # UTILITY
+        - type: "trajectory_recorder"
+          record_interval_s: 0.2
+          max_points: 300
+          color: "#4ECDC4"
+
+    # ── robot_2: бездвижный агент с начальной скоростью для тестирования reset ──
+    # Используется для проверки on_reset() через /sim/reset:
+    #   - DiffDrive сбрасывает external_linear_velocity_ в 0 (Plan 00-05)
+    #   - Battery сбрасывает level до initial_level (Plan 00-05)
+    - name: "robot_2"
+      id: 2
+      domain_id: 2
+      pose: {x: -5.0, y: 0.0, z: 0.0, yaw: 1.5708}
+      capabilities:
+        - "wheeled"
+        - "has_battery"
+        - "surface_contact"
+      collision:
+        bounding:
+          type: "sphere"
+          radius: 0.4
+      visual:
+        type: "box"
+        size: [0.8, 0.5, 0.3]
+        color: "#FFE66D"
+      plugins:
+        # ACTUATION (ровно один)
+        - type: "diff_drive"
+          max_linear_vel: 2.0
+          max_angular_vel: 1.5
+
+        # RESOURCE — начинает с 10%, заряжается от зоны charging_station
+        - type: "battery"
+          initial_level: 0.1
+          nominal_voltage: 24.0
+          capacity_ah: 10.0
+          design_capacity_ah: 10.0
+          technology: lion
+          location: "main"
+          publish_rate_hz: 1.0
+    
+
+  zones:
+    # ── Зона входа / выхода — главный триггер ARCH-04 ───────────────────────────
+    # Любой агент, пересекающий границу, вызывает:
+    #   bus.publish(event::ZoneEntered{.zone_id = "entry_gate", .entity_id = ...})  (Plan 00-06)
+    #   bus.publish(event::AgentEnteredZone{...})  (legacy, backward compat)
+    # Аналогично ZoneExited при выходе.
+    - id: "entry_gate"
+      shape:
+        type: aabb
+        center: {x: 0.0, y: 4.0, z: 0.5}
+        half_size: {x: 2.0, y: 1.5, z: 1.0}
+      color: "#44FF88"
+      opacity: 0.35
+      label: "Вход (ZoneEntered)"
+      effects:
+        - type: boost_zone
+          required_capabilities: ["surface_contact"]
+          params:
+            speed_multiplier: 1.5
+
+    # ── Запретная зона — ZoneEntered срабатывает для всех агентов ───────────────
+    - id: "restricted_area"
+      shape:
+        type: sphere
+        center: {x: 8.0, y: 0.0, z: 0.0}
+        radius: 2.0
+      color: "#FF3333"
+      opacity: 0.4
+      label: "Запрет"
+      effects:
+        - type: motion_lock
+          params:
+            source_label: "restricted"
+
+    # ── Зарядная станция — демонстрирует charging + on_reset(battery) ───────────
+    # robot_2 (initial_level=0.1) стартует рядом и заряжается.
+    # При /sim/reset: battery.level возвращается к 0.1 (Plan 00-05).
+    - id: "charging_station"
+      shape:
+        type: cylinder
+        center: {x: -5.0, y: -4.0, z: 0.5}
+        radius: 2.0
+        half_height: 1.0
+      color: "#FFDD44"
+      opacity: 0.45
+      label: "Зарядка"
+      effects:
+        - type: charging
+          required_capabilities: ["has_battery"]
+          params:
+            charge_rate: 0.03
+
+    # ── Зона льда — тест required_capabilities + ZoneEntered ─────────────────────
+    - id: "ice_patch"
+      shape:
+        type: aabb
+        center: {x: 0.0, y: -6.0, z: 0.5}
+        half_size: {x: 3.0, y: 2.0, z: 1.0}
+      color: "#88BBFF"
+      opacity: 0.3
+      label: "Лёд (×0.3)"
+      effects:
+        - type: ice_modifier
+          required_capabilities: ["surface_contact"]
+          params:
+            traction_coefficient: 0.3
+            noise_amplitude: 0.05

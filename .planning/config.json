@@ -5,8 +5,21 @@
     "parallelization": true,
     "agents": true,
     "language": "ru",
-    "subagent_timeout": 300000
+    "subagent_timeout": 300000,
+    "research": true,
+    "plan_check": true,
+    "verifier": true,
+    "auto_advance": true,
+    "nyquist_validation": true,
+    "ui_phase": true,
+    "ui_safety_gate": false,
+    "ai_integration_phase": false,
+    "text_mode": false,
+    "research_before_questions": false,
+    "skip_discuss": false,
+    "use_worktrees": false
   },
+  "model_profile": "budget",
   "project": {
     "code": "S2",
     "title": "S2 Simulator — Perception, Actors, Transport & Architecture",
@@ -16,5 +29,13 @@
   "phases": {
     "current": 1,
     "total": 8
+  },
+  "git": {
+    "branching_strategy": "none",
+    "quick_branch_template": null
+  },
+  "hooks": {
+    "context_warnings": true,
+    "workflow_guard": true
   }
 }

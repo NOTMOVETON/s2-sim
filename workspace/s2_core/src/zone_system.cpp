@@ -244,7 +244,9 @@ bool ZoneSystem::resize_zone(const ZoneId& id, const ZoneShape& new_shape)
 {
     for (auto& zone : zones_) {
         if (zone.id == id) {
+            auto old_center = zone.shape.center;
             zone.shape = new_shape;
+            zone.shape.center = old_center; // resize не двигает зону
             return true;
         }
     }

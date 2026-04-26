@@ -1581,16 +1581,7 @@ function updateScene(data) {
     // Не перезаписывать позицию зоны, если она перетаскивается гизмо
     const zoneDragGrace = isDragging || (Date.now() - dragReleaseTime < DRAG_GRACE_MS);
     if (data.zones) {
-        const prevIds = editorZones.map(z => z.id).join(',');
         editorZones = data.zones;
-        const newIds = editorZones.map(z => z.id).join(',');
-        // Перестроить список только если набор зон изменился
-        if (prevIds !== newIds) {
-            const zonesListView = document.getElementById('zones-list-view');
-            if (zonesListView && zonesListView.style.display !== 'none') {
-                renderZoneList();
-            }
-        }
         data.zones.forEach(z => {
             const key = `zone_${z.id}`;
             currentZoneKeys.add(key);

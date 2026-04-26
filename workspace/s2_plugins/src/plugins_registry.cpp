@@ -1,9 +1,11 @@
 #include <s2/plugins/plugin_base.hpp>
 #include <s2/plugins/battery.hpp>
 #include <s2/plugins/color.hpp>
+#include <s2/plugins/conveyor_wire_controller.hpp>
 #include <s2/plugins/lidar.hpp>
 #include <s2/plugins/diff_drive.hpp>
 #include <s2/plugins/door_opener_plugin.hpp>
+#include <s2/plugins/door_wire_controller.hpp>
 #include <s2/plugins/gnss.hpp>
 #include <s2/plugins/gravity.hpp>
 #include <s2/plugins/imu.hpp>
@@ -51,6 +53,8 @@ static const PluginRegistrar register_path_display("path_display", []() { return
 static const PluginRegistrar register_topic_display("topic_display", []() { return std::make_unique<TopicDisplayPlugin>(); });
 static const PluginRegistrar register_lidar("lidar", []() { return std::make_unique<LidarPlugin>(); });
 static const PluginRegistrar register_door_opener("door_opener", []() { return std::make_unique<DoorOpenerPlugin>(); });
+static const PluginRegistrar register_door_wire_controller("door_wire_controller", []() { return std::make_unique<DoorWireController>(); });
+static const PluginRegistrar register_conveyor_wire_controller("conveyor_wire_controller", []() { return std::make_unique<ConveyorWireController>(); });
 
 std::unique_ptr<IAgentPlugin> create_plugin(const std::string& type, const YAML::Node& node)
 {

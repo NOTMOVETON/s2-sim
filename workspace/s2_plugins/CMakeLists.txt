@@ -8,6 +8,7 @@ add_library(s2_plugins STATIC
     src/plugins/door_wire_controller.cpp
     src/plugins/conveyor_wire_controller.cpp
     src/plugins/event_reactor.cpp
+    src/plugins/grabber_plugin.cpp
     src/color.cpp
     src/joint_vel.cpp
     src/effects_registry.cpp
@@ -37,3 +38,10 @@ add_executable(s2_door_behavior_tests
 )
 target_link_libraries(s2_door_behavior_tests PRIVATE s2_plugins s2_core GTest::gtest_main)
 add_test(NAME s2_door_behavior_tests COMMAND s2_door_behavior_tests)
+
+# Тесты GrabberPlugin
+add_executable(s2_grabber_plugin_tests
+    tests/test_grabber_plugin.cpp
+)
+target_link_libraries(s2_grabber_plugin_tests PRIVATE s2_plugins s2_core GTest::gtest_main)
+add_test(NAME s2_grabber_plugin_tests COMMAND s2_grabber_plugin_tests)

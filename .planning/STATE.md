@@ -4,21 +4,21 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 2 (Actor & Prop Foundation)
 status: executing
-last_updated: "2026-04-26T19:03:00.000Z"
-last_activity: "2026-04-26 — Completed Plan 02-01: IActorBehavior + ActorFSM + Actor/Prop struct extension"
+last_updated: "2026-04-26T19:18:00.000Z"
+last_activity: "2026-04-26 — Completed Plan 02-02: Engine Integration (phase2_actors, phase6_attachments, KernelCommands, SceneLoader)"
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 18
-  completed_plans: 14
-  percent: 78
+  completed_plans: 15
+  percent: 83
 ---
 
 # Project State: S2 Simulator
 
 **Last updated:** 2026-04-26 (Phase 2 executing)
 **Current phase:** 2 (Actor & Prop Foundation)
-**Phase status:** EXECUTING — 1/5 plans complete, Wave 1 in progress
+**Phase status:** EXECUTING — 2/5 plans complete, Wave 2 in progress
 
 ---
 
@@ -76,6 +76,9 @@ progress:
 | StateChangeTrigger id тип | string vs ActorId (uint32_t) | Решено: ActorId — точно соответствует event::ActorStateChanged.actor |
 | zones_to_destroy pattern | Удаление inline vs post-iteration | Решено: zones_to_destroy set, удаление после итерации — безопасно (Pitfall 4) |
 | InZoneResult vs bool | agent_in_zone bool vs расширенный результат | Решено: InZoneResult struct + inline делегат agent_in_zone() — backward compat нулевой |
+| Agent-прокси для плагинов актора | Agent& vs новый тип | Решено: Agent proxy с id+world_pose в phase2_actors() — Phase 6 ENTY унифицирует через EntityBase |
+| BehaviorFactory в SceneLoader | Inline vs отдельный setter | Решено: третий параметр load() с default {} — нулевая обратная совместимость |
+| Pose composition в phase6 | Матрица вращения vs сложение | Решено: упрощённое сложение поз (x+x, yaw+yaw) — Phase 6 ENTY заменит на Transform3D |
 | Actor explicit constructors | User-declared vs implicit | Решено: implicit (без явных конструкторов) — сохраняет aggregate-инициализацию в C++17; move-only семантика обеспечена unique_ptr полями |
 | Zone.spawn_time хранение | В Zone struct vs computed | Решено: поле spawn_time в Zone struct, заполняется при add_zone() |
 | load_zone_templates API | Параметр load_world() vs отдельный метод | Решено: отдельный метод load_zone_templates() — backward compat с существующими тестами |
@@ -115,6 +118,7 @@ progress:
 | `.planning/phases/01-zone-visual-control-layer/01-06-SUMMARY.md` | ✓ Plan 01-06 complete — Zone Inspector UI + VisualHint рендеринг |
 | `.planning/phases/01-zone-visual-control-layer/01-07-SUMMARY.md` | ✓ Plan 01-07 complete — Gap closure: REST spawn/despawn + UI fetch + contact_link |
 | `.planning/phases/02-actor-prop-foundation/02-01-SUMMARY.md` | ✓ Plan 02-01 complete — IActorBehavior + ActorFSM + Actor/Prop struct extension |
+| `.planning/phases/02-actor-prop-foundation/02-02-SUMMARY.md` | ✓ Plan 02-02 complete — Engine Integration (phase2_actors, phase6_attachments, KernelCommands, SceneLoader) |
 
 ---
 
@@ -145,6 +149,6 @@ progress:
 
 ---
 
-**Last activity:** 2026-04-26 — Completed Plan 02-01: IActorBehavior + ActorFSM + Actor/Prop struct extension
+**Last activity:** 2026-04-26 — Completed Plan 02-02: Engine Integration (phase2_actors, phase6_attachments, KernelCommands, SceneLoader)
 
-**Executing Phase:** 2 (Actor & Prop Foundation) ��� 5 plans, 3 waves — 1/5 complete
+**Executing Phase:** 2 (Actor & Prop Foundation) -- 5 plans, 3 waves -- 2/5 complete

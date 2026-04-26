@@ -123,9 +123,10 @@ progress:
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260426-001 | Исправить лидар в тумане, EMI эффект и Zone Tab UI | 2026-04-26 | 2cee76f | [260426-001-fix-zone-ui-and-effects](.planning/quick/260426-001-fix-zone-ui-and-effects/) |
+| 260426-002 | Редактирование зон: backend + гизмо + форма | 2026-04-26 | 4f5577e | [260426-002-zone-editor-backend](.planning/quick/260426-002-zone-editor-backend/) |
 
 ---
 
-**Last activity:** 2026-04-26 — Completed quick task 260426-001: fix zone UI and effects
+**Last activity:** 2026-04-26 — Completed quick task 260426-002: zone editor backend + gizmo
 
 *To start executing: `/gsd-plan-phase 0`*

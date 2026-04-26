@@ -1,7 +1,7 @@
 # Roadmap: S2 Simulator
 
 **Created:** 2026-04-25
-**Updated:** 2026-04-26 — Phase 0 complete (6/6 планов, gap ARCH-04 закрыт)
+**Updated:** 2026-04-26 — Phase 1 gap closure plan 01-07 added
 **Scope:** Ядро архитектуры, Perception, Actors, Transport & Architecture — 9 фаз
 
 ---
@@ -55,7 +55,7 @@ Plans:
 
 **Requirements:** ZONE-01, ZONE-02, ZONE-03, ZONE-04, ZONE-05, ZONE-06, ZONE-07, ZONE-08, ZONE-09, ZONE-10
 
-**Plans:** 6 plans
+**Plans:** 7 plans
 
 Plans:
 - [x] 01-01-PLAN.md — Zone struct расширение: DetectionMode, ZoneLifecycle, SelfDestructPolicy + ZoneSnapshot.strength/visual_hints
@@ -63,7 +63,8 @@ Plans:
 - [x] 01-03-PLAN.md — ZoneSystem: BOUNDING/PER_LINK detection, lifecycle, self_destruct, remove_zone, owned_zones
 - [x] 01-04-PLAN.md — KernelCommands SpawnZone/DespawnZone/ToggleZone + ZoneSpawnSystem (4 триггера)
 - [x] 01-05-PLAN.md — SceneLoader: owned_zones, lifecycle, zone_templates + SimEngine build_snapshot
-- [ ] 01-06-PLAN.md — UI Zone Inspector (вкладка Зоны) + VisualHint рендеринг (glow/arrows/particles/grid)
+- [x] 01-06-PLAN.md — UI Zone Inspector (вкладка Зоны) + VisualHint рендеринг (glow/arrows/particles/grid)
+- [ ] 01-07-PLAN.md — Gap closure: REST routes spawn_zone/despawn_zone + UI fetch + ctx.contact_link
 
 **Tasks:**
 - [ ] **1.1** — Zone inspector в UI редакторе (ZONE-01): форма создания/редактирования зоны, параметры эффекта, тип зоны; использует /api/effects/registry (Phase 5)
@@ -289,5 +290,5 @@ Plans:
 ---
 
 *Roadmap created: 2026-04-25*
-*Updated: 2026-04-25 — Phase 0 добавлена; Phase 1 расширена ZONE-06-10; Phase 2 добавлен ACTR-06; Phase 5 добавлены TRAN-05-07 + API-01-02; Phase 6 добавлены ENTY-05-08; Phase 7 добавлены MATL-05-08; Phase 8 добавлены VIZL-05-06; итого 9 фаз, 65 требований*
+*Updated: 2026-04-26 — Phase 1 gap closure plan 01-07 added*
 *Start with: `/gsd-plan-phase 0`*

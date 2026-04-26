@@ -1675,7 +1675,7 @@ function renderZoneList() {
 
 window.startAddZone = function() {
     editingZoneId = null;
-    document.getElementById('zf-title').textContent = 'Новая зона (добавление — Wave 2)';
+    document.getElementById('zf-title').textContent = 'Новая зона';
     document.getElementById('zf-id').value = '';
     document.getElementById('zf-shape').value = 'sphere';
     document.getElementById('zf-x').value = '0';
@@ -1760,7 +1760,29 @@ window.confirmZoneForm = function() {
         fetch(`http://${host}:${port}/command?cmd=update_zone_visual&id=${encodeURIComponent(editingZoneId)}&color=${color}&opacity=${opacity}`, { method: 'POST' })
             .catch(e => console.error('[UpdateZoneVisual]', e));
     } else {
-        console.log('[ZoneForm] Создание новых зон — Wave 2 (SpawnZone)');
+        // Создание новой зоны -- собираем все параметры формы
+        const shape = document.getElementById('zf-shape').value;
+        const effects = Array.from(document.getElementById('zf-effects').selectedOptions).map(o => o.value).join(',');
+        const idHint = idField || '';
+
+        let params = `cmd=spawn_zone&shape=${shape}&cx=${x}&cy=${y}&color=${color}&opacity=${opacity}&id_hint=${encodeURIComponent(idHint)}&effects=${encodeURIComponent(effects)}`;
+
+        if (shape === 'sphere') {
+            const r = parseFloat(document.getElementById('zf-radius').value) || 2.0;
+            params += `&radius=${r}`;
+        } else if (shape === 'box') {
+            const bx = parseFloat(document.getElementById('zf-bx').value) || 2.0;
+            const by = parseFloat(document.getElementById('zf-by').value) || 2.0;
+            const bz = parseFloat(document.getElementById('zf-bz').value) || 2.0;
+            params += `&hx=${bx / 2}&hy=${by / 2}&hz=${bz / 2}`;
+        } else if (shape === 'cylinder') {
+            const cr = parseFloat(document.getElementById('zf-cr').value) || 2.0;
+            const ch = parseFloat(document.getElementById('zf-ch').value) || 1.0;
+            params += `&cyl_r=${cr}&cyl_h=${ch}`;
+        }
+
+        fetch(`http://${host}:${port}/command?${params}`, { method: 'POST' })
+            .catch(e => console.error('[SpawnZone]', e));
     }
 
     cancelZoneForm();
@@ -1768,7 +1790,10 @@ window.confirmZoneForm = function() {
 
 window.deleteCurrentZone = function() {
     if (!editingZoneId) return;
-    console.log('[ZoneForm] Удаление зон — Wave 2 (DespawnZone)');
+    const host = window.location.hostname || 'localhost';
+    const port = window.location.port || '1937';
+    fetch(`http://${host}:${port}/command?cmd=despawn_zone&id=${encodeURIComponent(editingZoneId)}`, { method: 'POST' })
+        .catch(e => console.error('[DespawnZone]', e));
     cancelZoneForm();
 };
 

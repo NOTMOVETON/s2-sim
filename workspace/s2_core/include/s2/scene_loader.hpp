@@ -57,15 +57,22 @@ struct SceneData {
 /// Загрузчик сцены из YAML.
 class SceneLoader {
 public:
-    /// Загрузить сцену из YAML файла.
-    /// @param yaml_path Путь к YAML файлу
-    /// @param plugin_factory Опциональная фабрика для создания плагинов.
-    ///        Принимает (type, yaml_node) и возвращает unique_ptr<IAgentPlugin>
+    /// Фабрика плагинов: (type, yaml_node) -> unique_ptr<IAgentPlugin>
     using PluginFactory = std::function<std::unique_ptr<plugins::IAgentPlugin>(
         const std::string& type, const YAML::Node& node)>;
 
+    /// Фабрика поведений акторов: (behavior_type, actor_yaml_node) -> unique_ptr<IActorBehavior>
+    /// Неизвестный тип -> nullptr (T-02-06: не краш)
+    using BehaviorFactory = std::function<std::unique_ptr<IActorBehavior>(
+        const std::string& type, const YAML::Node& node)>;
+
+    /// Загрузить сцену из YAML файла.
+    /// @param yaml_path         Путь к YAML файлу
+    /// @param plugin_factory    Фабрика плагинов агентов и акторов
+    /// @param behavior_factory  Фабрика поведений акторов (door, conveyor, ...)
     static SceneData load(const std::string& yaml_path,
-                          PluginFactory plugin_factory = PluginFactory{});
+                          PluginFactory plugin_factory = PluginFactory{},
+                          BehaviorFactory behavior_factory = BehaviorFactory{});
 
 private:
     static Pose3D parse_pose(const YAML::Node& node);
@@ -80,7 +87,8 @@ private:
 // ─── Implementation ────────────────────────────────────────────────────
 
 inline SceneData SceneLoader::load(const std::string& yaml_path,
-                                   PluginFactory plugin_factory) {
+                                   PluginFactory plugin_factory,
+                                   BehaviorFactory behavior_factory) {
     YAML::Node root = YAML::LoadFile(yaml_path);
 
     SceneData scene;
@@ -343,7 +351,11 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
             }
 
             if (prop_node["movable"]) {
-                prop.movable = prop_node["movable"].as<bool>(true);
+                prop.movable = prop_node["movable"].as<bool>(false);
+            }
+
+            if (prop_node["has_collision"]) {
+                prop.has_collision = prop_node["has_collision"].as<bool>(true);
             }
 
             if (prop_node["collision"]) {
@@ -352,6 +364,39 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
 
             if (prop_node["visual"]) {
                 prop.visual = parse_visual(prop_node["visual"]);
+            }
+
+            // Capabilities (PROP-01)
+            if (prop_node["capabilities"]) {
+                const auto& caps = prop_node["capabilities"];
+                if (caps.IsSequence()) {
+                    for (const auto& cap : caps) {
+                        prop.capabilities.insert(cap.as<std::string>());
+                    }
+                }
+            }
+
+            // Tags (PROP-01)
+            if (prop_node["tags"]) {
+                const auto& tags = prop_node["tags"];
+                if (tags.IsMap()) {
+                    for (const auto& tag : tags) {
+                        prop.tags[tag.first.as<std::string>()] = tag.second.as<std::string>();
+                    }
+                }
+            }
+
+            // Signals (ARCH-03)
+            if (prop_node["signals"]) {
+                for (const auto& sig_node : prop_node["signals"]) {
+                    Signal sig;
+                    sig.signal_id    = sig_node["signal_id"].as<std::string>("");
+                    sig.signal_type  = sig_node["signal_type"].as<std::string>("wire");
+                    sig.range        = sig_node["range"].as<double>(0.0);
+                    sig.requires_los = sig_node["requires_los"].as<bool>(false);
+                    sig.enabled      = sig_node["enabled"].as<bool>(true);
+                    prop.signals.push_back(std::move(sig));
+                }
             }
 
             scene.props.push_back(std::move(prop));
@@ -369,12 +414,43 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
                 actor.name = actor_node["name"].as<std::string>();
             }
 
+            if (actor_node["type"]) {
+                actor.type = actor_node["type"].as<std::string>();
+            }
+
             if (actor_node["pose"]) {
                 actor.world_pose = parse_pose(actor_node["pose"]);
             }
 
+            if (actor_node["collision"]) {
+                actor.collision = parse_collision(actor_node["collision"]);
+            }
+
+            if (actor_node["collision_enabled"]) {
+                actor.collision_enabled = actor_node["collision_enabled"].as<bool>(true);
+            }
+
             if (actor_node["visual"]) {
                 actor.visual = parse_visual(actor_node["visual"]);
+            }
+
+            // Behavior — создаётся через behavior_factory (T-02-06: неизвестный тип -> nullptr)
+            if (actor_node["behavior"]) {
+                std::string behavior_type = actor_node["behavior"].as<std::string>("");
+                if (!behavior_type.empty() && behavior_factory) {
+                    actor.behavior = behavior_factory(behavior_type, actor_node);
+                }
+            }
+
+            // Плагины актора (controller-плагины: DoorWireController и т.п.)
+            if (actor_node["plugins"] && plugin_factory) {
+                for (const auto& pn : actor_node["plugins"]) {
+                    if (pn["type"]) {
+                        std::string ptype = pn["type"].as<std::string>();
+                        auto plugin = plugin_factory(ptype, pn);
+                        if (plugin) actor.plugins.push_back(std::move(plugin));
+                    }
+                }
             }
 
             scene.actors.push_back(std::move(actor));

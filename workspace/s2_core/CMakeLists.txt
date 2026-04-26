@@ -79,6 +79,7 @@ add_executable(s2_core_tests
     tests/test_zone_owned.cpp
     tests/test_zone_commands.cpp
     tests/test_zone_spawn_triggers.cpp
+    tests/test_actor_prop_loading.cpp
 )
 target_link_libraries(s2_core_tests PRIVATE s2_core s2_plugins s2_transport GTest::gtest_main)
 

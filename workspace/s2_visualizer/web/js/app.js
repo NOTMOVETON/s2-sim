@@ -1608,33 +1608,40 @@ function updateScene(data) {
             const color = z.color || '#4488FF';
             const opacity = (z.opacity !== undefined) ? z.opacity : 0.3;
 
+            // Пересоздать mesh если тип или размеры зоны изменились
+            let zoneTag = z.shape_type;
+            if (z.shape_type === 'sphere') zoneTag += ':' + (z.radius || 1);
+            else if (z.shape_type === 'aabb') zoneTag += ':' + (Array.isArray(z.half_size) ? z.half_size.join(',') : '');
+            else if (z.shape_type === 'cylinder') zoneTag += ':' + (z.radius || 1) + ',' + (z.half_height || 1);
+            if (meshes[key] && meshes[key].userData.zoneTag !== zoneTag) {
+                removeMesh(key);
+            }
+
             if (z.shape_type === 'sphere') {
                 const r = z.radius || 1;
-                updateOrCreateMesh(key, 'sphere', pose,
+                const m = updateOrCreateMesh(key, 'sphere', pose,
                     { type: 'sphere', radius: r, color },
                     { transparent: true, opacity, depthWrite: false, side: 'double' }
                 );
+                m.userData.zoneTag = zoneTag;
             } else if (z.shape_type === 'aabb') {
                 const hs = Array.isArray(z.half_size) ? z.half_size : [2, 2, 2];
-                // half_size хранит удвоенные значения (full extents) после сериализации.
-                // createGeometry сам выполняет трансформацию sim→Three.js:
-                //   BoxGeometry(size.x, size.z, size.y) → (sim_x, sim_z→Y, sim_y→Z)
-                // Поэтому передаём sim-координаты напрямую без предварительного свопа.
-                const sx = hs[0];  // full X (sim X)
-                const sy = hs[1];  // full Y (sim Y)
-                const sz = hs[2];  // full Z (sim Z)
-                updateOrCreateMesh(key, 'box', pose,
+                const sx = hs[0];
+                const sy = hs[1];
+                const sz = hs[2];
+                const m = updateOrCreateMesh(key, 'box', pose,
                     { type: 'box', size: [sx, sy, sz], color },
                     { transparent: true, opacity, depthWrite: false, side: 'double' }
                 );
+                m.userData.zoneTag = zoneTag;
             } else if (z.shape_type === 'cylinder') {
                 const r = z.radius || 1;
                 const h = (z.half_height || 1) * 2;
-                // Цилиндр зоны — ось Z симуляции, в Three.js ось Y
-                updateOrCreateMesh(key, 'cylinder', pose,
+                const m = updateOrCreateMesh(key, 'cylinder', pose,
                     { type: 'cylinder', radius: r, height: h, color },
                     { transparent: true, opacity, depthWrite: false, side: 'double' }
                 );
+                m.userData.zoneTag = zoneTag;
             } else {
                 removeMesh(key);
             }

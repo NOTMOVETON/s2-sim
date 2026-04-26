@@ -35,7 +35,7 @@
 - [ ] **ACTR-03**: PedestrianBehavior: маршрутные точки (waypoints), LinearSteering к следующей точке, ObstacleAvoidance (separation от других агентов/акторов), loop/ping-pong режимы
 - [ ] **ACTR-04**: ConveyorActor: owned conveyor зона, DoorWireController/ConveyorWireController для реакции на wire-сигнал, реверс направления
 - [ ] **ACTR-05**: ElevatorBehavior + ElevatorUserPlugin (агент вызывает лифт через KernelCommand::Interact)
-- [ ] **ACTR-06**: SignalListenerBase + controller плагины — DoorWireController (реакции: close_and_lock / force_open / unlock), ConveyorWireController (stop / reverse / start); EventReactor (декларативный плагин: listen + on_active/on_inactive); один сигнал → разные реакции у разных плагинов
+- [x] **ACTR-06**: SignalListenerBase + controller плагины — DoorWireController (реакции: close_and_lock / force_open / unlock), ConveyorWireController (stop / reverse / start); EventReactor (декларативный плагин: listen + on_active/on_inactive); один сигнал → разные реакции у разных плагинов
 
 ### Пропы
 
@@ -160,7 +160,7 @@
 | ZONE-10 | Phase 1 | Complete (Plan 01-04) |
 | ACTR-01 | Phase 2 | Complete (Plan 02-01) |
 | ACTR-02 | Phase 2 | Complete (Plan 02-03) |
-| ACTR-06 | Phase 2 | Pending |
+| ACTR-06 | Phase 2 | Complete (Plan 02-04) |
 | PROP-01 | Phase 2 | Complete (Plan 02-01) |
 | PROP-02 | Phase 2 | Complete (Plan 02-02) |
 | PROP-03 | Phase 2 | Pending |

@@ -4,21 +4,21 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 2 (Actor & Prop Foundation)
 status: executing
-last_updated: "2026-04-26T19:31:00.000Z"
-last_activity: "2026-04-26 — Completed Plan 02-03: DoorBehavior FSM + DoorOpenerPlugin (proximity + wire triggers)"
+last_updated: "2026-04-26T19:41:00.000Z"
+last_activity: "2026-04-26 — Completed Plan 02-04: Wire Controllers (SignalListenerBase + DoorWireController + ConveyorWireController + EventReactor)"
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 18
-  completed_plans: 16
-  percent: 89
+  completed_plans: 17
+  percent: 94
 ---
 
 # Project State: S2 Simulator
 
 **Last updated:** 2026-04-26 (Phase 2 executing)
 **Current phase:** 2 (Actor & Prop Foundation)
-**Phase status:** EXECUTING — 3/5 plans complete, Wave 2 in progress
+**Phase status:** EXECUTING — 4/5 plans complete, Wave 2 complete
 
 ---
 
@@ -84,6 +84,9 @@ progress:
 | Actor explicit constructors | User-declared vs implicit | Решено: implicit (без явных конструкторов) — сохраняет aggregate-инициализацию в C++17; move-only семантика обеспечена unique_ptr полями |
 | Zone.spawn_time хранение | В Zone struct vs computed | Решено: поле spawn_time в Zone struct, заполняется при add_zone() |
 | load_zone_templates API | Параметр load_world() vs отдельный метод | Решено: отдельный метод load_zone_templates() — backward compat с существующими тестами |
+| SignalListenerBase подписка | on_spawn vs first update | Решено: subscribe_once(ctx.bus) при первом update() — on_spawn не имеет доступа к EventBus |
+| pending_signals_ лимит | Без лимита vs фиксированный | Решено: 100 событий за тик (T-02-13) — защита от DoS |
+| EventReactor event types | Произвольные vs whitelist | Решено: только signal_activated (T-02-11) — расширение в Phase 5 |
 
 ---
 
@@ -122,6 +125,7 @@ progress:
 | `.planning/phases/02-actor-prop-foundation/02-01-SUMMARY.md` | ✓ Plan 02-01 complete — IActorBehavior + ActorFSM + Actor/Prop struct extension |
 | `.planning/phases/02-actor-prop-foundation/02-02-SUMMARY.md` | ✓ Plan 02-02 complete — Engine Integration (phase2_actors, phase6_attachments, KernelCommands, SceneLoader) |
 | `.planning/phases/02-actor-prop-foundation/02-03-SUMMARY.md` | ✓ Plan 02-03 complete — DoorBehavior FSM + DoorOpenerPlugin |
+| `.planning/phases/02-actor-prop-foundation/02-04-SUMMARY.md` | ✓ Plan 02-04 complete — Wire Controllers (SignalListenerBase + DoorWireController + ConveyorWireController + EventReactor) |
 
 ---
 
@@ -152,6 +156,6 @@ progress:
 
 ---
 
-**Last activity:** 2026-04-26 — Completed Plan 02-03: DoorBehavior FSM + DoorOpenerPlugin (proximity + wire triggers)
+**Last activity:** 2026-04-26 — Completed Plan 02-04: Wire Controllers (SignalListenerBase + DoorWireController + ConveyorWireController + EventReactor)
 
-**Executing Phase:** 2 (Actor & Prop Foundation) -- 5 plans, 3 waves -- 3/5 complete
+**Executing Phase:** 2 (Actor & Prop Foundation) -- 5 plans, 3 waves -- 4/5 complete

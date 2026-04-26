@@ -96,6 +96,15 @@ Plans:
 
 **Requirements:** ACTR-01, ACTR-02, ACTR-06, PROP-01, PROP-02, PROP-03
 
+**Plans:** 5 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — IActorBehavior интерфейс + ActorFSM + Actor/Prop struct расширение + WorldContext
+- [ ] 02-02-PLAN.md — SimEngine Phase 2 (actors tick) + Phase 6 (attachments) + Interact/Attach/Detach handlers + SceneLoader
+- [ ] 02-03-PLAN.md — DoorBehavior FSM (CLOSED/OPENING/OPEN/CLOSING) + DoorOpenerPlugin + behaviors_registry
+- [ ] 02-04-PLAN.md — SignalListenerBase + DoorWireController + ConveyorWireController + EventReactor
+- [ ] 02-05-PLAN.md — GrabberPlugin (grab/release/manipulation_locked) + интеграционные тесты
+
 **Tasks:**
 - [ ] **2.1** — IActorBehavior расширенный (ACTR-01): on_init(yaml) / on_spawn(entity) / on_reset() / update(dt, entity, WorldContext) / on_signal(SignalEvent) / on_interact(source, action, params) / current_state() / to_json(); ActorFSM утилита (add_state/add_transition/fire/update)
 - [ ] **2.2** — ActorRegistry + тиковый цикл: хранение акторов в SimEngine, Phase 2 тика (pre_resolve→resolve→behavior.update→plugins.update)
@@ -290,5 +299,5 @@ Plans:
 ---
 
 *Roadmap created: 2026-04-25*
-*Updated: 2026-04-26 — Phase 1 gap closure plan 01-07 added*
+*Updated: 2026-04-26 — Phase 2 planned: 5 plans, 3 waves*
 *Start with: `/gsd-plan-phase 0`*

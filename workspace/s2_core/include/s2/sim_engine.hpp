@@ -840,7 +840,10 @@ private:
    */
   void phase6_attachments()
   {
-    // TODO Phase 2: обновить позы props, привязанных к агентам/акторам
+    // Обновить позиции owned_zones по позициям агентов-владельцев.
+    zone_system_.update_owned_zones_positions(world_.agents());
+
+    // TODO Phase 2: обновить позы props, при��язанных к агентам/а��торам
   }
 
   /**

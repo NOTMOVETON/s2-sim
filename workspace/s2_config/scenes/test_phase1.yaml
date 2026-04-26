@@ -89,10 +89,6 @@ s2:
 
       # ── Ящики в разных точках ─────────────────────────────────────────────────
       - type: "box"
-        pose: {x: 8.0, y: -7.0, z: 0.5}
-        size: {x: 1.2, y: 1.2, z: 1.0}
-        color: "#886644"
-      - type: "box"
         pose: {x: -8.0, y: 7.0, z: 0.5}
         size: {x: 1.5, y: 0.6, z: 1.0}
         color: "#886644"
@@ -104,6 +100,32 @@ s2:
         pose: {x: -3.0, y: -9.0, z: 0.5}
         size: {x: 0.8, y: 0.8, z: 1.0}
         color: "#664422"
+
+      # ── Препятствия ВНУТРИ туманной зоны (fog: x=3.5–10.5, y=−4–4) ──────────
+      # Все в пределах 1–3м — лидар должен их видеть даже при range×0.25
+      - type: "cylinder"
+        pose: {x: 7.0, y: 2.5, z: 1.0}
+        radius: 0.35
+        size: {x: 0.7, y: 0.7, z: 2.0}
+        color: "#AABB88"
+      - type: "cylinder"
+        pose: {x: 9.0, y: 0.0, z: 1.0}
+        radius: 0.35
+        size: {x: 0.7, y: 0.7, z: 2.0}
+        color: "#AABB88"
+      - type: "cylinder"
+        pose: {x: 5.5, y: -2.0, z: 1.0}
+        radius: 0.35
+        size: {x: 0.7, y: 0.7, z: 2.0}
+        color: "#AABB88"
+      - type: "box"
+        pose: {x: 8.5, y: -2.5, z: 0.5}
+        size: {x: 0.8, y: 0.8, z: 1.0}
+        color: "#667755"
+      - type: "box"
+        pose: {x: 5.0, y: 2.0, z: 0.5}
+        size: {x: 1.0, y: 0.5, z: 1.0}
+        color: "#667755"
 
   agents:
     # ── robot_sensor: тестирует лидар, fog и emi зоны ────────────────────────
@@ -134,7 +156,7 @@ s2:
           publish_rate_hz: 50
         - type: "lidar"
           max_range: 12.0
-          num_rays: 360
+          num_rays: 3600
           publish_rate_hz: 10
         - type: "trajectory_recorder"
           record_interval_s: 0.1

@@ -7,6 +7,7 @@ add_library(s2_plugins STATIC
     src/plugins/door_opener_plugin.cpp
     src/plugins/door_wire_controller.cpp
     src/plugins/conveyor_wire_controller.cpp
+    src/plugins/event_reactor.cpp
     src/color.cpp
     src/joint_vel.cpp
     src/effects_registry.cpp

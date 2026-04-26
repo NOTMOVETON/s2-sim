@@ -6,6 +6,7 @@
 #include <s2/plugins/diff_drive.hpp>
 #include <s2/plugins/door_opener_plugin.hpp>
 #include <s2/plugins/door_wire_controller.hpp>
+#include <s2/plugins/event_reactor.hpp>
 #include <s2/plugins/gnss.hpp>
 #include <s2/plugins/gravity.hpp>
 #include <s2/plugins/imu.hpp>
@@ -55,6 +56,7 @@ static const PluginRegistrar register_lidar("lidar", []() { return std::make_uni
 static const PluginRegistrar register_door_opener("door_opener", []() { return std::make_unique<DoorOpenerPlugin>(); });
 static const PluginRegistrar register_door_wire_controller("door_wire_controller", []() { return std::make_unique<DoorWireController>(); });
 static const PluginRegistrar register_conveyor_wire_controller("conveyor_wire_controller", []() { return std::make_unique<ConveyorWireController>(); });
+static const PluginRegistrar register_event_reactor("event_reactor", []() { return std::make_unique<EventReactor>(); });
 
 std::unique_ptr<IAgentPlugin> create_plugin(const std::string& type, const YAML::Node& node)
 {

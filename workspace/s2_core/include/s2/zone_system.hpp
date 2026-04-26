@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace s2 {
@@ -72,6 +73,19 @@ public:
     /// Включить/выключить зону. Возвращает false если зона не найдена.
     bool toggle_zone(const ZoneId& id, bool enabled);
 
+    /// Включить/выключить зону с отправкой enter/exit событий.
+    /// При enabled=false: для всех inside_agents отправляется ZoneExited.
+    /// При enabled=true: для всех агентов внутри геометрии отправляется ZoneEntered.
+    bool toggle_zone_with_events(const ZoneId& id,
+                                 bool enabled,
+                                 std::vector<Agent>& agents,
+                                 SimBus& bus);
+
+    /// Удалить зону, отправив ZoneExited всем агентам внутри.
+    void remove_zone(const ZoneId& id,
+                     std::vector<Agent>& agents,
+                     SimBus& bus);
+
     /// Включить/выключить конкретный эффект в зоне. Возвращает false если не найдено.
     bool toggle_effect(const ZoneId& id, size_t effect_idx, bool enabled);
 
@@ -86,8 +100,18 @@ public:
     /// Константный доступ ко всем зонам (для snapshot и тестов).
     const std::vector<Zone>& all_zones() const { return zones_; }
 
+    /// Обновить позиции зон привязанных к entity.
+    /// Вызывается в Phase 6 тика (attachments) из SimEngine::phase6_attachments().
+    void update_owned_zones_positions(const std::vector<Agent>& agents);
+
 private:
-    /// Точка обнаружения для агента в зависимости от режима.
+    /// Обновить lifecycle всех зон: рост и затухание strength.
+    void update_lifecycle(double sim_time, double dt);
+
+    /// Проверить вхождение агента в зону с учётом detection_mode_enum.
+    static bool agent_in_zone(const Agent& agent, const Zone& zone);
+
+    /// Точка обнаружения для агента в зависимости от режима (legacy, string-based).
     /// "center" → agent.world_pose.position()
     /// "bounding" → fallback на center (реализация bounding overlap — задача позже)
     static Vec3 detection_point(const Agent& agent, const std::string& mode);

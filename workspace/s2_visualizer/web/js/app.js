@@ -111,6 +111,18 @@ transformControls.addEventListener('mouseUp', function () {
         // Синхронизируем позу и размеры из меша в editorPrimitives, затем отправляем на сервер
         syncPrimitiveFromMesh(selectedPrimitiveId);
         sendGeometryToServer();
+    } else if (editingZoneId && transformControls.object) {
+        // Гизмо для зоны: Three.js coords → sim coords, отправить move_zone
+        const m = transformControls.object;
+        const simX = m.position.x;
+        const simY = -m.position.z;
+        const host = window.location.hostname || 'localhost';
+        const port = window.location.port || '1937';
+        fetch(`http://${host}:${port}/command?cmd=move_zone&id=${encodeURIComponent(editingZoneId)}&x=${simX}&y=${simY}`, { method: 'POST' })
+            .catch(e => console.error('[MoveZone gizmo]', e));
+        // Обновить поля формы
+        document.getElementById('zf-x').value = simX.toFixed(1);
+        document.getElementById('zf-y').value = simY.toFixed(1);
     } else if (selectedAgentId !== null && selectedAgentMesh) {
         const m = selectedAgentMesh;
         const x = m.position.x;
@@ -1565,6 +1577,8 @@ function updateScene(data) {
 
     // Зоны — используем плоский формат полей из ZoneSnapshot
     const currentZoneKeys = new Set();
+    // Не перезаписывать позицию зоны, если она перетаскивается гизмо
+    const zoneDragGrace = isDragging || (Date.now() - dragReleaseTime < DRAG_GRACE_MS);
     if (data.zones) {
         editorZones = data.zones;
         data.zones.forEach(z => {
@@ -1573,6 +1587,11 @@ function updateScene(data) {
 
             if (!z.visible || !z.enabled) {
                 removeMesh(key);
+                return;
+            }
+
+            // Если зона перетаскивается гизмо — не обновлять позицию из snapshot
+            if (zoneDragGrace && editingZoneId === z.id && meshes[key]) {
                 return;
             }
 
@@ -1647,7 +1666,8 @@ function renderZoneList() {
     editorZones.forEach(z => {
         const div = document.createElement('div');
         div.className = 'agent-list-item';
-        div.innerHTML = `<span>${z.id || 'zone'}</span>
+        const enabledLabel = z.enabled !== false ? '' : ' [OFF]';
+        div.innerHTML = `<span>${z.id || 'zone'}${enabledLabel}</span>
             <button onclick="startEditZone('${z.id}')">Edit</button>`;
         container.appendChild(div);
     });
@@ -1655,7 +1675,7 @@ function renderZoneList() {
 
 window.startAddZone = function() {
     editingZoneId = null;
-    document.getElementById('zf-title').textContent = 'Новая зона';
+    document.getElementById('zf-title').textContent = 'Новая зона (добавление — Wave 2)';
     document.getElementById('zf-id').value = '';
     document.getElementById('zf-shape').value = 'sphere';
     document.getElementById('zf-x').value = '0';
@@ -1673,66 +1693,82 @@ window.startEditZone = function(zoneId) {
     editingZoneId = zoneId;
     const z = editorZones.find(zone => zone.id === zoneId);
     if (!z) return;
-    document.getElementById('zf-title').textContent = 'Редактировать зону';
+    document.getElementById('zf-title').textContent = 'Редактировать: ' + zoneId;
     document.getElementById('zf-id').value = zoneId;
+    document.getElementById('zf-id').disabled = true;
+
+    // Заполнить позицию
+    const cx = Array.isArray(z.center) ? z.center[0] : 0;
+    const cy = Array.isArray(z.center) ? z.center[1] : 0;
+    document.getElementById('zf-x').value = cx;
+    document.getElementById('zf-y').value = cy;
+
+    // Заполнить визуал
     document.getElementById('zf-color').value = z.color || '#4488FF';
+    document.getElementById('zf-opacity').value = (z.opacity !== undefined) ? z.opacity : 0.3;
+
+    // Заполнить форму
+    if (z.shape_type === 'sphere') {
+        document.getElementById('zf-shape').value = 'sphere';
+        document.getElementById('zf-radius').value = z.radius || 2;
+    } else if (z.shape_type === 'aabb') {
+        document.getElementById('zf-shape').value = 'box';
+        const hs = Array.isArray(z.half_size) ? z.half_size : [2, 2, 2];
+        document.getElementById('zf-bx').value = hs[0];
+        document.getElementById('zf-by').value = hs[1];
+        document.getElementById('zf-bz').value = hs[2];
+    } else if (z.shape_type === 'cylinder') {
+        document.getElementById('zf-shape').value = 'cylinder';
+        document.getElementById('zf-cr').value = z.radius || 2;
+        document.getElementById('zf-ch').value = (z.half_height || 1) * 2;
+    }
+    onZoneShapeChange();
+
     document.getElementById('zf-delete-btn').style.display = '';
     document.getElementById('zones-list-view').style.display = 'none';
     document.getElementById('zone-form-view').style.display = '';
+
+    // Прикрепить гизмо к mesh зоны
+    const zoneKey = `zone_${zoneId}`;
+    if (meshes[zoneKey]) {
+        transformControls.attach(meshes[zoneKey]);
+        transformControls.setMode('translate');
+    }
 };
 
 window.cancelZoneForm = function() {
     document.getElementById('zone-form-view').style.display = 'none';
     document.getElementById('zones-list-view').style.display = '';
+    document.getElementById('zf-id').disabled = false;
+    transformControls.detach();
+    editingZoneId = null;
 };
 
 window.confirmZoneForm = function() {
     const host = window.location.hostname || 'localhost';
     const port = window.location.port || '1937';
-    const shapeType = document.getElementById('zf-shape').value;
-    const idHint = document.getElementById('zf-id').value.trim();
+    const idField = document.getElementById('zf-id').value.trim();
     const x = parseFloat(document.getElementById('zf-x').value) || 0;
     const y = parseFloat(document.getElementById('zf-y').value) || 0;
-    const color = document.getElementById('zf-color').value;
+    const color = encodeURIComponent(document.getElementById('zf-color').value);
     const opacity = parseFloat(document.getElementById('zf-opacity').value);
 
-    const effectsSelect = document.getElementById('zf-effects');
-    const effects = Array.from(effectsSelect.selectedOptions).map(o => ({ type: o.value }));
-
-    let shape;
-    if (shapeType === 'sphere') {
-        const r = parseFloat(document.getElementById('zf-radius').value) || 2.0;
-        shape = { type: 'sphere', center: [x, y, 0], radius: r };
-    } else if (shapeType === 'box') {
-        const bx = parseFloat(document.getElementById('zf-bx').value) || 2.0;
-        const by = parseFloat(document.getElementById('zf-by').value) || 2.0;
-        const bz = parseFloat(document.getElementById('zf-bz').value) || 2.0;
-        shape = { type: 'box', center: [x, y, 0], half_size: [bx / 2, by / 2, bz / 2] };
+    if (editingZoneId) {
+        // Редактирование существующей зоны — move + update visual
+        fetch(`http://${host}:${port}/command?cmd=move_zone&id=${encodeURIComponent(editingZoneId)}&x=${x}&y=${y}`, { method: 'POST' })
+            .catch(e => console.error('[MoveZone]', e));
+        fetch(`http://${host}:${port}/command?cmd=update_zone_visual&id=${encodeURIComponent(editingZoneId)}&color=${color}&opacity=${opacity}`, { method: 'POST' })
+            .catch(e => console.error('[UpdateZoneVisual]', e));
     } else {
-        const cr = parseFloat(document.getElementById('zf-cr').value) || 2.0;
-        const ch = parseFloat(document.getElementById('zf-ch').value) || 1.0;
-        shape = { type: 'cylinder', center: [x, y, 0], radius: cr, half_height: ch / 2 };
+        console.log('[ZoneForm] Создание новых зон — Wave 2 (SpawnZone)');
     }
-
-    fetch(`http://${host}:${port}/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'SpawnZone', shape, effects, color, opacity,
-                               id_hint: idHint, visible: true })
-    }).catch(e => console.error('[ZoneForm]', e));
 
     cancelZoneForm();
 };
 
 window.deleteCurrentZone = function() {
     if (!editingZoneId) return;
-    const host = window.location.hostname || 'localhost';
-    const port = window.location.port || '1937';
-    fetch(`http://${host}:${port}/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'DespawnZone', id: editingZoneId })
-    }).catch(e => console.error('[ZoneDelete]', e));
+    console.log('[ZoneForm] Удаление зон — Wave 2 (DespawnZone)');
     cancelZoneForm();
 };
 

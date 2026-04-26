@@ -75,6 +75,9 @@ public:
     /// Включить/выключить конкретный эффект в зоне. Возвращает false если не найдено.
     bool toggle_effect(const ZoneId& id, size_t effect_idx, bool enabled);
 
+    /// Изменить визуальные свойства зоны (цвет, прозрачность). Возвращает false если не найдена.
+    bool update_zone_visual(const ZoneId& id, const std::string& color, double opacity);
+
     // ── World Query API ──────────────────────────────────────────────────────
 
     /// Список ID зон, содержащих данную точку (только enabled-зоны).

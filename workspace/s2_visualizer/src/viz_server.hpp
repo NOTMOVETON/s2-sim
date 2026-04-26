@@ -29,6 +29,15 @@ struct VizCommandHandler {
     /** Обновить статическую геометрию мира (заменяет текущий список примитивов). */
     virtual void on_update_geometry(const std::vector<WorldPrimitive>& prims) = 0;
 
+    /** Переместить центр зоны по id. */
+    virtual bool on_move_zone(const std::string& zone_id, double x, double y) { (void)zone_id; (void)x; (void)y; return false; }
+
+    /** Включить/выключить зону. */
+    virtual bool on_toggle_zone(const std::string& zone_id, bool enabled) { (void)zone_id; (void)enabled; return false; }
+
+    /** Обновить визуальные свойства зоны (цвет, прозрачность). */
+    virtual bool on_update_zone_visual(const std::string& zone_id, const std::string& color, double opacity) { (void)zone_id; (void)color; (void)opacity; return false; }
+
     /** Результат сохранения сцены в YAML. */
     struct SaveSceneResult {
         bool ok = false;

@@ -423,9 +423,39 @@ static void handle_command(int client_fd, VizCommandHandler* handler, const std:
             if (params.count("agent_id")) try { agent_id = std::stoull(params["agent_id"]); } catch (...) {}
             if (params.count("plugin")) plugin_type = params["plugin"];
             if (params.count("body")) json_input = url_decode(params["body"]);
-            
+
             if (!plugin_type.empty() && !json_input.empty()) {
                 handler->on_plugin_input(agent_id, plugin_type, json_input);
+                cmd_handled = true;
+            }
+        } else if (cmd == "move_zone") {
+            std::string zone_id;
+            double x = 0, y = 0;
+            if (params.count("id")) zone_id = url_decode(params["id"]);
+            if (params.count("x")) try { x = std::stod(params["x"]); } catch (...) {}
+            if (params.count("y")) try { y = std::stod(params["y"]); } catch (...) {}
+            if (!zone_id.empty()) {
+                handler->on_move_zone(zone_id, x, y);
+                cmd_handled = true;
+            }
+        } else if (cmd == "toggle_zone") {
+            std::string zone_id;
+            bool enabled = true;
+            if (params.count("id")) zone_id = url_decode(params["id"]);
+            if (params.count("enabled")) enabled = (params["enabled"] == "true" || params["enabled"] == "1");
+            if (!zone_id.empty()) {
+                handler->on_toggle_zone(zone_id, enabled);
+                cmd_handled = true;
+            }
+        } else if (cmd == "update_zone_visual") {
+            std::string zone_id;
+            std::string color;
+            double opacity = 0.3;
+            if (params.count("id")) zone_id = url_decode(params["id"]);
+            if (params.count("color")) color = url_decode(params["color"]);
+            if (params.count("opacity")) try { opacity = std::stod(params["opacity"]); } catch (...) {}
+            if (!zone_id.empty()) {
+                handler->on_update_zone_visual(zone_id, color, opacity);
                 cmd_handled = true;
             }
         }

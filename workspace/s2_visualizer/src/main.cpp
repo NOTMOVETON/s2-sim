@@ -139,6 +139,21 @@ public:
         }
     }
 
+    bool on_move_zone(const std::string& zone_id, double x, double y) override {
+        if (!engine_) return false;
+        return engine_->zone_system().move_zone(zone_id, s2::Vec3{x, y, 0.0});
+    }
+
+    bool on_toggle_zone(const std::string& zone_id, bool enabled) override {
+        if (!engine_) return false;
+        return engine_->zone_system().toggle_zone(zone_id, enabled);
+    }
+
+    bool on_update_zone_visual(const std::string& zone_id, const std::string& color, double opacity) override {
+        if (!engine_) return false;
+        return engine_->zone_system().update_zone_visual(zone_id, color, opacity);
+    }
+
     void on_update_geometry(const std::vector<s2::WorldPrimitive>& prims) override {
         if (!engine_) return;
         // Обновляем геометрию в SimWorld И синхронизируем систему коллизий

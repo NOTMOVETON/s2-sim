@@ -173,6 +173,18 @@ bool ZoneSystem::toggle_effect(const ZoneId& id, size_t effect_idx, bool enabled
     return false;
 }
 
+bool ZoneSystem::update_zone_visual(const ZoneId& id, const std::string& color, double opacity)
+{
+    for (auto& zone : zones_) {
+        if (zone.id == id) {
+            zone.color = color;
+            zone.opacity = opacity;
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<ZoneId> ZoneSystem::zones_containing(const Vec3& point) const
 {
     std::vector<ZoneId> result;

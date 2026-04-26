@@ -2,6 +2,8 @@
 
 add_library(s2_plugins STATIC
     src/plugins_registry.cpp
+    src/behaviors_registry.cpp
+    src/behaviors/door_behavior.cpp
     src/color.cpp
     src/joint_vel.cpp
     src/effects_registry.cpp
@@ -24,3 +26,10 @@ add_executable(s2_plugins_tests
 )
 target_link_libraries(s2_plugins_tests PRIVATE s2_plugins s2_core GTest::gtest_main)
 add_test(NAME s2_plugins_tests COMMAND s2_plugins_tests)
+
+# Тесты DoorBehavior
+add_executable(s2_door_behavior_tests
+    tests/test_door_behavior.cpp
+)
+target_link_libraries(s2_door_behavior_tests PRIVATE s2_plugins s2_core GTest::gtest_main)
+add_test(NAME s2_door_behavior_tests COMMAND s2_door_behavior_tests)

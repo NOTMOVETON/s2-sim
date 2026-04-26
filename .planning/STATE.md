@@ -2,22 +2,23 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 1 (Zone Visual & Control Layer)
+current_phase: 2 (Actor & Prop Foundation)
 status: executing
-last_updated: "2026-04-26T16:41:28Z"
+last_updated: "2026-04-26T19:03:00.000Z"
+last_activity: "2026-04-26 — Completed Plan 02-01: IActorBehavior + ActorFSM + Actor/Prop struct extension"
 progress:
-  total_phases: 9
-  completed_phases: 1
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
+  total_phases: 3
+  completed_phases: 2
+  total_plans: 18
+  completed_plans: 14
+  percent: 78
 ---
 
 # Project State: S2 Simulator
 
-**Last updated:** 2026-04-26 (Phase 1 executing)
-**Current phase:** 1 (Zone Visual & Control Layer)
-**Phase status:** EXECUTING — 7/7 plans complete (Wave 1 done, Wave 2: 01-03–01-05 complete, Gap closure: 01-07 complete)
+**Last updated:** 2026-04-26 (Phase 2 executing)
+**Current phase:** 2 (Actor & Prop Foundation)
+**Phase status:** EXECUTING — 1/5 plans complete, Wave 1 in progress
 
 ---
 
@@ -75,6 +76,7 @@ progress:
 | StateChangeTrigger id тип | string vs ActorId (uint32_t) | Решено: ActorId — точно соответствует event::ActorStateChanged.actor |
 | zones_to_destroy pattern | Удаление inline vs post-iteration | Решено: zones_to_destroy set, удаление после итерации — безопасно (Pitfall 4) |
 | InZoneResult vs bool | agent_in_zone bool vs расширенный результат | Решено: InZoneResult struct + inline делегат agent_in_zone() — backward compat нулевой |
+| Actor explicit constructors | User-declared vs implicit | Решено: implicit (без явных конструкторов) — сохраняет aggregate-инициализацию в C++17; move-only семантика обеспечена unique_ptr полями |
 | Zone.spawn_time хранение | В Zone struct vs computed | Решено: поле spawn_time в Zone struct, заполняется при add_zone() |
 | load_zone_templates API | Параметр load_world() vs отдельный метод | Решено: отдельный метод load_zone_templates() — backward compat с существующими тестами |
 
@@ -112,6 +114,7 @@ progress:
 | `.planning/phases/01-zone-visual-control-layer/01-05-SUMMARY.md` | ✓ Plan 01-05 complete — SceneLoader YAML extensions + SimEngine snapshot/ZoneSpawnSystem integration |
 | `.planning/phases/01-zone-visual-control-layer/01-06-SUMMARY.md` | ✓ Plan 01-06 complete — Zone Inspector UI + VisualHint рендеринг |
 | `.planning/phases/01-zone-visual-control-layer/01-07-SUMMARY.md` | ✓ Plan 01-07 complete — Gap closure: REST spawn/despawn + UI fetch + contact_link |
+| `.planning/phases/02-actor-prop-foundation/02-01-SUMMARY.md` | ✓ Plan 02-01 complete — IActorBehavior + ActorFSM + Actor/Prop struct extension |
 
 ---
 
@@ -142,6 +145,6 @@ progress:
 
 ---
 
-**Last activity:** 2026-04-26 — Completed Plan 01-07: Gap closure -- REST SpawnZone/DespawnZone + UI fetch + contact_link
+**Last activity:** 2026-04-26 — Completed Plan 02-01: IActorBehavior + ActorFSM + Actor/Prop struct extension
 
-*To start executing: `/gsd-plan-phase 0`*
+**Executing Phase:** 2 (Actor & Prop Foundation) ��� 5 plans, 3 waves — 1/5 complete

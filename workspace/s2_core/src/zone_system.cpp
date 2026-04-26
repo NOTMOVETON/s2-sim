@@ -58,57 +58,60 @@ void ZoneSystem::update_lifecycle(double sim_time, double dt)
 
 // ── Detection: проверка вхождения агента в зону по detection_mode_enum ───────
 
-bool ZoneSystem::agent_in_zone(const Agent& agent, const Zone& zone)
+InZoneResult ZoneSystem::agent_in_zone_result(const Agent& agent, const Zone& zone)
 {
     switch (zone.detection_mode_enum) {
     case DetectionMode::CENTER: {
-        return zone.shape.contains(agent.world_pose.position());
+        bool inside = zone.shape.contains(agent.world_pose.position());
+        return {inside, ""};
     }
     case DetectionMode::BOUNDING: {
         Vec3 pos = agent.world_pose.position();
         double agent_r = agent.bounding.radius;
+        bool inside = false;
         if (zone.shape.type == ZoneShapeType::SPHERE) {
             double dist = (pos - zone.shape.center).norm();
-            return dist < (zone.shape.radius + agent_r);
-        }
-        // Для AABB: расширяем полуразмеры на agent_r
-        if (zone.shape.type == ZoneShapeType::AABB) {
+            inside = dist < (zone.shape.radius + agent_r);
+        } else if (zone.shape.type == ZoneShapeType::AABB) {
             Vec3 diff = (pos - zone.shape.center).cwiseAbs();
-            return diff.x() <= (zone.shape.half_size.x() + agent_r) &&
-                   diff.y() <= (zone.shape.half_size.y() + agent_r) &&
-                   diff.z() <= (zone.shape.half_size.z() + agent_r);
-        }
-        // Для CYLINDER: расширяем radius на agent_r, half_height на agent_r
-        if (zone.shape.type == ZoneShapeType::CYLINDER) {
+            inside = diff.x() <= (zone.shape.half_size.x() + agent_r) &&
+                     diff.y() <= (zone.shape.half_size.y() + agent_r) &&
+                     diff.z() <= (zone.shape.half_size.z() + agent_r);
+        } else if (zone.shape.type == ZoneShapeType::CYLINDER) {
             double dz = std::abs(pos.z() - zone.shape.center.z());
-            if (dz > zone.shape.half_height + agent_r) return false;
-            double dx = pos.x() - zone.shape.center.x();
-            double dy = pos.y() - zone.shape.center.y();
-            return dx * dx + dy * dy <=
-                   (zone.shape.radius + agent_r) * (zone.shape.radius + agent_r);
+            if (dz > zone.shape.half_height + agent_r) {
+                inside = false;
+            } else {
+                double dx = pos.x() - zone.shape.center.x();
+                double dy = pos.y() - zone.shape.center.y();
+                inside = dx * dx + dy * dy <=
+                         (zone.shape.radius + agent_r) * (zone.shape.radius + agent_r);
+            }
+        } else if (zone.shape.type == ZoneShapeType::INFINITE) {
+            inside = true;
+        } else {
+            inside = zone.shape.contains(pos);
         }
-        // INFINITE
-        if (zone.shape.type == ZoneShapeType::INFINITE) return true;
-        // Fallback
-        return zone.shape.contains(pos);
+        return {inside, ""};
     }
     case DetectionMode::PER_LINK: {
         if (!agent.kinematic_tree) {
             // Fallback на CENTER если нет kinematic_tree (T-01-06)
-            return zone.shape.contains(agent.world_pose.position());
+            bool inside = zone.shape.contains(agent.world_pose.position());
+            return {inside, ""};
         }
-        // Итерируем линки kinematic_tree
+        // Итерируем линки kinematic_tree — возвращаем имя первого линка внутри зоны
         for (const auto& link : agent.kinematic_tree->links()) {
             Pose3D link_pose = agent.kinematic_tree->compute_world_pose(
                 link.name, agent.world_pose);
             if (zone.shape.contains(link_pose.position())) {
-                return true;
+                return {true, link.name};
             }
         }
-        return false;
+        return {false, ""};
     }
     }
-    return false;
+    return {false, ""};
 }
 
 // ── Основной тик ─────────────────────────────────────────────────────────────
@@ -403,6 +406,9 @@ void ZoneSystem::on_agent_enter(Agent& agent, Zone& zone, SimBus& bus,
     bus.publish(event::AgentEnteredZone{.agent = agent.id, .zone = zone.id});
     bus.publish(event::ZoneEntered{.zone_id = zone.id, .entity_id = agent.id});  // Новый event — entity-уровень (для Phase 1+ подписчиков)
 
+    // Получить contact_link для PER_LINK detection (ON_ENTER MUTATION тоже нуждается в нём)
+    auto in_zone = agent_in_zone_result(agent, zone);
+
     // MUTATION-эффекты применяются однократно при входе
     for (auto& desc : zone.effects) {
         if (!desc.enabled || !desc.plugin) continue;
@@ -418,6 +424,7 @@ void ZoneSystem::on_agent_enter(Agent& agent, Zone& zone, SimBus& bus,
         ctx.zone_strength  = zone.strength;
         ctx.agent_id       = agent.id;
         ctx.agent_position = agent.world_pose.position();
+        ctx.contact_link   = in_zone.contact_link;
 
         desc.plugin->apply_mutation(agent.state, ctx);
     }
@@ -452,6 +459,9 @@ void ZoneSystem::on_agent_exit(Agent& agent, Zone& zone, SimBus& bus)
 void ZoneSystem::apply_active_effects(Agent& agent, Zone& zone,
                                       double sim_time, double dt)
 {
+    // Получить contact_link для PER_LINK detection
+    auto in_zone = agent_in_zone_result(agent, zone);
+
     for (auto& desc : zone.effects) {
         if (!desc.enabled || !desc.plugin) continue;
         if (!capabilities_match(agent, desc.required_capabilities)) continue;
@@ -465,6 +475,7 @@ void ZoneSystem::apply_active_effects(Agent& agent, Zone& zone,
         ctx.zone_strength  = zone.strength;
         ctx.agent_id       = agent.id;
         ctx.agent_position = agent.world_pose.position();
+        ctx.contact_link   = in_zone.contact_link;
 
         switch (desc.effect_type) {
             case EffectType::MODIFIER:

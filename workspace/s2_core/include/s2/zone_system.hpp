@@ -13,6 +13,12 @@
 
 namespace s2 {
 
+/// Результат проверки вхождения агента в зону.
+struct InZoneResult {
+    bool inside{false};
+    std::string contact_link; ///< Имя первого линка внутри зоны (PER_LINK), пусто для CENTER/BOUNDING
+};
+
 /// Фабрика создаёт плагин эффекта по строковому типу и YAML-параметрам.
 using EffectFactory = std::function<
     std::unique_ptr<EffectPlugin>(const std::string& type, const YAML::Node& params)>;
@@ -108,8 +114,13 @@ private:
     /// Обновить lifecycle всех зон: рост и затухание strength.
     void update_lifecycle(double sim_time, double dt);
 
+    /// Расширенная проверка: возвращает InZoneResult с contact_link для PER_LINK.
+    static InZoneResult agent_in_zone_result(const Agent& agent, const Zone& zone);
+
     /// Проверить вхождение агента в зону с учётом detection_mode_enum.
-    static bool agent_in_zone(const Agent& agent, const Zone& zone);
+    static bool agent_in_zone(const Agent& agent, const Zone& zone) {
+        return agent_in_zone_result(agent, zone).inside;
+    }
 
     /// Точка обнаружения для агента в зависимости от режима (legacy, string-based).
     /// "center" → agent.world_pose.position()

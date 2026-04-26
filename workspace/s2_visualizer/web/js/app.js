@@ -604,7 +604,11 @@ let placingAgentMode = false;        // ожидаем клик в сцену д
 let editingAgentLocalId = null;      // localId редактируемого агента (null = новый)
 let pluginRegistry = [];             // кеш реестра плагинов с сервера
 let urdfList = [];                   // кеш списка URDF-файлов
-let activeEditorTab = 'geometry';    // 'geometry' | 'agents'
+let activeEditorTab = 'geometry';    // 'geometry' | 'agents' | 'zones'
+
+// Zone Inspector — состояние
+let editorZones = [];        // список зон из последнего snapshot
+let editingZoneId = null;    // null = новая зона, string = редактирование существующей
 let _newAgentFormListener = null;    // ссылка на input-listener формы нового агента
 
 // Edge-snapping — состояние
@@ -1562,6 +1566,7 @@ function updateScene(data) {
     // Зоны — используем плоский формат полей из ZoneSnapshot
     const currentZoneKeys = new Set();
     if (data.zones) {
+        editorZones = data.zones;
         data.zones.forEach(z => {
             const key = `zone_${z.id}`;
             currentZoneKeys.add(key);
@@ -1613,11 +1618,230 @@ function updateScene(data) {
             } else {
                 removeMesh(key);
             }
+
+            // VisualHint рендеринг (glow, arrows, particles, grid)
+            if (z.visual_hints && z.visual_hints.length > 0) {
+                renderVisualHints(key, z, z.visual_hints);
+            }
         });
     }
     Object.keys(meshes).forEach(k => {
-        if (k.startsWith('zone_') && !currentZoneKeys.has(k)) removeMesh(k);
+        if (k.startsWith('zone_') && !currentZoneKeys.has(k)) {
+            removeMesh(k);
+            // Удалить visual hints для этой зоны
+            Object.keys(visualHintObjects).forEach(hk => {
+                if (hk.startsWith(k + '_hint_')) removeVisualHint(hk);
+            });
+        }
     });
+}
+
+// ============================================================
+// Zone Inspector — список и форма
+// ============================================================
+
+function renderZoneList() {
+    const container = document.getElementById('zone-list');
+    if (!container) return;
+    container.innerHTML = '';
+    editorZones.forEach(z => {
+        const div = document.createElement('div');
+        div.className = 'agent-list-item';
+        div.innerHTML = `<span>${z.id || 'zone'}</span>
+            <button onclick="startEditZone('${z.id}')">Edit</button>`;
+        container.appendChild(div);
+    });
+}
+
+window.startAddZone = function() {
+    editingZoneId = null;
+    document.getElementById('zf-title').textContent = 'Новая зона';
+    document.getElementById('zf-id').value = '';
+    document.getElementById('zf-shape').value = 'sphere';
+    document.getElementById('zf-x').value = '0';
+    document.getElementById('zf-y').value = '0';
+    document.getElementById('zf-radius').value = '2.0';
+    document.getElementById('zf-color').value = '#4488FF';
+    document.getElementById('zf-opacity').value = '0.3';
+    onZoneShapeChange();
+    document.getElementById('zf-delete-btn').style.display = 'none';
+    document.getElementById('zones-list-view').style.display = 'none';
+    document.getElementById('zone-form-view').style.display = '';
+};
+
+window.startEditZone = function(zoneId) {
+    editingZoneId = zoneId;
+    const z = editorZones.find(zone => zone.id === zoneId);
+    if (!z) return;
+    document.getElementById('zf-title').textContent = 'Редактировать зону';
+    document.getElementById('zf-id').value = zoneId;
+    document.getElementById('zf-color').value = z.color || '#4488FF';
+    document.getElementById('zf-delete-btn').style.display = '';
+    document.getElementById('zones-list-view').style.display = 'none';
+    document.getElementById('zone-form-view').style.display = '';
+};
+
+window.cancelZoneForm = function() {
+    document.getElementById('zone-form-view').style.display = 'none';
+    document.getElementById('zones-list-view').style.display = '';
+};
+
+window.confirmZoneForm = function() {
+    const host = window.location.hostname || 'localhost';
+    const port = window.location.port || '1937';
+    const shapeType = document.getElementById('zf-shape').value;
+    const idHint = document.getElementById('zf-id').value.trim();
+    const x = parseFloat(document.getElementById('zf-x').value) || 0;
+    const y = parseFloat(document.getElementById('zf-y').value) || 0;
+    const color = document.getElementById('zf-color').value;
+    const opacity = parseFloat(document.getElementById('zf-opacity').value);
+
+    const effectsSelect = document.getElementById('zf-effects');
+    const effects = Array.from(effectsSelect.selectedOptions).map(o => ({ type: o.value }));
+
+    let shape;
+    if (shapeType === 'sphere') {
+        const r = parseFloat(document.getElementById('zf-radius').value) || 2.0;
+        shape = { type: 'sphere', center: [x, y, 0], radius: r };
+    } else if (shapeType === 'box') {
+        const bx = parseFloat(document.getElementById('zf-bx').value) || 2.0;
+        const by = parseFloat(document.getElementById('zf-by').value) || 2.0;
+        const bz = parseFloat(document.getElementById('zf-bz').value) || 2.0;
+        shape = { type: 'box', center: [x, y, 0], half_size: [bx / 2, by / 2, bz / 2] };
+    } else {
+        const cr = parseFloat(document.getElementById('zf-cr').value) || 2.0;
+        const ch = parseFloat(document.getElementById('zf-ch').value) || 1.0;
+        shape = { type: 'cylinder', center: [x, y, 0], radius: cr, half_height: ch / 2 };
+    }
+
+    fetch(`http://${host}:${port}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'SpawnZone', shape, effects, color, opacity,
+                               id_hint: idHint, visible: true })
+    }).catch(e => console.error('[ZoneForm]', e));
+
+    cancelZoneForm();
+};
+
+window.deleteCurrentZone = function() {
+    if (!editingZoneId) return;
+    const host = window.location.hostname || 'localhost';
+    const port = window.location.port || '1937';
+    fetch(`http://${host}:${port}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'DespawnZone', id: editingZoneId })
+    }).catch(e => console.error('[ZoneDelete]', e));
+    cancelZoneForm();
+};
+
+window.onZoneShapeChange = function() {
+    const s = document.getElementById('zf-shape').value;
+    document.getElementById('zf-sphere-params').style.display   = s === 'sphere'   ? '' : 'none';
+    document.getElementById('zf-box-params').style.display      = s === 'box'      ? '' : 'none';
+    document.getElementById('zf-cylinder-params').style.display = s === 'cylinder' ? '' : 'none';
+};
+
+// ============================================================
+// VisualHint рендеринг (ZONE-02)
+// ============================================================
+
+const visualHintObjects = {};
+
+function removeVisualHint(hintKey) {
+    if (visualHintObjects[hintKey]) {
+        scene.remove(visualHintObjects[hintKey]);
+        const obj = visualHintObjects[hintKey];
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) obj.material.dispose();
+        delete visualHintObjects[hintKey];
+    }
+}
+
+function renderVisualHints(zoneKey, zone, hints) {
+    if (!hints) return;
+    hints.forEach((hint, i) => {
+        const hintKey = `${zoneKey}_hint_${i}`;
+        if (visualHintObjects[hintKey] &&
+            visualHintObjects[hintKey].userData.hintType !== hint.type) {
+            removeVisualHint(hintKey);
+        }
+
+        const cx = Array.isArray(zone.center) ? zone.center[0] : 0;
+        const cy = Array.isArray(zone.center) ? zone.center[1] : 0;
+        const cz = Array.isArray(zone.center) ? zone.center[2] : 0;
+        // Three.js: x=sim_x, y=sim_z, z=-sim_y
+        const tx = cx, ty = cz, tz = -cy;
+
+        if (hint.type === 'glow') {
+            renderGlowHint(hintKey, tx, ty, tz, hint.params);
+        } else if (hint.type === 'arrows') {
+            renderArrowsHint(hintKey, tx, ty, tz, hint.params);
+        } else if (hint.type === 'particles') {
+            renderParticlesHint(hintKey, tx, ty, tz, hint.params);
+        } else if (hint.type === 'grid') {
+            renderGridHint(hintKey, tx, ty, tz, hint.params);
+        }
+    });
+}
+
+function renderGlowHint(hintKey, tx, ty, tz, params) {
+    if (!visualHintObjects[hintKey]) {
+        const color = (params && params.color) ? params.color : '#4488FF';
+        const intensity = (params && params.intensity !== undefined) ? params.intensity : 0.5;
+        const light = new THREE.PointLight(color, intensity, 10);
+        light.userData.hintType = 'glow';
+        scene.add(light);
+        visualHintObjects[hintKey] = light;
+    }
+    visualHintObjects[hintKey].position.set(tx, ty, tz);
+}
+
+function renderArrowsHint(hintKey, tx, ty, tz, params) {
+    if (!visualHintObjects[hintKey]) {
+        const dir = new THREE.Vector3(0, 1, 0);
+        const color = (params && params.color) ? params.color : '#FF6600';
+        const origin = new THREE.Vector3(tx, ty, tz);
+        const arrow = new THREE.ArrowHelper(dir, origin, 1.5, color);
+        arrow.userData.hintType = 'arrows';
+        scene.add(arrow);
+        visualHintObjects[hintKey] = arrow;
+    }
+    visualHintObjects[hintKey].position.set(tx, ty, tz);
+}
+
+function renderParticlesHint(hintKey, tx, ty, tz, params) {
+    if (!visualHintObjects[hintKey]) {
+        const count = 20;
+        const positions = new Float32Array(count * 3);
+        for (let j = 0; j < count; j++) {
+            positions[j * 3]     = (Math.random() - 0.5) * 2;
+            positions[j * 3 + 1] = Math.random() * 2;
+            positions[j * 3 + 2] = (Math.random() - 0.5) * 2;
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const color = (params && params.color) ? params.color : '#FFFFFF';
+        const mat = new THREE.PointsMaterial({ color, size: 0.1 });
+        const pts = new THREE.Points(geo, mat);
+        pts.userData.hintType = 'particles';
+        scene.add(pts);
+        visualHintObjects[hintKey] = pts;
+    }
+    visualHintObjects[hintKey].position.set(tx, ty, tz);
+}
+
+function renderGridHint(hintKey, tx, ty, tz, params) {
+    if (!visualHintObjects[hintKey]) {
+        const size = (params && params.size) ? params.size : 4;
+        const color = (params && params.color) ? params.color : '#44FF44';
+        const grid = new THREE.GridHelper(size, 4, color, color);
+        grid.userData.hintType = 'grid';
+        scene.add(grid);
+        visualHintObjects[hintKey] = grid;
+    }
+    visualHintObjects[hintKey].position.set(tx, ty, tz);
 }
 
 // ============================================================
@@ -2184,6 +2408,8 @@ window.switchEditorTab = function(tab) {
         tab === 'geometry' ? '' : 'none';
     document.getElementById('editor-tab-agents').style.display =
         tab === 'agents' ? '' : 'none';
+    document.getElementById('editor-tab-zones').style.display =
+        tab === 'zones' ? '' : 'none';
     document.querySelectorAll('.editor-tab-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.tab === tab);
     });
@@ -2198,6 +2424,8 @@ window.switchEditorTab = function(tab) {
             }
         });
         fetchUrdfList();
+    } else if (tab === 'zones') {
+        renderZoneList();
     } else {
         closeAgentForm();
     }

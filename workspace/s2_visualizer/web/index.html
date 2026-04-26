@@ -636,6 +636,7 @@
         <div class="editor-tabs">
             <button class="editor-tab-btn active" data-tab="geometry" onclick="switchEditorTab('geometry')">Геометрия</button>
             <button class="editor-tab-btn" data-tab="agents" onclick="switchEditorTab('agents')">Агенты</button>
+            <button class="editor-tab-btn" data-tab="zones" onclick="switchEditorTab('zones')">Зоны</button>
         </div>
 
         <!-- Вкладка: Геометрия -->
@@ -721,6 +722,62 @@
                     <button class="save" onclick="confirmAgent()">Подтвердить</button>
                     <button class="danger" onclick="closeAgentForm()">Отмена</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Вкладка: Зоны -->
+        <div id="editor-tab-zones" style="display:none">
+            <!-- Список зон -->
+            <div id="zones-list-view">
+                <button class="save" onclick="startAddZone()" style="width:100%;margin-bottom:6px;">+ Добавить зону</button>
+                <div id="zone-list"></div>
+            </div>
+
+            <!-- Форма создания/редактирования зоны -->
+            <div id="zone-form-view" style="display:none">
+                <h5 id="zf-title">Новая зона</h5>
+                <label>ID: <input type="text" id="zf-id" style="width:120px;"></label>
+                <label>Форма:
+                    <select id="zf-shape" onchange="onZoneShapeChange()">
+                        <option value="sphere">Sphere</option>
+                        <option value="box">Box</option>
+                        <option value="cylinder">Cylinder</option>
+                    </select>
+                </label>
+                <div id="zf-sphere-params">
+                    <label>Radius: <input type="number" id="zf-radius" step="0.1" value="2.0" min="0.1" style="width:70px;"></label>
+                </div>
+                <div id="zf-box-params" style="display:none">
+                    <label>W: <input type="number" id="zf-bx" step="0.1" value="2.0" min="0.1" style="width:60px;"></label>
+                    <label>D: <input type="number" id="zf-by" step="0.1" value="2.0" min="0.1" style="width:60px;"></label>
+                    <label>H: <input type="number" id="zf-bz" step="0.1" value="2.0" min="0.1" style="width:60px;"></label>
+                </div>
+                <div id="zf-cylinder-params" style="display:none">
+                    <label>Radius: <input type="number" id="zf-cr" step="0.1" value="2.0" min="0.1" style="width:60px;"></label>
+                    <label>Height: <input type="number" id="zf-ch" step="0.1" value="1.0" min="0.1" style="width:60px;"></label>
+                </div>
+                <label>X: <input type="number" id="zf-x" step="0.1" value="0" style="width:70px;"></label>
+                <label>Y: <input type="number" id="zf-y" step="0.1" value="0" style="width:70px;"></label>
+                <label>Цвет: <input type="color" id="zf-color" value="#4488FF"></label>
+                <label>Прозрачность: <input type="range" id="zf-opacity" min="0" max="1" step="0.05" value="0.3"></label>
+                <label>Эффекты:<br>
+                    <select id="zf-effects" multiple size="5" style="width:100%;">
+                        <option value="ice">ice</option>
+                        <option value="boost">boost</option>
+                        <option value="lock">lock</option>
+                        <option value="charging">charging</option>
+                        <option value="conveyor">conveyor</option>
+                        <option value="wind">wind</option>
+                        <option value="teleport">teleport</option>
+                        <option value="fog">fog</option>
+                        <option value="emi">emi</option>
+                    </select>
+                </label>
+                <div style="display:flex;gap:4px;margin-top:6px;">
+                    <button class="save" onclick="confirmZoneForm()" style="flex:1;">Применить</button>
+                    <button onclick="cancelZoneForm()">Отмена</button>
+                </div>
+                <button id="zf-delete-btn" class="danger" onclick="deleteCurrentZone()" style="width:100%;margin-top:6px;display:none;">Удалить</button>
             </div>
         </div>
     </div>

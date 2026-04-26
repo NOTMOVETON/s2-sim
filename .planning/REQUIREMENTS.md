@@ -31,7 +31,7 @@
 ### Акторы — основа
 
 - [x] **ACTR-01**: IActorBehavior интерфейс: on_init(yaml) / on_spawn(entity) / on_reset() / update(dt, entity, ctx) / on_signal(SignalEvent) / on_interact(source, action, params) / current_state() / to_json(); FSM утилита (ActorFSM: add_state/add_transition/fire/update)
-- [ ] **ACTR-02**: DoorBehavior: FSM (CLOSED/OPENING/OPEN/CLOSING); behavior напрямую двигает геометрию door_panel и обновляет collision (императивное управление); proximity-триггер или wire-сигнал через on_signal()
+- [x] **ACTR-02**: DoorBehavior: FSM (CLOSED/OPENING/OPEN/CLOSING); behavior напрямую двигает геометрию door_panel и обновляет collision (императивное управление); proximity-триггер или wire-сигнал через on_signal()
 - [ ] **ACTR-03**: PedestrianBehavior: маршрутные точки (waypoints), LinearSteering к следующей точке, ObstacleAvoidance (separation от других агентов/акторов), loop/ping-pong режимы
 - [ ] **ACTR-04**: ConveyorActor: owned conveyor зона, DoorWireController/ConveyorWireController для реакции на wire-сигнал, реверс направления
 - [ ] **ACTR-05**: ElevatorBehavior + ElevatorUserPlugin (агент вызывает лифт через KernelCommand::Interact)
@@ -159,7 +159,7 @@
 | ZONE-09 | Phase 1 | Complete (Plan 01-03) |
 | ZONE-10 | Phase 1 | Complete (Plan 01-04) |
 | ACTR-01 | Phase 2 | Complete (Plan 02-01) |
-| ACTR-02 | Phase 2 | Pending |
+| ACTR-02 | Phase 2 | Complete (Plan 02-03) |
 | ACTR-06 | Phase 2 | Pending |
 | PROP-01 | Phase 2 | Complete (Plan 02-01) |
 | PROP-02 | Phase 2 | Complete (Plan 02-02) |

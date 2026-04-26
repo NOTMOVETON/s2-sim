@@ -4,21 +4,21 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 2 (Actor & Prop Foundation)
 status: executing
-last_updated: "2026-04-26T19:18:00.000Z"
-last_activity: "2026-04-26 — Completed Plan 02-02: Engine Integration (phase2_actors, phase6_attachments, KernelCommands, SceneLoader)"
+last_updated: "2026-04-26T19:31:00.000Z"
+last_activity: "2026-04-26 — Completed Plan 02-03: DoorBehavior FSM + DoorOpenerPlugin (proximity + wire triggers)"
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 18
-  completed_plans: 15
-  percent: 83
+  completed_plans: 16
+  percent: 89
 ---
 
 # Project State: S2 Simulator
 
 **Last updated:** 2026-04-26 (Phase 2 executing)
 **Current phase:** 2 (Actor & Prop Foundation)
-**Phase status:** EXECUTING — 2/5 plans complete, Wave 2 in progress
+**Phase status:** EXECUTING — 3/5 plans complete, Wave 2 in progress
 
 ---
 
@@ -76,6 +76,8 @@ progress:
 | StateChangeTrigger id тип | string vs ActorId (uint32_t) | Решено: ActorId — точно соответствует event::ActorStateChanged.actor |
 | zones_to_destroy pattern | Удаление inline vs post-iteration | Решено: zones_to_destroy set, удаление после итерации — безопасно (Pitfall 4) |
 | InZoneResult vs bool | agent_in_zone bool vs расширенный результат | Решено: InZoneResult struct + inline делегат agent_in_zone() — backward compat нулевой |
+| behaviors_registry отделение | Единый vs отдельный от plugins_registry | Решено: отдельный behaviors_registry — behavior и plugin фабрики имеют разные сигнатуры |
+| bus_ в DoorBehavior | Параметр on_interact vs сохранённый указатель | Решено: bus_ сохраняется из update(), on_interact публикует если bus_ != nullptr |
 | Agent-прокси для плагинов актора | Agent& vs новый тип | Решено: Agent proxy с id+world_pose в phase2_actors() — Phase 6 ENTY унифицирует через EntityBase |
 | BehaviorFactory в SceneLoader | Inline vs отдельный setter | Решено: третий параметр load() с default {} — нулевая обратная совместимость |
 | Pose composition в phase6 | Матрица вращения vs сложение | Решено: упрощённое сложение поз (x+x, yaw+yaw) — Phase 6 ENTY заменит на Transform3D |
@@ -119,6 +121,7 @@ progress:
 | `.planning/phases/01-zone-visual-control-layer/01-07-SUMMARY.md` | ✓ Plan 01-07 complete — Gap closure: REST spawn/despawn + UI fetch + contact_link |
 | `.planning/phases/02-actor-prop-foundation/02-01-SUMMARY.md` | ✓ Plan 02-01 complete — IActorBehavior + ActorFSM + Actor/Prop struct extension |
 | `.planning/phases/02-actor-prop-foundation/02-02-SUMMARY.md` | ✓ Plan 02-02 complete — Engine Integration (phase2_actors, phase6_attachments, KernelCommands, SceneLoader) |
+| `.planning/phases/02-actor-prop-foundation/02-03-SUMMARY.md` | ✓ Plan 02-03 complete — DoorBehavior FSM + DoorOpenerPlugin |
 
 ---
 
@@ -149,6 +152,6 @@ progress:
 
 ---
 
-**Last activity:** 2026-04-26 — Completed Plan 02-02: Engine Integration (phase2_actors, phase6_attachments, KernelCommands, SceneLoader)
+**Last activity:** 2026-04-26 — Completed Plan 02-03: DoorBehavior FSM + DoorOpenerPlugin (proximity + wire triggers)
 
-**Executing Phase:** 2 (Actor & Prop Foundation) -- 5 plans, 3 waves -- 2/5 complete
+**Executing Phase:** 2 (Actor & Prop Foundation) -- 5 plans, 3 waves -- 3/5 complete

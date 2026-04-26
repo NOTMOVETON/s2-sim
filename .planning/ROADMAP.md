@@ -101,7 +101,7 @@ Plans:
 Plans:
 - [x] 02-01-PLAN.md — IActorBehavior инт��рфейс + ActorFSM + Actor/Prop struct расширение + WorldContext
 - [x] 02-02-PLAN.md — SimEngine Phase 2 (actors tick) + Phase 6 (attachments) + Interact/Attach/Detach handlers + SceneLoader
-- [ ] 02-03-PLAN.md — DoorBehavior FSM (CLOSED/OPENING/OPEN/CLOSING) + DoorOpenerPlugin + behaviors_registry
+- [x] 02-03-PLAN.md — DoorBehavior FSM (CLOSED/OPENING/OPEN/CLOSING) + DoorOpenerPlugin + behaviors_registry
 - [ ] 02-04-PLAN.md — SignalListenerBase + DoorWireController + ConveyorWireController + EventReactor
 - [ ] 02-05-PLAN.md — GrabberPlugin (grab/release/manipulation_locked) + интеграционные тесты
 

@@ -18,3 +18,9 @@ target_link_libraries(s2_plugins PUBLIC
 target_link_libraries(s2_plugins PRIVATE
     GeographicLib::GeographicLib
 )
+# Тесты плагинов эффектов
+add_executable(s2_plugins_tests
+    tests/test_effect_fog_emi.cpp
+)
+target_link_libraries(s2_plugins_tests PRIVATE s2_plugins s2_core GTest::gtest_main)
+add_test(NAME s2_plugins_tests COMMAND s2_plugins_tests)

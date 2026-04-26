@@ -7,6 +7,8 @@
 #include <s2/effects/charging_effect.hpp>
 #include <s2/effects/tire_puncture.hpp>
 #include <s2/effects/teleport_effect.hpp>
+#include <s2/effects/fog_effect.hpp>
+#include <s2/effects/emi_effect.hpp>
 
 namespace s2 {
 
@@ -23,6 +25,8 @@ std::unique_ptr<EffectPlugin> create_effect(
     else if (type == "charging")      plugin = std::make_unique<effects::ChargingEffect>();
     else if (type == "tire_puncture") plugin = std::make_unique<effects::TirePunctureEffect>();
     else if (type == "teleport")      plugin = std::make_unique<effects::TeleportEffect>();
+    else if (type == "fog")           plugin = std::make_unique<FogEffect>();
+    else if (type == "emi")           plugin = std::make_unique<EMIEffect>();
     // Новые эффекты добавляются здесь по мере реализации задач 29+.
 
     if (plugin) {

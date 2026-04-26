@@ -20,12 +20,12 @@
 - [ ] **ZONE-01**: Редактор зон в UI с инспектором (форма, параметры, эффекты)
 - [ ] **ZONE-02**: VisualHint pipeline для зон (цвет, прозрачность, анимация въезда/выезда)
 - [ ] **ZONE-03**: Сенсорные эффекты: туман (ухудшение видимости), ЭМ помехи (деградация GNSS/IMU)
-- [ ] **ZONE-04**: Lifecycle зон: zone.strength (0–1), рост/затухание, auto-remove при strength=0, drift (движение)
+- [x] **ZONE-04**: Lifecycle зон: zone.strength (0–1), рост/затухание, auto-remove при strength=0, drift (движение)
 - [ ] **ZONE-05**: KernelCommands для зон: SpawnZone / RemoveZone / ToggleZone (enable/disable)
-- [ ] **ZONE-06**: Zone detection_mode — center (zone.contains(entity.pose)) / bounding (zone.intersects(entity.shape)) / per_link (∀ link in kinematic_tree); дефолт: bounding
-- [ ] **ZONE-07**: Zone self_destruct_policy — on_any_contact: зона удаляется при любом контакте независимо от immunity; on_effect_applied: зона удаляется только если эффект не был поглощён
+- [x] **ZONE-06**: Zone detection_mode — center (zone.contains(entity.pose)) / bounding (zone.intersects(entity.shape)) / per_link (∀ link in kinematic_tree); дефолт: bounding
+- [x] **ZONE-07**: Zone self_destruct_policy — on_any_contact: зона удаляется при любом контакте независимо от immunity; on_effect_applied: зона удаляется только если эффект не был поглощён
 - [ ] **ZONE-08**: Zone spawn triggers — command (KernelCommand, уже есть) + event (EventBus фильтр по типу/источнику) + timer (N секунд от старта) + state_change (Entity переходит в указанное состояние)
-- [ ] **ZONE-09**: Entity.owned_zones — список зон привязанных к Entity (и к конкретному link через attached_to_link); зоны двигаются вместе с Entity; объявляются в YAML через owned_zones: [...]
+- [x] **ZONE-09**: Entity.owned_zones — список зон привязанных к Entity (и к конкретному link через attached_to_link); зоны двигаются вместе с Entity; объявляются в YAML через owned_zones: [...]
 - [ ] **ZONE-10**: Zone movement через invisible prop-носитель — SpawnProp(invisible_carrier) + SpawnZone(attached_to: carrier_id); carrier может иметь drift_behavior плагин; переиспользует существующие механизмы вместо «движения зоны»
 
 ### Акторы — основа
@@ -151,12 +151,12 @@
 | ZONE-01 | Phase 1 | Pending |
 | ZONE-02 | Phase 1 | Pending |
 | ZONE-03 | Phase 1 | Pending |
-| ZONE-04 | Phase 1 | Pending |
+| ZONE-04 | Phase 1 | Complete (Plan 01-03) |
 | ZONE-05 | Phase 1 | Pending |
-| ZONE-06 | Phase 1 | Pending |
-| ZONE-07 | Phase 1 | Pending |
+| ZONE-06 | Phase 1 | Complete (Plan 01-03) |
+| ZONE-07 | Phase 1 | Complete (Plan 01-03) |
 | ZONE-08 | Phase 1 | Pending |
-| ZONE-09 | Phase 1 | Pending |
+| ZONE-09 | Phase 1 | Complete (Plan 01-03) |
 | ZONE-10 | Phase 1 | Pending |
 | ACTR-01 | Phase 2 | Pending |
 | ACTR-02 | Phase 2 | Pending |

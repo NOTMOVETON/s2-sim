@@ -2,22 +2,22 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 0 (Core Architecture Foundation)
-status: complete
-last_updated: "2026-04-26T10:30:00Z"
+current_phase: 1 (Zone Visual & Control Layer)
+status: executing
+last_updated: "2026-04-26T15:42:39Z"
 progress:
   total_phases: 9
   completed_phases: 1
   total_plans: 6
-  completed_plans: 6
-  percent: 100
+  completed_plans: 4
+  percent: 67
 ---
 
 # Project State: S2 Simulator
 
-**Last updated:** 2026-04-26 (Plan 06 complete)
-**Current phase:** 0 (Core Architecture Foundation)
-**Phase status:** COMPLETE — 6/6 plans complete (включая gap-closure 00-06)
+**Last updated:** 2026-04-26 (Phase 1 executing)
+**Current phase:** 1 (Zone Visual & Control Layer)
+**Phase status:** EXECUTING — 4/6 plans complete (Wave 1 done, Wave 2: 01-03 complete)
 
 ---
 
@@ -69,6 +69,9 @@ progress:
 | NullWorldQuery расположение | отдельный файл vs вложенный класс | Решено: private вложенный класс в SimEngine — не загрязняет namespace s2 |
 | PluginContext хранение | поле SimEngine vs локальное в фазе | Решено: локальное в каждой фазе — разные tick_cmds буферы для phase3/phase4/phase5 |
 | command_queue_ drain pattern | lock всё время vs swap+unlock | Решено: lock-swap drain — swap под mutex, обработка без блокировки (минимальное contention) |
+| BOUNDING detection расширение | Только sphere vs все формы | Решено: расширять все формы (sphere/AABB/cylinder) на agent.bounding.radius |
+| zones_to_destroy pattern | Удаление inline vs post-iteration | Решено: zones_to_destroy set, удаление после итерации — безопасно (Pitfall 4) |
+| Zone.spawn_time хранение | В Zone struct vs computed | Решено: поле spawn_time в Zone struct, заполняется при add_zone() |
 
 ---
 
@@ -97,6 +100,9 @@ progress:
 | `.planning/phases/00-core-architecture-foundation/00-04-SUMMARY.md` | ✓ Plan 00-04 complete — SimEngine 8-фазный tick lifecycle + command_queue_ + NullWorldQuery |
 | `.planning/phases/00-core-architecture-foundation/00-05-SUMMARY.md` | ✓ Plan 00-05 complete — on_reset() для DiffDrive/Battery + SceneLoader ACTUATION validation |
 | `.planning/phases/00-core-architecture-foundation/00-06-SUMMARY.md` | ✓ Plan 00-06 complete — Gap ARCH-04 закрыт: ZoneEntered/ZoneExited публикуются ZoneSystem |
+| `.planning/phases/01-zone-visual-control-layer/01-01-SUMMARY.md` | ✓ Plan 01-01 complete — Zone data types: DetectionMode, ZoneLifecycle, SelfDestructPolicy, ZoneSnapshot strength/visual_hints |
+| `.planning/phases/01-zone-visual-control-layer/01-02-SUMMARY.md` | ✓ Plan 01-02 complete — FogEffect + EMIEffect сенсорные эффекты |
+| `.planning/phases/01-zone-visual-control-layer/01-03-SUMMARY.md` | ✓ Plan 01-03 complete — ZoneSystem lifecycle, detection mode, self_destruct, owned_zones |
 
 ---
 
@@ -127,6 +133,6 @@ progress:
 
 ---
 
-**Last activity:** 2026-04-26 — Completed quick task 260426-002: zone editor backend + gizmo
+**Last activity:** 2026-04-26 — Completed Plan 01-03: ZoneSystem lifecycle, detection mode, self_destruct, owned_zones
 
 *To start executing: `/gsd-plan-phase 0`*

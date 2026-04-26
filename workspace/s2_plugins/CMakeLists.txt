@@ -4,6 +4,7 @@ add_library(s2_plugins STATIC
     src/plugins_registry.cpp
     src/behaviors_registry.cpp
     src/behaviors/door_behavior.cpp
+    src/plugins/door_opener_plugin.cpp
     src/color.cpp
     src/joint_vel.cpp
     src/effects_registry.cpp

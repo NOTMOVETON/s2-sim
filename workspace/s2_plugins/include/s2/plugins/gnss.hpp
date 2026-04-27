@@ -104,6 +104,19 @@ public:
                "\"accuracy\":" + std::to_string(noise_std_) + "}";
     }
 
+    PluginRole role() const override { return PluginRole::sensor; }
+
+    void on_reset() override
+    {
+        seq_           = 0;
+        publish_timer_ = 0.0;
+        current_lat_   = 0.0;
+        current_lon_   = 0.0;
+        current_alt_   = 0.0;
+        current_azimuth_ = 0.0;
+        rng_.seed(42);
+    }
+
 private:
     GeoOrigin geo_origin_;
     GeographicLib::LocalCartesian converter_;

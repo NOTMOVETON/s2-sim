@@ -169,6 +169,23 @@ public:
         }
     }
 
+    PluginRole role() const override { return PluginRole::actuation; }
+
+    std::vector<std::string> provided_capabilities() const override
+    {
+        return {"diff_drive"};
+    }
+
+    void on_reset() override
+    {
+        external_linear_velocity_  = 0.0;
+        external_angular_velocity_ = 0.0;
+        has_external_input_        = false;
+        seq_                       = 0;
+        time_acc_                  = 0.0;
+        current_data               = DiffDriveData{};
+    }
+
 private:
     double max_linear_{2.0};
     double max_angular_{1.5};

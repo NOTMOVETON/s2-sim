@@ -141,6 +141,12 @@ public:
         catch (const std::exception&) {}
     }
 
+    void on_reset() override
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        points_.clear();
+    }
+
 private:
     std::string topic_{"/plan"};
     int         max_points_{500};

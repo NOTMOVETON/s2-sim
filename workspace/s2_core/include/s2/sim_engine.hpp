@@ -201,6 +201,11 @@ public:
   void reset()
   {
     restore_initial_states();
+    for (auto& agent : world_.agents()) {
+      for (auto& plugin : agent.plugins) {
+        plugin->on_reset();
+      }
+    }
     sim_time_ = 0.0;
     paused_ = true;
   }

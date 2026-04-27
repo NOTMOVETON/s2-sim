@@ -156,6 +156,12 @@ public:
         ])JSON";
     }
 
+    void on_reset() override
+    {
+        fall_velocity_  = 0.0;
+        slide_velocity_ = Vec3::Zero();
+    }
+
 private:
     double gravity_accel_  = 9.81;
     double max_fall_speed_ = 20.0;

@@ -109,6 +109,12 @@ public:
         catch (const std::exception&) {}
     }
 
+    void on_reset() override
+    {
+        timer_ = 0.0;
+        points_.clear();
+    }
+
 private:
     double record_interval_s_{0.5};
     int    max_points_{200};

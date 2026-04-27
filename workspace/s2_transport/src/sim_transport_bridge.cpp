@@ -53,9 +53,12 @@ void SimTransportBridge::init(const GeoOrigin& geo_origin)
         }
 
         // Инициализируем плагины (запоминают начальное состояние агента)
+        // и регистрируем capabilities, объявленные плагином
         for (const auto& plugin : agent.plugins)
         {
             plugin->initialize(const_cast<Agent&>(agent));
+            for (const auto& cap : plugin->provided_capabilities())
+                const_cast<Agent&>(agent).capabilities.insert(cap);
         }
 
         for (const auto& plugin : agent.plugins)

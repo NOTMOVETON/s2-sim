@@ -60,12 +60,30 @@ public:
      */
     void initialize(Agent& agent) override
     {
+        agent_ = &agent;
         auto* existing = agent.state.get<BatteryComponent>();
         if (existing) {
             // Компонент уже есть — сохраняем уровень, параметры обновятся из конфига
         } else {
             agent.state.emplace<BatteryComponent>(
                 BatteryComponent{initial_level_, false});
+        }
+    }
+
+    PluginRole role() const override { return PluginRole::resource; }
+
+    void on_reset() override
+    {
+        cached_level_    = initial_level_;
+        cached_charging_ = false;
+        seq_             = 0;
+        publish_timer_   = 0.0;
+        if (agent_) {
+            auto* bat = agent_->state.get<BatteryComponent>();
+            if (bat) {
+                bat->level    = initial_level_;
+                bat->charging = false;
+            }
         }
     }
 
@@ -218,6 +236,8 @@ public:
     }
 
 private:
+    Agent* agent_{nullptr};  // захватывается в initialize() для on_reset()
+
     // Параметры батареи
     double  initial_level_{1.0};
     double  nominal_voltage_{24.0};

@@ -72,6 +72,16 @@ public:
                "\"yaw\":" + std::to_string(current_yaw_) + "}";
     }
 
+    PluginRole role() const override { return PluginRole::sensor; }
+
+    void on_reset() override
+    {
+        seq_            = 0;
+        publish_timer_  = 0.0;
+        current_gyro_z_ = 0.0;
+        current_yaw_    = 0.0;
+    }
+
 private:
     double publish_rate_hz_{100.0};  ///< По умолчанию 100 Гц (совпадает с sim rate)
     double publish_timer_{0.0};

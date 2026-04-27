@@ -30,6 +30,21 @@ namespace plugins
 {
 
 /**
+ * @brief Роль плагина в симуляции.
+ *
+ * Каждый плагин объявляет свою роль через role().
+ * Правило: максимум один плагин с ролью actuation на агента.
+ */
+enum class PluginRole
+{
+    actuation,    ///< Приводной плагин (DiffDrive и т.п.) — управляет движением
+    sensor,       ///< Сенсорный плагин (Lidar, GNSS, IMU и т.п.) — читает состояние мира
+    interaction,  ///< Плагин взаимодействия (Grabber и т.п.) — изменяет мир
+    resource,     ///< Ресурсный плагин (Battery и т.п.) — управляет ресурсами агента
+    utility,      ///< Утилитарный плагин (Color, Gravity и т.п.) — прочее
+};
+
+/**
  * @brief Базовый интерфейс плагина агента.
  *
  * Каждый плагин имеет:
@@ -98,12 +113,61 @@ public:
 
     virtual std::string type() const = 0;
 
+    // ─── Роль и capabilities ──────────────────────────────────────────────
+
+    /**
+     * @brief Роль плагина в симуляции.
+     * Используется для enforcement-правил (не более одного actuation-плагина на агента)
+     * и для фильтрации в UI-редакторе.
+     */
+    virtual PluginRole role() const { return PluginRole::utility; }
+
+    /**
+     * @brief Capabilities, которые плагин добавляет агенту при инициализации.
+     *
+     * Вызывается SimTransportBridge::init() после initialize().
+     * Возвращённые строки добавляются в agent.capabilities.
+     * Позволяет плагину декларировать свои возможности без дублирования в YAML.
+     *
+     * Пример: DiffDrivePlugin возвращает {"diff_drive"}.
+     */
+    virtual std::vector<std::string> provided_capabilities() const { return {}; }
+
+    // ─── Lifecycle ────────────────────────────────────────────────────────
+
     /**
      * @brief Инициализировать плагин после загрузки агента.
      * Вызывается из SimTransportBridge::init() после регистрации всех плагинов.
      * Позволяет плагину запомнить начальное состояние агента (например, цвет).
      */
     virtual void initialize(Agent& agent) { (void)agent; }
+
+    /**
+     * @brief Сбросить плагин к начальному состоянию.
+     *
+     * Вызывается SimEngine::reset() после restore_initial_states().
+     * Плагин сбрасывает runtime-состояние (seq_, таймеры, кеши, флаги ввода).
+     * Config-поля (max_linear_, initial_level_ и т.п.) не трогает.
+     */
+    virtual void on_reset() {}
+
+    /**
+     * @brief Агент появился в симуляции (spawn или первая загрузка сцены).
+     * Вызывается после initialize(). В Phase 2 сигнатура изменится на Entity&.
+     */
+    virtual void on_spawn(Agent& agent) { (void)agent; }
+
+    /**
+     * @brief Агент удалён из симуляции.
+     * В Phase 2 сигнатура изменится на Entity&.
+     */
+    virtual void on_despawn(Agent& agent) { (void)agent; }
+
+    /**
+     * @brief Сцена загружена (все агенты инициализированы).
+     * Вызывается SimEngine после загрузки сцены.
+     */
+    virtual void on_scene_load() {}
 
     /**
      * @brief Ранняя фаза тика — до resolve() contributions.

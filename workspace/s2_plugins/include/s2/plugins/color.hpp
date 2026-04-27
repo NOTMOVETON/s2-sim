@@ -73,6 +73,12 @@ public:
      */
     std::string to_json() const override;
 
+    void on_reset() override
+    {
+        // update() автоматически восстанавливает исходный цвет когда timer_ <= 0
+        timer_ = 0.0;
+    }
+
 private:
     std::string service_name_{"/set_color"};
     std::string configured_color_{"#FF0000"};  ///< Цвет из конфига

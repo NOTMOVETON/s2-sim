@@ -105,6 +105,12 @@ public:
         return result.dump();
     }
 
+    void on_reset() override
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        raw_.clear();
+    }
+
 private:
     std::string topic_{"/topic"};
 

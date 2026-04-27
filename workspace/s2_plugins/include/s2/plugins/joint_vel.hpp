@@ -73,6 +73,12 @@ public:
      */
     std::string to_json() const override;
 
+    void on_reset() override
+    {
+        for (auto& m : joints_)
+            m.target_vel = 0.0;
+    }
+
 private:
     struct JointMapping
     {

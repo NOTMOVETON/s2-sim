@@ -212,6 +212,15 @@ private:
     std::string mount_link_;
     std::string viz_color_   = "#00FFFF";
 
+    PluginRole role() const override { return PluginRole::sensor; }
+
+    void on_reset() override
+    {
+        seq_          = 0;
+        publish_timer_ = 0.0;
+        scan_points_.clear();
+    }
+
     // Состояние плагина
     bool        visible_      = false;  ///< управляется кнопкой из UI
     double      publish_timer_{0.0};

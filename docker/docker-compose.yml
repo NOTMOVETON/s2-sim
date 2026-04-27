@@ -15,6 +15,7 @@ services:
     build:
       context: ../
       dockerfile: docker/Dockerfile.ros2
+      network: host
     volumes:
       - ../workspace:/workspace
     environment:
@@ -33,6 +34,7 @@ services:
     build:
       context: ../
       dockerfile: docker/Dockerfile.ros2
+      network: host
     volumes:
       - ../workspace:/workspace
     environment:
@@ -52,6 +54,7 @@ services:
     build:
       context: ../
       dockerfile: docker/Dockerfile.ros2
+      network: host
     volumes:
       - ../workspace:/workspace
     ports:
@@ -73,6 +76,7 @@ services:
     build:
       context: ../
       dockerfile: docker/Dockerfile.ros2
+      network: host
     volumes:
       - ../workspace:/workspace
       - ./fastdds.xml:/root/.ros/fastdds.xml:ro

@@ -1,0 +1,25 @@
+{
+  "name": "s2-simulator",
+  "version": "0.1.0",
+  "milestone": {
+    "name": "v1.0 Architecture Migration",
+    "version": "1.0.0",
+    "status": "in_progress"
+  },
+  "phase": {
+    "number": 2,
+    "name": "Unified Entity Model",
+    "status": "not_started"
+  },
+  "loop": {
+    "plan": null,
+    "position": "IDLE"
+  },
+  "timestamps": {
+    "created_at": "2026-04-27T00:00:00Z",
+    "updated_at": "2026-04-28T00:00:00Z"
+  },
+  "satellite": {
+    "groom": true
+  }
+}

@@ -21,7 +21,8 @@ struct EffectContext
     Vec3 zone_center{Vec3::Zero()};    ///< Текущий центр зоны
     Vec3 zone_half_size{Vec3::Zero()}; ///< Текущие полуразмеры зоны (для AABB)
 
-    AgentId agent_id{0};               ///< ID агента
+    EntityId entity_id{0};             ///< Универсальный ID сущности (Phase 2+)
+    AgentId  agent_id{0};              ///< ID агента (backward-compat alias; Phase 6 уберёт)
     Vec3 agent_position{Vec3::Zero()}; ///< Текущая позиция агента
 };
 

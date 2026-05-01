@@ -51,7 +51,7 @@ struct AgentSnapshot {
 
 /** Снимок пропа для визуализатора */
 struct PropSnapshot {
-    ActorId id;
+    ObjectId id;
     std::string type;
     Pose3D pose;
     VisualDesc visual;

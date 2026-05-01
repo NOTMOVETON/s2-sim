@@ -1,7 +1,6 @@
 #pragma once
 
-#include <s2/agent.hpp>
-#include <s2/actor.hpp>
+#include <s2/world.hpp>
 #include <s2/sim_bus.hpp>
 #include <s2/zone.hpp>
 #include <functional>
@@ -38,7 +37,14 @@ public:
     void add_zone(Zone zone);
 
     /**
-     * @brief Основной тик системы зон.
+     * @brief Основной тик системы зон (SimWorld-версия, используется SimEngine).
+     *
+     * Делегирует в vector-версию tick().
+     */
+    void tick(SimWorld& world, SimBus& bus, double sim_time, double dt);
+
+    /**
+     * @brief Основной тик системы зон (vector-версия, используется тестами).
      *
      * Порядок:
      *  1. Обновить позиции attached-зон.
@@ -51,12 +57,8 @@ public:
      * @param sim_time Текущее симуляционное время
      * @param dt       Шаг тика
      */
-    void tick(
-        std::vector<Agent>& agents,
-        const std::vector<Actor>& actors,
-        SimBus& bus,
-        double sim_time,
-        double dt);
+    void tick(std::vector<Agent>& agents, const std::vector<Actor>& actors,
+              SimBus& bus, double sim_time, double dt);
 
     // ── Kernel Commands ──────────────────────────────────────────────────────
 

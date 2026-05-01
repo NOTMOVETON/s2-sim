@@ -153,13 +153,13 @@ public:
 
     /**
      * @brief Агент появился в симуляции (spawn или первая загрузка сцены).
-     * Вызывается после initialize(). В Phase 2 сигнатура изменится на Entity&.
+     * Вызывается после initialize(). Agent = AgentData (Phase 2 alias).
      */
     virtual void on_spawn(Agent& agent) { (void)agent; }
 
     /**
      * @brief Агент удалён из симуляции.
-     * В Phase 2 сигнатура изменится на Entity&.
+     * Agent = AgentData (Phase 2 alias).
      */
     virtual void on_despawn(Agent& agent) { (void)agent; }
 

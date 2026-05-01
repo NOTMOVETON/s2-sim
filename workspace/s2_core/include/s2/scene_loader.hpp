@@ -46,9 +46,9 @@ struct SceneData {
     Heightmap heightmap;
     GeoOrigin geo_origin;    ///< Начальная LLA точка сцены
     std::vector<WorldPrimitive> geometry;
-    std::vector<Agent> agents;
-    std::vector<Prop> props;
-    std::vector<Actor> actors;
+    std::vector<AgentData> agents;
+    std::vector<PropData>  props;
+    std::vector<ActorData> actors;
     std::vector<Zone> zones;
 };
 
@@ -164,6 +164,41 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
                     for (const auto& cap : caps) {
                         agent.capabilities.insert(cap.as<std::string>());
                     }
+                }
+            }
+
+            // Enabled / entity fields
+            agent.entity_type = EntityType::AGENT;
+            agent.enabled = agent_node["enabled"].as<bool>(true);
+
+            // Transport → tags
+            if (agent_node["transport"]) {
+                agent.tags["transport_type"] = agent_node["transport"].as<std::string>("ros2");
+                if (agent_node["ros2"] && agent_node["ros2"]["domain_id"]) {
+                    agent.tags["transport_domain_id"] =
+                        std::to_string(agent_node["ros2"]["domain_id"].as<int>(0));
+                } else {
+                    agent.tags["transport_domain_id"] = "0";
+                }
+            } else {
+                // Backward compat: поле transport отсутствует
+                agent.tags["transport_type"] = "ros2";
+                int did = agent_node["domain_id"].as<int>(0);
+                agent.tags["transport_domain_id"] = std::to_string(did);
+            }
+
+            // Произвольные теги
+            if (agent_node["tags"] && agent_node["tags"].IsMap()) {
+                for (const auto& kv : agent_node["tags"]) {
+                    agent.tags[kv.first.as<std::string>()] =
+                        kv.second.as<std::string>();
+                }
+            }
+
+            // Иммунитеты к эффектам
+            if (agent_node["immune_to_effects"] && agent_node["immune_to_effects"].IsSequence()) {
+                for (const auto& eff : agent_node["immune_to_effects"]) {
+                    agent.immune_to_effects.insert(eff.as<std::string>());
                 }
             }
 
@@ -289,8 +324,12 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
     if (const auto& props = root["s2"]["props"]) {
         ObjectId id = 0;
         for (const auto& prop_node : props) {
-            Prop prop;
+            PropData prop;
             prop.id = id++;
+
+            if (prop_node["name"]) {
+                prop.name = prop_node["name"].as<std::string>();
+            }
 
             if (prop_node["type"]) {
                 prop.type = prop_node["type"].as<std::string>();
@@ -312,6 +351,22 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
                 prop.visual = parse_visual(prop_node["visual"]);
             }
 
+            prop.entity_type = EntityType::PROP;
+            prop.enabled = prop_node["enabled"].as<bool>(true);
+
+            if (prop_node["tags"] && prop_node["tags"].IsMap()) {
+                for (const auto& kv : prop_node["tags"]) {
+                    prop.tags[kv.first.as<std::string>()] =
+                        kv.second.as<std::string>();
+                }
+            }
+
+            if (prop_node["immune_to_effects"] && prop_node["immune_to_effects"].IsSequence()) {
+                for (const auto& eff : prop_node["immune_to_effects"]) {
+                    prop.immune_to_effects.insert(eff.as<std::string>());
+                }
+            }
+
             scene.props.push_back(std::move(prop));
         }
     }
@@ -320,7 +375,7 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
     if (const auto& actors = root["s2"]["actors"]) {
         ActorId id = 0;
         for (const auto& actor_node : actors) {
-            Actor actor;
+            ActorData actor;
             actor.id = id++;
 
             if (actor_node["name"]) {
@@ -333,6 +388,22 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
 
             if (actor_node["visual"]) {
                 actor.visual = parse_visual(actor_node["visual"]);
+            }
+
+            actor.entity_type = EntityType::ACTOR;
+            actor.enabled = actor_node["enabled"].as<bool>(true);
+
+            if (actor_node["tags"] && actor_node["tags"].IsMap()) {
+                for (const auto& kv : actor_node["tags"]) {
+                    actor.tags[kv.first.as<std::string>()] =
+                        kv.second.as<std::string>();
+                }
+            }
+
+            if (actor_node["immune_to_effects"] && actor_node["immune_to_effects"].IsSequence()) {
+                for (const auto& eff : actor_node["immune_to_effects"]) {
+                    actor.immune_to_effects.insert(eff.as<std::string>());
+                }
             }
 
             scene.actors.push_back(std::move(actor));

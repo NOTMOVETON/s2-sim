@@ -8,7 +8,7 @@
 
 **v1.0 Architecture Migration** (v1.0.0)
 Status: In progress
-Phases: 0 of 13 complete
+Phases: 2 of 13 complete
 
 ## Milestones
 
@@ -28,7 +28,7 @@ Phases: 0 of 13 complete
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 1 | Plugin Lifecycle | 1 | ✅ Complete | 2026-04-28 |
-| 2 | Unified Entity Model | 1 | Not started | - |
+| 2 | Unified Entity Model | 2 | ✅ Complete | 2026-05-02 |
 | 3 | KernelCommands Queue | 1 | Not started | - |
 | 4 | REST API + IVizAdapter | 1 | Not started | - |
 | 5 | IActorBehavior + BehaviorRegistry | 1 | Not started | - |
@@ -80,7 +80,8 @@ Phases: 0 of 13 complete
 - Тесты: Entity создаётся с правильными слоями; Props без SharedState; YAML загружается
 
 **Plans:**
-- [ ] 02-01: Unified Entity model
+- [x] 02-01: Unified Entity model (entity.hpp, SimWorld Variant D, ZoneSystem dual-tick)
+- [x] 02-02: SceneLoader YAML + role() enforcement + тесты
 
 ---
 
@@ -354,4 +355,4 @@ Phases: 0 of 13 complete
 
 ---
 *Roadmap created: 2026-04-27*
-*Last updated: 2026-04-27*
+*Last updated: 2026-05-02*

@@ -2,36 +2,8 @@
 
 /**
  * @file actor.hpp
- * Структура актора — активного неагентного объекта.
- *
- * Actor — это дверь, лифт, пешеход и т.д.
- * Имеет конечный автомат (FSM), состояние которого меняется.
+ * Переадресация к unified entity model (Phase 2).
+ * Actor и ActorData определены в entity.hpp.
  */
 
-#include <s2/types.hpp>
-
-#include <string>
-
-namespace s2
-{
-
-/**
- * @brief Активный неагентный объект — дверь, лифт, конвейер.
- *
- * Имеет FSM (конечный автомат), состояние которого меняется.
- * Пока минимальный — без FSM, только текущее состояние.
- */
-struct Actor
-{
-  ActorId id{0};                           ///< Уникальный идентификатор актора
-  std::string name;                        ///< Человекочитаемое имя
-  Pose3D world_pose;                       ///< Поза в мировых координатах
-  ActorState current_state;                ///< Текущее состояние FSM
-
-  CollisionShape collision;               ///< Коллизионное описание
-  VisualDesc visual;                       ///< Визуальное описание
-
-  // FSM добавится в задаче 07
-};
-
-} // namespace s2
+#include <s2/entity.hpp>

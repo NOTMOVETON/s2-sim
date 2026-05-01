@@ -31,6 +31,11 @@ void ZoneSystem::add_zone(Zone zone)
     zones_.push_back(std::move(zone));
 }
 
+void ZoneSystem::tick(SimWorld& world, SimBus& bus, double sim_time, double dt)
+{
+    tick(world.agents(), world.actors(), bus, sim_time, dt);
+}
+
 void ZoneSystem::tick(
     std::vector<Agent>& agents,
     const std::vector<Actor>& actors,
@@ -38,6 +43,7 @@ void ZoneSystem::tick(
     double sim_time,
     double dt)
 {
+
     // === Шаг 1: Обновить позиции attached-зон ===
     for (auto& zone : zones_) {
         if (zone.attached_to_actor.has_value()) {
@@ -213,6 +219,7 @@ void ZoneSystem::on_agent_enter(Agent& agent, Zone& zone, SimBus& bus,
         ctx.zone_id        = zone.id;
         ctx.zone_center    = zone.shape.center;
         ctx.zone_half_size = zone.shape.half_size;
+        ctx.entity_id      = agent.id;
         ctx.agent_id       = agent.id;
         ctx.agent_position = agent.world_pose.position();
 
@@ -234,6 +241,7 @@ void ZoneSystem::on_agent_exit(Agent& agent, Zone& zone, SimBus& bus)
         ctx.zone_id        = zone.id;
         ctx.zone_center    = zone.shape.center;
         ctx.zone_half_size = zone.shape.half_size;
+        ctx.entity_id      = agent.id;
         ctx.agent_id       = agent.id;
         ctx.agent_position = agent.world_pose.position();
 
@@ -257,6 +265,7 @@ void ZoneSystem::apply_active_effects(Agent& agent, Zone& zone,
         ctx.zone_id        = zone.id;
         ctx.zone_center    = zone.shape.center;
         ctx.zone_half_size = zone.shape.half_size;
+        ctx.entity_id      = agent.id;
         ctx.agent_id       = agent.id;
         ctx.agent_position = agent.world_pose.position();
 

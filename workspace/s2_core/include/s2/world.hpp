@@ -4,8 +4,9 @@
  * @file world.hpp
  * SimWorld — контейнер для всех сущностей симуляции.
  *
- * Хранит агентов, пропы, акторов и статическую геометрию мира.
- * SimEngine владеет SimWorld и оперирует его содержимым в тиковом цикле.
+ * Variant D: три типизированных вектора (cache-friendly для тикового цикла)
+ * + четыре index-map для O(1) lookup по EntityId.
+ * swap-and-pop при despawn — без инвалидации итераторов других типов.
  */
 
 #include <s2/agent.hpp>
@@ -14,8 +15,10 @@
 #include <s2/heightmap.hpp>
 #include <s2/zone.hpp>
 
-#include <vector>
+#include <optional>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace s2
 {
@@ -27,208 +30,176 @@ namespace s2
  * Типы: "box", "cylinder", "sphere".
  */
 struct WorldPrimitive {
-    std::string type;       ///< Тип фигуры: "box", "cylinder", "sphere"
-    Pose3D pose;            ///< Позиция и ориентация примитива
-    Vec3 size{1, 1, 1};     ///< Для box: размеры по X, Y, Z
-    double radius{0.5};     ///< Для sphere/cylinder: радиус
-    double height{1.0};     ///< Для cylinder: высота
-    std::string color{ "#808080" }; ///< Цвет для визуализации
+    std::string type;
+    Pose3D pose;
+    Vec3 size{1, 1, 1};
+    double radius{0.5};
+    double height{1.0};
+    std::string color{ "#808080" };
 };
 
 /**
  * @brief Контейнер для всех сущностей симуляции.
  *
- * SimWorld — это «сцена» симуляции. Содержит:
- *  - Агентов (управляемые роботы)
- *  - Пропы (пассивные объекты: ящики, бочки)
- *  - Акторов (активные неагентные объекты: двери, лифты)
- *
- * SimEngine владеет SimWorld и проходит по его содержимому каждый тик.
+ * Хранение: Variant D — три contiguous-вектора + 4 unordered_map для O(1) lookup.
+ * Итерация по типу: agents()/actors()/props() — cache-friendly.
+ * Поиск по EntityId: get_agent/get_actor/get_prop — O(1).
  */
 class SimWorld
 {
 public:
-  /**
-   * @brief Добавить агента в мир.
-   * @param agent Описание агента
-   */
-  void add_agent(Agent agent)
-  {
-    agents_.push_back(std::move(agent));
-  }
+    // ── Добавление ──────────────────────────────────────────────────────────
 
-  /**
-   * @brief Добавить пассивный объект в мир.
-   * @param prop Описание объекта
-   */
-  void add_prop(Prop prop)
-  {
-    props_.push_back(std::move(prop));
-  }
-
-  /**
-   * @brief Добавить актора в мир.
-   * @param actor Описание актора
-   */
-  void add_actor(Actor actor)
-  {
-    actors_.push_back(std::move(actor));
-  }
-
-  /**
-   * @brief Найти агента по идентификатору.
-   * @param id Идентификатор агента
-   * @return Указатель на агента или nullptr если не найден
-   */
-  Agent* get_agent(AgentId id)
-  {
-    for (auto& agent : agents_)
+    void add_agent(Agent agent)
     {
-      if (agent.id == id)
-        return &agent;
+        EntityId id = agent.id;
+        agent.entity_type = EntityType::AGENT;
+        entity_type_[id] = EntityType::AGENT;
+        agent_idx_[id]   = agents_.size();
+        agents_.push_back(std::move(agent));
     }
-    return nullptr;
-  }
 
-  /**
-   * @brief Найти пассивный объект по идентификатору.
-   * @param id Идентификатор объекта
-   * @return Указатель на объект или nullptr если не найден
-   */
-  Prop* get_prop(ObjectId id)
-  {
-    for (auto& prop : props_)
+    void add_actor(Actor actor)
     {
-      if (prop.id == id)
-        return &prop;
+        EntityId id = actor.id;
+        actor.entity_type = EntityType::ACTOR;
+        entity_type_[id] = EntityType::ACTOR;
+        actor_idx_[id]   = actors_.size();
+        actors_.push_back(std::move(actor));
     }
-    return nullptr;
-  }
 
-  /**
-   * @brief Найти актора по идентификатору.
-   * @param id Идентификатор актора
-   * @return Указатель на актора или nullptr если не найден
-   */
-  Actor* get_actor(ActorId id)
-  {
-    for (auto& actor : actors_)
+    void add_prop(Prop prop)
     {
-      if (actor.id == id)
-        return &actor;
+        EntityId id = prop.id;
+        prop.entity_type = EntityType::PROP;
+        entity_type_[id] = EntityType::PROP;
+        prop_idx_[id]    = props_.size();
+        props_.push_back(std::move(prop));
     }
-    return nullptr;
-  }
 
-  /**
-   * @brief Получить ссылку на вектор агентов.
-   */
-  std::vector<Agent>& agents() { return agents_; }
+    // ── O(1) lookup ─────────────────────────────────────────────────────────
 
-  /**
-   * @brief Получить константную ссылку на вектор агентов.
-   */
-  const std::vector<Agent>& agents() const { return agents_; }
-
-  /**
-   * @brief Получить ссылку на вектор пропов.
-   */
-  std::vector<Prop>& props() { return props_; }
-
-  /**
-   * @brief Получить константную ссылку на вектор пропов.
-   */
-  const std::vector<Prop>& props() const { return props_; }
-
-  /**
-   * @brief Получить ссылку на вектор акторов.
-   */
-  std::vector<Actor>& actors() { return actors_; }
-
-  /**
-   * @brief Получить константную ссылку на вектор акторов.
-   */
-  const std::vector<Actor>& actors() const { return actors_; }
-
-  /**
-   * @brief Получить ссылку на вектор статики.
-   */
-  std::vector<WorldPrimitive>& static_geometry() { return static_geometry_; }
-
-  /**
-   * @brief Получить константную ссылку на вектор статики.
-   */
-  const std::vector<WorldPrimitive>& static_geometry() const { return static_geometry_; }
-
-  /**
-   * @brief Добавить статический примитив.
-   */
-  void add_static_primitive(WorldPrimitive prim)
-  {
-    static_geometry_.push_back(std::move(prim));
-  }
-
-  /**
-   * @brief Установить heightmap.
-   */
-  void set_heightmap(Heightmap hm) { heightmap_ = std::move(hm); }
-
-  /**
-   * @brief Получить ссылку на heightmap.
-   */
-  const Heightmap& heightmap() const { return heightmap_; }
-
-  // ── Зоны ──────────────────────────────────────────────────────────────────
-
-  /**
-   * @brief Добавить зону в мир.
-   * Используется при загрузке сцены; после load_world() зоны переходят в ZoneSystem.
-   */
-  void add_zone(Zone zone)
-  {
-    zones_.push_back(std::move(zone));
-  }
-
-  /**
-   * @brief Найти зону по идентификатору.
-   * @return Указатель на зону или nullptr если не найдена
-   */
-  Zone* get_zone(const ZoneId& id)
-  {
-    for (auto& zone : zones_)
+    Agent* get_agent(EntityId id)
     {
-      if (zone.id == id)
-        return &zone;
+        auto it = agent_idx_.find(id);
+        return (it != agent_idx_.end()) ? &agents_[it->second] : nullptr;
     }
-    return nullptr;
-  }
 
-  /// Изменяемый доступ к зонам (для передачи в ZoneSystem).
-  std::vector<Zone>& zones() { return zones_; }
+    const Agent* get_agent(EntityId id) const
+    {
+        auto it = agent_idx_.find(id);
+        return (it != agent_idx_.end()) ? &agents_[it->second] : nullptr;
+    }
 
-  /// Константный доступ к зонам.
-  const std::vector<Zone>& zones() const { return zones_; }
+    Actor* get_actor(EntityId id)
+    {
+        auto it = actor_idx_.find(id);
+        return (it != actor_idx_.end()) ? &actors_[it->second] : nullptr;
+    }
 
-  // ── Проверка коллизий ─────────────────────────────────────────────────────
+    const Actor* get_actor(EntityId id) const
+    {
+        auto it = actor_idx_.find(id);
+        return (it != actor_idx_.end()) ? &actors_[it->second] : nullptr;
+    }
 
-  /**
-   * @brief Проверить коллизию сферы с статикой.
-   * @param center Центр сферы
-   * @param radius Радиус сферы
-   * @return true если есть пересечение с любым примитивом
-   */
-  bool check_sphere_collision(const Vec3& center, double radius) const;
+    Prop* get_prop(EntityId id)
+    {
+        auto it = prop_idx_.find(id);
+        return (it != prop_idx_.end()) ? &props_[it->second] : nullptr;
+    }
+
+    const Prop* get_prop(EntityId id) const
+    {
+        auto it = prop_idx_.find(id);
+        return (it != prop_idx_.end()) ? &props_[it->second] : nullptr;
+    }
+
+    std::optional<EntityType> get_entity_type(EntityId id) const
+    {
+        auto it = entity_type_.find(id);
+        if (it == entity_type_.end()) return std::nullopt;
+        return it->second;
+    }
+
+    // ── Despawn: swap-and-pop ────────────────────────────────────────────────
+
+    void remove_agent(EntityId id)
+    {
+        auto it = agent_idx_.find(id);
+        if (it == agent_idx_.end()) return;
+        size_t idx  = it->second;
+        size_t last = agents_.size() - 1;
+        if (idx != last) {
+            std::swap(agents_[idx], agents_[last]);
+            agent_idx_[agents_[idx].id] = idx;
+        }
+        agents_.pop_back();
+        agent_idx_.erase(id);
+        entity_type_.erase(id);
+    }
+
+    // ── Итерация ────────────────────────────────────────────────────────────
+
+    std::vector<Agent>&        agents()        { return agents_; }
+    const std::vector<Agent>&  agents()  const { return agents_; }
+    std::vector<Actor>&        actors()        { return actors_; }
+    const std::vector<Actor>&  actors()  const { return actors_; }
+    std::vector<Prop>&         props()         { return props_; }
+    const std::vector<Prop>&   props()   const { return props_; }
+
+    // ── Статика и heightmap ──────────────────────────────────────────────────
+
+    std::vector<WorldPrimitive>& static_geometry()       { return static_geometry_; }
+    const std::vector<WorldPrimitive>& static_geometry() const { return static_geometry_; }
+
+    void add_static_primitive(WorldPrimitive prim)
+    {
+        static_geometry_.push_back(std::move(prim));
+    }
+
+    void set_heightmap(Heightmap hm) { heightmap_ = std::move(hm); }
+    const Heightmap& heightmap() const { return heightmap_; }
+
+    // ── Зоны ────────────────────────────────────────────────────────────────
+
+    void add_zone(Zone zone)
+    {
+        zones_.push_back(std::move(zone));
+    }
+
+    Zone* get_zone(const ZoneId& id)
+    {
+        for (auto& zone : zones_)
+            if (zone.id == id) return &zone;
+        return nullptr;
+    }
+
+    std::vector<Zone>& zones()             { return zones_; }
+    const std::vector<Zone>& zones() const { return zones_; }
+
+    // ── Коллизия со статикой ─────────────────────────────────────────────────
+
+    bool check_sphere_collision(const Vec3& center, double radius) const;
 
 private:
-  std::vector<Agent> agents_;
-  std::vector<Prop> props_;
-  std::vector<Actor> actors_;
-  std::vector<Zone> zones_;
-  std::vector<WorldPrimitive> static_geometry_;
-  Heightmap heightmap_ = Heightmap::flat(40.0, 40.0);  // default: плоский мир 40x40
+    // Variant D: per-type contiguous storage
+    std::vector<Agent> agents_;
+    std::vector<Actor> actors_;
+    std::vector<Prop>  props_;
+
+    // Unified O(1) index maps
+    std::unordered_map<EntityId, EntityType> entity_type_;
+    std::unordered_map<EntityId, size_t>     agent_idx_;
+    std::unordered_map<EntityId, size_t>     actor_idx_;
+    std::unordered_map<EntityId, size_t>     prop_idx_;
+
+    std::vector<Zone>          zones_;
+    std::vector<WorldPrimitive> static_geometry_;
+    Heightmap heightmap_ = Heightmap::flat(40.0, 40.0);
 };
 
-// ─── Inline: проверка коллизии сферы со статикой ─────────────
+// ─── Inline: проверка коллизии сферы со статикой ─────────────────────────────
 
 inline bool SimWorld::check_sphere_collision(const Vec3& center, double radius) const
 {
@@ -236,20 +207,15 @@ inline bool SimWorld::check_sphere_collision(const Vec3& center, double radius) 
     {
         if (prim.type == "box")
         {
-            // AABB-sphere тест
             double half_x = prim.size.x() / 2.0;
             double half_y = prim.size.y() / 2.0;
             double half_z = prim.size.z() / 2.0;
-
-            // Ближайшая точка на AABB к центру сферы
             double cx = std::max(prim.pose.x - half_x, std::min(center.x(), prim.pose.x + half_x));
             double cy = std::max(prim.pose.y - half_y, std::min(center.y(), prim.pose.y + half_y));
             double cz = std::max(prim.pose.z - half_z, std::min(center.z(), prim.pose.z + half_z));
-
             double dx = center.x() - cx;
             double dy = center.y() - cy;
             double dz = center.z() - cz;
-
             if (dx * dx + dy * dy + dz * dz < radius * radius)
                 return true;
         }
@@ -262,7 +228,6 @@ inline bool SimWorld::check_sphere_collision(const Vec3& center, double radius) 
             if (dist < radius + prim.radius)
                 return true;
         }
-        // Для cylinder — упрощённо как sphere (для v1 достаточно)
         else if (prim.type == "cylinder")
         {
             double dx = center.x() - prim.pose.x;

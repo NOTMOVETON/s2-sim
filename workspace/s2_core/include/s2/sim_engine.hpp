@@ -77,6 +77,21 @@ public:
   {
     world_ = std::move(world);
     save_initial_states();
+
+    // Enforcement: не более одного actuation-плагина на агента
+    for (const auto& agent : world_.agents()) {
+      int actuation_count = 0;
+      for (const auto& plugin : agent.plugins) {
+        if (plugin->role() == plugins::PluginRole::actuation)
+          ++actuation_count;
+      }
+      if (actuation_count > 1) {
+        throw std::runtime_error(
+            "Agent '" + agent.name + "': multiple actuation plugins (" +
+            std::to_string(actuation_count) + "). Max one allowed.");
+      }
+    }
+
     // Передаём статическую геометрию в систему коллизий и raycast
     collision_system_.set_static_geometry(world_.static_geometry());
     raycast_engine_.set_static_geometry(world_.static_geometry());
@@ -488,7 +503,7 @@ private:
     // Пока пусто — будет в задаче 07
 
     // === Фаза 2: Зоны (проверка входов/выходов и применение эффектов) ===
-    zone_system_.tick(world_.agents(), world_.actors(), bus_, sim_time_, dt_);
+    zone_system_.tick(world_, bus_, sim_time_, dt_);
 
     // === Фаза 3: Для каждого агента ===
     for (auto& agent : world_.agents())

@@ -18,6 +18,7 @@
 #include <s2/kernel_command.hpp>
 #include <s2/raycast_engine.hpp>
 #include <s2/sim_bus.hpp>
+#include <s2/viz_adapter.hpp>
 #include <s2/world.hpp>
 #include <s2/world_snapshot.hpp>
 #include <s2/zone_system.hpp>
@@ -31,9 +32,6 @@
 
 namespace s2
 {
-
-// Forward declare — VizServer определён в s2_visualizer
-class VizServer;
 
 /**
  * @brief Главный движок симуляции.
@@ -133,10 +131,10 @@ public:
   }
 
   /**
-   * @brief Установить указатель на визуализатор (не владеет).
-   * @param viz Указатель на VizServer
+   * @brief Установить указатель на адаптер визуализации (не владеет).
+   * @param viz Указатель на IVizAdapter
    */
-  void set_viz_server(VizServer* viz) { viz_server_ = viz; }
+  void set_viz_adapter(IVizAdapter* viz) { viz_adapter_ = viz; }
 
   /**
    * @brief Установить callback, вызываемый после каждого тика симуляции.
@@ -500,7 +498,7 @@ private:
     if (paused_) {
       viz_timer_ += dt_;
       double viz_interval = config_.viz_rate > 0 ? 1.0 / config_.viz_rate : 0.0;
-      if (viz_server_ && viz_interval > 0 && viz_timer_ >= viz_interval) {
+      if (viz_adapter_ && viz_interval > 0 && viz_timer_ >= viz_interval) {
         viz_timer_ -= viz_interval;
         publish_viz();
       }
@@ -724,7 +722,7 @@ private:
     // === Фаза 5: Snapshot + Viz publish ===
     viz_timer_ += dt_;
     double viz_interval = config_.viz_rate > 0 ? 1.0 / config_.viz_rate : 0.0;
-    if (viz_server_ && viz_interval > 0 && viz_timer_ >= viz_interval) {
+    if (viz_adapter_ && viz_interval > 0 && viz_timer_ >= viz_interval) {
       viz_timer_ -= viz_interval;
       publish_viz();
     }
@@ -740,11 +738,10 @@ private:
     }
   }
 
-  /**
-   * @brief Опубликовать снапшот визуализатору (вызывается из tick).
-   *   Определён в .cpp файле s2_visualizer для доступа к полному типу VizServer.
-   */
-  void publish_viz();
+  void publish_viz() {
+    if (!viz_adapter_) return;
+    viz_adapter_->publish(build_snapshot());
+  }
 
   Config config_;
   SimWorld world_;
@@ -768,7 +765,7 @@ private:
   EffectFactory             effect_factory_;  ///< Фабрика плагинов эффектов (задаётся до load_world)
   CommandQueue          command_queue_;    ///< Потокобезопасная очередь команд (PHASE 0)
 
-  VizServer* viz_server_ = nullptr;
+  IVizAdapter* viz_adapter_ = nullptr;
   double viz_timer_{0.0};
 
   PostTickCallback post_tick_cb_;

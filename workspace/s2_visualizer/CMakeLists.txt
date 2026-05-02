@@ -1,7 +1,8 @@
 add_executable(s2_sim
     src/viz_server.cpp
+    src/web_viz_adapter.cpp
+    src/rest_api_server.cpp
     src/main.cpp
-    src/sim_engine_viz_impl.cpp
 )
 
 target_include_directories(s2_sim PRIVATE

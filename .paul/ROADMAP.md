@@ -8,7 +8,7 @@
 
 **v1.0 Architecture Migration** (v1.0.0)
 Status: In progress
-Phases: 3 of 13 complete
+Phases: 4 of 13 complete
 
 ## Milestones
 
@@ -30,7 +30,7 @@ Phases: 3 of 13 complete
 | 1 | Plugin Lifecycle | 1 | ✅ Complete | 2026-04-28 |
 | 2 | Unified Entity Model | 2 | ✅ Complete | 2026-05-02 |
 | 3 | KernelCommands Queue | 1 | ✅ Complete | 2026-05-02 |
-| 4 | REST API + IVizAdapter | 1 | Not started | - |
+| 4 | REST API + IVizAdapter | 2 | ✅ Complete | 2026-05-02 |
 | 5 | IActorBehavior + BehaviorRegistry | 1 | Not started | - |
 | 6 | EffectPlugin Trigger×Action | 1 | Not started | - |
 | 7 | SharedState Revision | 1 | Not started | - |
@@ -132,7 +132,8 @@ Phases: 3 of 13 complete
 - Тесты: REST команды применяются; viz публикует снапшот
 
 **Plans:**
-- [ ] 04-01: REST API + IVizAdapter
+- [x] 04-01: IVizAdapter abstraction (WebVizAdapter, NullVizAdapter, VizRegistry)
+- [x] 04-02: RestApiServer + VizCommandHandler removal
 
 ---
 
@@ -355,4 +356,4 @@ Phases: 3 of 13 complete
 
 ---
 *Roadmap created: 2026-04-27*
-*Last updated: 2026-05-02 (Phase 3 complete)*
+*Last updated: 2026-05-02 (Phase 4 complete)*

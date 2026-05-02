@@ -10,21 +10,21 @@ See: .paul/PROJECT.md (updated 2026-05-02)
 ## Current Position
 
 Milestone: v1.0 Architecture Migration
-Phase: 4 of 13 (REST API + IVizAdapter) — Not started
+Phase: 5 of 13 (IActorBehavior + BehaviorRegistry) — Not started
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-05-02 — Phase 3 complete, transitioned to Phase 4
+Last activity: 2026-05-02 — Phase 4 complete (REST API + IVizAdapter)
 
 Progress:
-- Milestone v1.0: [███░░░░░░░] 23% (3/13 phases)
-- Phase 4: [░░░░░░░░░░] 0%
+- Milestone v1.0: [████░░░░░░] 31% (4/13 phases)
+- Phase 5: [░░░░░░░░░░] 0% (not started)
 - Milestone v2.0: [░░░░░░░░░░] 0% (0/14 phases)
 
 ## Loop Position
 
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Loop complete — ready for next PLAN]
+  ✓        ✓        ✓     [Phase 4 complete — ready for Phase 5]
 ```
 
 ## Accumulated Context
@@ -44,6 +44,8 @@ PLAN ──▶ APPLY ──▶ UNIFY
 | RemoveOwnEffect command | KernelCommand для удаления own_effects плагинами | Active |
 | zone.strength в EffectContext | IceModifier и подобные используют силу зоны | Active |
 | IVizAdapter отделён | VizServer → WebVizAdapter; REST отдельно | Active |
+| RestApiServer порт viz+1 | Автоматически 1938, конфигурируется через viz_config.port | Active |
+| VizServer = только SSE/статика | VizCommandHandler удалён полностью | Active |
 | ScriptedBehavior в pre_resolve | Пишет desired velocity до DiffDrive.update() | Active |
 | Entity.tags["behavior"] авто | При инициализации актора — тег из behavior.type() | Active |
 | PHASE 0 до if(paused_) guard | SetPose/ResumeSim работают даже когда sim на паузе | Active |
@@ -61,8 +63,8 @@ PLAN ──▶ APPLY ──▶ UNIFY
 ## Session Continuity
 
 Last session: 2026-05-02
-Stopped at: Phase 3 complete, loop closed, transitioned to Phase 4
-Next action: /paul:plan для Phase 4 (REST API + IVizAdapter)
+Stopped at: Phase 4 complete — REST API + IVizAdapter loop closed
+Next action: /paul:plan для Phase 5 (IActorBehavior + BehaviorRegistry)
 Resume file: .paul/ROADMAP.md
 
 ---

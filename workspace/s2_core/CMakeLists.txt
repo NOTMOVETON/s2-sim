@@ -19,7 +19,6 @@ endif()
 add_library(s2_core STATIC
     src/placeholder.cpp
     src/world_snapshot.cpp
-    src/sim_engine_viz.cpp
     src/kinematic_tree.cpp
     src/urdf_loader.cpp
     src/zone_system.cpp
@@ -67,6 +66,7 @@ add_executable(s2_core_tests
     tests/test_plugin_lifecycle.cpp
     tests/test_unified_entity.cpp
     tests/test_kernel_commands.cpp
+    tests/test_rest_api.cpp
 )
 target_link_libraries(s2_core_tests PRIVATE s2_core s2_plugins s2_transport GTest::gtest_main)
 

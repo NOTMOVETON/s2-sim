@@ -1,7 +1,6 @@
 #pragma once
 
 #include <s2/world_snapshot.hpp>
-#include <s2/world.hpp>
 #include <string>
 #include <thread>
 #include <atomic>
@@ -13,99 +12,6 @@
 #include <functional>
 
 namespace s2 {
-
-/**
- * @brief Обработчик команд от визуализатора.
- */
-struct VizCommandHandler {
-    virtual ~VizCommandHandler() = default;
-
-    virtual void on_pause() = 0;
-    virtual void on_resume() = 0;
-    virtual void on_reset() = 0;
-    virtual void on_move_agent(AgentId id, double x, double y, double yaw) = 0;
-    virtual void on_plugin_input(AgentId agent_id, const std::string& plugin_type, const std::string& json_input) = 0;
-
-    /** Обновить статическую геометрию мира (заменяет текущий список примитивов). */
-    virtual void on_update_geometry(const std::vector<WorldPrimitive>& prims) = 0;
-
-    /** Результат сохранения сцены в YAML. */
-    struct SaveSceneResult {
-        bool ok = false;
-        std::string path_or_error; ///< Путь к файлу при успехе, сообщение об ошибке при неудаче
-    };
-
-    /** Сохранить текущую сцену (геометрию) в YAML-файл на диске. */
-    virtual SaveSceneResult on_save_scene() = 0;
-
-    /**
-     * @brief Получить текущее состояние сцены (агенты + геометрия) как JSON-строку.
-     *
-     * Читает из YAML-файла сцены. Используется редактором для загрузки текущих агентов.
-     * Формат ответа: {"yaml_path":"...","agents":[...],"geometry":[...]}
-     */
-    virtual std::string on_get_scene_state() { return "{\"agents\":[],\"geometry\":[]}"; }
-
-    /**
-     * @brief Получить список URDF-файлов как JSON-строку.
-     *
-     * Сканирует директорию robots/ рядом со сценой.
-     * Формат ответа: {"files":["dozer.urdf",...]}
-     */
-    virtual std::string on_get_urdf_list() { return "{\"files\":[]}"; }
-
-    /**
-     * @brief Сохранить обновлённый список агентов в YAML-файл сцены.
-     *
-     * @param agents_json  JSON-строка: массив агентов [{"name":"robot_0",...},...]
-     */
-    virtual SaveSceneResult on_update_agents(const std::string& agents_json)
-    {
-        (void)agents_json;
-        return {false, "not implemented"};
-    }
-
-    /**
-     * @brief Получить список .yaml файлов из директории сцен.
-     *
-     * Формат ответа: {"scenes":["test_basic.yaml","test_collision.yaml",...]}
-     */
-    virtual std::string on_get_scene_list() { return "{\"scenes\":[]}"; }
-
-    /**
-     * @brief Перезагрузить симуляцию с новой сценой.
-     *
-     * Паузит движок, загружает новую сцену из файла, перезапускает.
-     * @param filename Имя файла (только basename, без пути), например "test_basic.yaml"
-     */
-    virtual SaveSceneResult on_load_scene(const std::string& filename)
-    {
-        (void)filename;
-        return {false, "not implemented"};
-    }
-
-    /**
-     * @brief Сохранить текущую сцену под новым именем.
-     *
-     * @param new_name Новое имя (без пути, с .yaml или без)
-     */
-    virtual SaveSceneResult on_save_scene_as(const std::string& new_name)
-    {
-        (void)new_name;
-        return {false, "not implemented"};
-    }
-
-    /**
-     * @brief Создать новую пустую сцену и загрузить её.
-     *
-     * @param new_name Имя новой сцены
-     */
-    virtual SaveSceneResult on_new_scene(const std::string& new_name)
-    {
-        (void)new_name;
-        return {false, "not implemented"};
-    }
-};
 
 /**
  * @brief WebSocket + HTTP сервер для визуализатора.
@@ -146,12 +52,6 @@ public:
 
     /** Отправить последний снапшот с геометрией всем SSE-клиентам (после обновления геометрии) */
     void force_broadcast_with_geometry();
-
-    /** Установить обработчик команд */
-    void set_command_handler(VizCommandHandler* handler) { command_handler_ = handler; }
-
-    /** Получить команды от визуализатора (заглушка на будущее) */
-    void poll_commands();
 
     /** Количество подключённых клиентов */
     int client_count() const;
@@ -200,8 +100,6 @@ private:
     std::vector<std::thread> sse_threads_;
 
     int server_fd_;
-
-    VizCommandHandler* command_handler_ = nullptr;
 
     // Throttle plugins_data: включать только раз в PLUGIN_DATA_INTERVAL кадров (~3Hz при 30fps)
     std::atomic<int> snap_counter_{0};

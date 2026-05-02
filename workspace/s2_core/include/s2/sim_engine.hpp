@@ -14,6 +14,8 @@
  */
 
 #include <s2/collision_system.hpp>
+#include <s2/command_queue.hpp>
+#include <s2/kernel_command.hpp>
 #include <s2/raycast_engine.hpp>
 #include <s2/sim_bus.hpp>
 #include <s2/world.hpp>
@@ -144,6 +146,12 @@ public:
    */
   using PostTickCallback = std::function<void(const SimWorld&, double /*sim_time*/)>;
   void set_post_tick_callback(PostTickCallback cb) { post_tick_cb_ = std::move(cb); }
+
+  /**
+   * @brief Поставить команду в очередь для применения в начале следующего тика.
+   * Потокобезопасно: вызывается из любого потока (REST, транспорт и т.п.).
+   */
+  void enqueue(KernelCommand cmd) { command_queue_.enqueue(std::move(cmd)); }
 
   /**
    * @brief Выполнить n тиков (для тестов).
@@ -484,6 +492,9 @@ private:
    */
   void tick()
   {
+    // === PHASE 0: KernelCommands apply ===
+    apply_commands(command_queue_.drain());
+
     // Если на паузе — не обновляем время и не двигаем агентов
     // Но всё равно отправляем снапшоты (визуализатор должен видеть paused)
     if (paused_) {
@@ -755,6 +766,7 @@ private:
   RaycastEngine         raycast_engine_;   ///< Движок лучей (инициализируется при load_world)
   ZoneSystem            zone_system_;      ///< Система зон и эффектов (инициализируется при load_world)
   EffectFactory             effect_factory_;  ///< Фабрика плагинов эффектов (задаётся до load_world)
+  CommandQueue          command_queue_;    ///< Потокобезопасная очередь команд (PHASE 0)
 
   VizServer* viz_server_ = nullptr;
   double viz_timer_{0.0};
@@ -790,6 +802,39 @@ private:
         agent.world_pose = it->second.pose;
         agent.world_velocity = it->second.velocity;
       }
+    }
+  }
+
+  /**
+   * @brief Применить набор команд из очереди (вызывается в PHASE 0 каждого тика).
+   * Вызывается только из tick() — в симуляционном потоке. Mutex не нужен.
+   */
+  void apply_commands(std::vector<KernelCommand> cmds)
+  {
+    for (auto& command : cmds) {
+      std::visit([this](auto&& c) {
+        using T = std::decay_t<decltype(c)>;
+        if constexpr (std::is_same_v<T, cmd::SetPose>) {
+          if (auto* a = world_.get_agent(c.id)) a->world_pose = c.pose;
+          else if (auto* p = world_.get_prop(c.id)) p->world_pose = c.pose;
+          else if (auto* ac = world_.get_actor(c.id)) ac->world_pose = c.pose;
+        } else if constexpr (std::is_same_v<T, cmd::SetEnabled>) {
+          if (auto* a = world_.get_agent(c.id)) a->enabled = c.enabled;
+          else if (auto* p = world_.get_prop(c.id)) p->enabled = c.enabled;
+          else if (auto* ac = world_.get_actor(c.id)) ac->enabled = c.enabled;
+        } else if constexpr (std::is_same_v<T, cmd::PauseSim>) {
+          paused_ = true;
+        } else if constexpr (std::is_same_v<T, cmd::ResumeSim>) {
+          paused_ = false;
+        } else if constexpr (std::is_same_v<T, cmd::ResetSim>) {
+          restore_initial_states();
+          sim_time_ = 0.0;
+        }
+        // SpawnEntity, DespawnEntity, AddPlugin, RemovePlugin, ConfigPlugin,
+        // SpawnZone, DespawnZone, ToggleZone, SetZoneShape, SetZoneStrength,
+        // Interact, AttachObject, DetachObject, StepSim, SetSpeed,
+        // LoadScene, SaveScene, NewScene, RemoveOwnEffect — Phase 4+ реализует
+      }, command);
     }
   }
 

@@ -7,8 +7,8 @@
     "status": "in_progress"
   },
   "phase": {
-    "number": 3,
-    "name": "KernelCommands Queue",
+    "number": 4,
+    "name": "REST API + IVizAdapter",
     "status": "not_started"
   },
   "loop": {

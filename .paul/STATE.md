@@ -10,21 +10,21 @@ See: .paul/PROJECT.md (updated 2026-05-02)
 ## Current Position
 
 Milestone: v1.0 Architecture Migration
-Phase: 3 of 13 (KernelCommands Queue) — Not started
-Plan: Ready for Phase 3
-Status: Phase 2 COMPLETE; Phase 3 next
-Last activity: 2026-05-02 — Phase 2 unified (02-01 + 02-02, 100% tests)
+Phase: 4 of 13 (REST API + IVizAdapter) — Not started
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-05-02 — Phase 3 complete, transitioned to Phase 4
 
 Progress:
-- Milestone v1.0: [██░░░░░░░░] 15% (2/13 phases)
-- Phase 2: [██████████] 100% ✅ COMPLETE
+- Milestone v1.0: [███░░░░░░░] 23% (3/13 phases)
+- Phase 4: [░░░░░░░░░░] 0%
 - Milestone v2.0: [░░░░░░░░░░] 0% (0/14 phases)
 
 ## Loop Position
 
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Phase 2 loop complete - ready for Phase 3 PLAN]
+  ✓        ✓        ✓     [Loop complete — ready for next PLAN]
 ```
 
 ## Accumulated Context
@@ -46,6 +46,9 @@ PLAN ──▶ APPLY ──▶ UNIFY
 | IVizAdapter отделён | VizServer → WebVizAdapter; REST отдельно | Active |
 | ScriptedBehavior в pre_resolve | Пишет desired velocity до DiffDrive.update() | Active |
 | Entity.tags["behavior"] авто | При инициализации актора — тег из behavior.type() | Active |
+| PHASE 0 до if(paused_) guard | SetPose/ResumeSim работают даже когда sim на паузе | Active |
+| cmd-типы в namespace s2::cmd | cmd::SetPose{} вместо длинного квалификатора | Active |
+| drain() swap под мьютексом | Мьютекс не держится во время обработки команд | Active |
 
 ### Deferred Issues
 
@@ -58,9 +61,9 @@ PLAN ──▶ APPLY ──▶ UNIFY
 ## Session Continuity
 
 Last session: 2026-05-02
-Stopped at: Phase 2 fully complete and unified (02-01 entity.hpp + SimWorld; 02-02 SceneLoader + role() + tests)
-Next action: /paul:plan для Phase 3 (KernelCommands Queue)
-Resume file: .paul/phases/02-unified-entity-model/02-02-SUMMARY.md
+Stopped at: Phase 3 complete, loop closed, transitioned to Phase 4
+Next action: /paul:plan для Phase 4 (REST API + IVizAdapter)
+Resume file: .paul/ROADMAP.md
 
 ---
 *STATE.md — Updated after every significant action*

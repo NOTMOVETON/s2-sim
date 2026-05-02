@@ -33,6 +33,7 @@
 - [x] IAgentPlugin: DiffDrive, Lidar, GNSS, IMU, Battery, Gravity, Color, JointVel
 - [x] IAgentPlugin полный lifecycle: on_reset/on_spawn/on_despawn/on_scene_load, PluginRole, provided_capabilities() — Phase 1
 - [x] Unified Entity Model: Agent/Actor/Prop flat structs, SimWorld Variant D (O(1) lookup), AgentData/PropData/ActorData, role() enforcement, SceneLoader YAML tags/transport/immune_to_effects — Phase 2
+- [x] KernelCommands Queue: std::variant<24 cmd types>, CommandQueue (mutex+swap-drain), SimEngine PHASE 0, SimBus +10 event types — Phase 3
 - [x] ZoneSystem с MODIFIER/CONTINUOUS/MUTATION эффектами
 - [x] Capabilities для matching эффектов
 - [x] ROS2 транспорт (per-agent domain_id)
@@ -94,7 +95,7 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| Milestone 1 complete | 13 фаз | 2/13 | In progress |
+| Milestone 1 complete | 13 фаз | 3/13 | In progress |
 | Milestone 2 complete | 14 фаз | 0/14 | Not started |
 | Тесты проходят после каждой фазы | 100% | — | — |
 | Визуализатор работает на новой архитектуре | да | — | — |
@@ -117,4 +118,4 @@
 
 ---
 *PROJECT.md — Updated when requirements or context change*
-*Last updated: 2026-05-02 after Phase 2*
+*Last updated: 2026-05-02 after Phase 3*

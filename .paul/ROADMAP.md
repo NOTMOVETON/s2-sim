@@ -8,7 +8,7 @@
 
 **v1.0 Architecture Migration** (v1.0.0)
 Status: In progress
-Phases: 2 of 13 complete
+Phases: 3 of 13 complete
 
 ## Milestones
 
@@ -29,7 +29,7 @@ Phases: 2 of 13 complete
 |-------|------|-------|--------|-----------|
 | 1 | Plugin Lifecycle | 1 | ✅ Complete | 2026-04-28 |
 | 2 | Unified Entity Model | 2 | ✅ Complete | 2026-05-02 |
-| 3 | KernelCommands Queue | 1 | Not started | - |
+| 3 | KernelCommands Queue | 1 | ✅ Complete | 2026-05-02 |
 | 4 | REST API + IVizAdapter | 1 | Not started | - |
 | 5 | IActorBehavior + BehaviorRegistry | 1 | Not started | - |
 | 6 | EffectPlugin Trigger×Action | 1 | Not started | - |
@@ -100,7 +100,7 @@ Phases: 2 of 13 complete
 - Тесты: команды применяются в начале следующего тика, не в середине
 
 **Plans:**
-- [ ] 03-01: KernelCommands queue
+- [x] 03-01: KernelCommands queue
 
 ---
 
@@ -355,4 +355,4 @@ Phases: 2 of 13 complete
 
 ---
 *Roadmap created: 2026-04-27*
-*Last updated: 2026-05-02*
+*Last updated: 2026-05-02 (Phase 3 complete)*

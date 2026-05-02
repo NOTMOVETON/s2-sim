@@ -123,6 +123,17 @@ struct AgentCollision
   Vec3 point;        ///< Точка столкновения в мировых координатах
 };
 
+struct EntitySpawned    { EntityId id; EntityType type; std::string name; };
+struct EntityDespawned  { EntityId id; };
+struct ZoneEntered      { EntityId entity; ZoneId zone; };
+struct ZoneExited       { EntityId entity; ZoneId zone; };
+struct GrabAttempt      { EntityId agent; ObjectId object; };
+struct GrabSucceeded    { EntityId agent; ObjectId object; std::string link; };
+struct GrabFailed       { EntityId agent; ObjectId object; std::string reason; };
+struct DamageDealt      { EntityId source; EntityId target; double amount; };
+struct SignalActivated   { std::string signal_id; EntityId source; };
+struct SignalDeactivated { std::string signal_id; EntityId source; };
+
 }  // namespace event
 
 // ============================================================================

@@ -35,6 +35,7 @@
 - [x] Unified Entity Model: Agent/Actor/Prop flat structs, SimWorld Variant D (O(1) lookup), AgentData/PropData/ActorData, role() enforcement, SceneLoader YAML tags/transport/immune_to_effects — Phase 2
 - [x] KernelCommands Queue: std::variant<24 cmd types>, CommandQueue (mutex+swap-drain), SimEngine PHASE 0, SimBus +10 event types — Phase 3
 - [x] REST API + IVizAdapter: RestApiServer (порт viz+1, 19 эндпоинтов → enqueue), IVizAdapter/WebVizAdapter/NullVizAdapter/VizRegistry, VizCommandHandler удалён — Phase 4
+- [x] IActorBehavior + BehaviorRegistry: IActorBehavior интерфейс (lifecycle+material stubs), ActorFSM утилита, WorldContext stub, BehaviorRegistry фабрика, Actor::BehaviorSlot, SceneLoader YAML-загрузка — Phase 5
 - [x] ZoneSystem с MODIFIER/CONTINUOUS/MUTATION эффектами
 - [x] Capabilities для matching эффектов
 - [x] ROS2 транспорт (per-agent domain_id)
@@ -91,12 +92,15 @@
 | Props без SharedState | Зональные эффекты бинарны для пропов; накопление → актор | 2026-04-27 | Active |
 | own_effects TTL + OWN_EFFECT_REMOVE | Постоянные эффекты удаляются зоной, плагином или по таймеру | 2026-04-27 | Active |
 | turn_rate_scale отдельно от speed_scale | Лёд может блокировать поворот без влияния на скорость | 2026-04-27 | Active |
+| Forward-declare Actor в actor_behavior.hpp | entity.hpp включает actor_behavior.hpp; избегает циклической зависимости | 2026-05-02 | Active |
+| WorldContext stub (sim_time+dt) | Phase 9 добавит WorldQuery*; не преждевременно | 2026-05-02 | Active |
+| BehaviorRegistry явный параметр (не singleton) | Тестируемость, множественные registry; SceneLoader::load() backward-compatible | 2026-05-02 | Active |
 
 ## Success Metrics
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| Milestone 1 complete | 13 фаз | 4/13 | In progress |
+| Milestone 1 complete | 13 фаз | 5/13 | In progress |
 | Milestone 2 complete | 14 фаз | 0/14 | Not started |
 | Тесты проходят после каждой фазы | 100% | — | — |
 | Визуализатор работает на новой архитектуре | да | — | — |
@@ -119,4 +123,4 @@
 
 ---
 *PROJECT.md — Updated when requirements or context change*
-*Last updated: 2026-05-02 after Phase 4*
+*Last updated: 2026-05-02 after Phase 5*

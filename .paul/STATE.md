@@ -10,21 +10,21 @@ See: .paul/PROJECT.md (updated 2026-05-02)
 ## Current Position
 
 Milestone: v1.0 Architecture Migration
-Phase: 5 of 13 (IActorBehavior + BehaviorRegistry) — Not started
+Phase: 6 of 13 (EffectPlugin Trigger×Action) — Not started
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-05-02 — Phase 4 complete (REST API + IVizAdapter)
+Last activity: 2026-05-02 — Phase 5 complete (IActorBehavior + BehaviorRegistry)
 
 Progress:
-- Milestone v1.0: [████░░░░░░] 31% (4/13 phases)
-- Phase 5: [░░░░░░░░░░] 0% (not started)
+- Milestone v1.0: [█████░░░░░] 38% (5/13 phases)
+- Phase 6: [░░░░░░░░░░] 0% (not started)
 - Milestone v2.0: [░░░░░░░░░░] 0% (0/14 phases)
 
 ## Loop Position
 
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Phase 4 complete — ready for Phase 5]
+  ✓        ✓        ✓     [Phase 5 complete — ready for Phase 6]
 ```
 
 ## Accumulated Context
@@ -51,6 +51,9 @@ PLAN ──▶ APPLY ──▶ UNIFY
 | PHASE 0 до if(paused_) guard | SetPose/ResumeSim работают даже когда sim на паузе | Active |
 | cmd-типы в namespace s2::cmd | cmd::SetPose{} вместо длинного квалификатора | Active |
 | drain() swap под мьютексом | Мьютекс не держится во время обработки команд | Active |
+| Forward-declare Actor в actor_behavior.hpp | Разрыв цикл. зависимости entity.hpp↔actor_behavior.hpp | Active |
+| WorldContext stub (sim_time+dt) | Phase 9 добавит WorldQuery*; API стабилен | Active |
+| BehaviorRegistry явный параметр | Не singleton; SceneLoader::load() backward-compatible | Active |
 
 ### Deferred Issues
 
@@ -63,8 +66,8 @@ PLAN ──▶ APPLY ──▶ UNIFY
 ## Session Continuity
 
 Last session: 2026-05-02
-Stopped at: Phase 4 complete — REST API + IVizAdapter loop closed
-Next action: /paul:plan для Phase 5 (IActorBehavior + BehaviorRegistry)
+Stopped at: Phase 5 complete — loop closed
+Next action: /paul:plan для Phase 6 (EffectPlugin Trigger×Action)
 Resume file: .paul/ROADMAP.md
 
 ---

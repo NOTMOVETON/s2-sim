@@ -14,6 +14,7 @@
 #include <s2/agent.hpp>
 #include <s2/zone.hpp>
 #include <s2/urdf_loader.hpp>
+#include <s2/behavior_registry.hpp>
 #include <yaml-cpp/yaml.h>
 
 #include <cmath>
@@ -63,7 +64,8 @@ public:
         const std::string& type, const YAML::Node& node)>;
 
     static SceneData load(const std::string& yaml_path,
-                          PluginFactory plugin_factory = PluginFactory{});
+                          PluginFactory plugin_factory = PluginFactory{},
+                          BehaviorRegistry* behavior_registry = nullptr);
 
 private:
     static Pose3D parse_pose(const YAML::Node& node);
@@ -78,7 +80,8 @@ private:
 // ─── Implementation ────────────────────────────────────────────────────
 
 inline SceneData SceneLoader::load(const std::string& yaml_path,
-                                   PluginFactory plugin_factory) {
+                                   PluginFactory plugin_factory,
+                                   BehaviorRegistry* behavior_registry) {
     YAML::Node root = YAML::LoadFile(yaml_path);
 
     SceneData scene;
@@ -404,6 +407,15 @@ inline SceneData SceneLoader::load(const std::string& yaml_path,
                 for (const auto& eff : actor_node["immune_to_effects"]) {
                     actor.immune_to_effects.insert(eff.as<std::string>());
                 }
+            }
+
+            if (actor_node["behavior"] && behavior_registry) {
+                auto btype = actor_node["behavior"]["type"].as<std::string>();
+                auto bcfg  = actor_node["behavior"]["config"]
+                                 ? actor_node["behavior"]["config"]
+                                 : YAML::Node{};
+                actor.behavior = behavior_registry->create(btype, bcfg);
+                actor.behavior->on_init(bcfg);
             }
 
             scene.actors.push_back(std::move(actor));

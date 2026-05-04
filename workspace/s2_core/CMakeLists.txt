@@ -67,6 +67,7 @@ add_executable(s2_core_tests
     tests/test_unified_entity.cpp
     tests/test_kernel_commands.cpp
     tests/test_rest_api.cpp
+    tests/test_actor_behavior.cpp
 )
 target_link_libraries(s2_core_tests PRIVATE s2_core s2_plugins s2_transport GTest::gtest_main)
 

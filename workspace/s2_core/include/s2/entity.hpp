@@ -20,6 +20,7 @@
 #include <s2/shared_state.hpp>
 #include <s2/kinematic_tree.hpp>
 #include <s2/plugin_base.hpp>
+#include <s2/actor_behavior.hpp>
 
 #include <map>
 #include <memory>
@@ -92,6 +93,9 @@ struct Actor
     std::vector<ZoneId> signals;       // заглушка Phase 14
     bool         enabled{true};
     std::vector<ZoneId> owned_zones;   // заглушка Phase 12
+
+    // Phase 5: BehaviorSlot
+    std::unique_ptr<IActorBehavior> behavior;
 };
 
 using ActorData = Actor;
